@@ -195,13 +195,14 @@ export default class LedgrPlugin extends Plugin {
     const saved = (await this.loadData() ?? {}) as Record<string, unknown>;
 
     // Migrate old exchangeRates format: { JPY_PHP, JPY_USD } → { rates: {...} }
-    if (saved.exchangeRates && !saved.exchangeRates.rates) {
+    const oldRates = saved.exchangeRates as Record<string, unknown> | undefined;
+    if (oldRates && !oldRates.rates) {
       saved.exchangeRates = {
         rates: {
-          JPY_PHP: saved.exchangeRates.JPY_PHP ?? 0.38,
-          JPY_USD: saved.exchangeRates.JPY_USD ?? 0.0065,
+          JPY_PHP: (oldRates.JPY_PHP as number | undefined) ?? 0.38,
+          JPY_USD: (oldRates.JPY_USD as number | undefined) ?? 0.0065,
         },
-        updatedAt: saved.exchangeRates.updatedAt ?? "",
+        updatedAt: (oldRates.updatedAt as string | undefined) ?? "",
       };
     }
 

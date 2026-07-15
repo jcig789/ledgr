@@ -110,7 +110,7 @@ export class StatementsView extends ItemView {
       const monthlyTxs: Transaction[][] = await Promise.all(
         months.map((m) => readMonthTransactions(this.app, this.plugin.settings, m))
       );
-      const allTxs: Transaction[] = monthlyTxs.flat();
+      const allTxs: Transaction[] = ([] as Transaction[]).concat(...monthlyTxs);
       await this.renderPL(stmtWrap, allTxs, budgetConfig, fmt, fmtSigned);
     } else if (this.activeTab === "cashflow") {
       await this.renderCashFlow(stmtWrap, fmt, fmtSigned);

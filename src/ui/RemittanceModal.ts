@@ -59,7 +59,7 @@ export class RemittanceModal extends Modal {
     new Setting(contentEl)
       .setName(`Amount (${this.base})`)
       .addText((t) => {
-        t.setPlaceholder("0").setValue(this.amountFrom).onChange((v) => {
+        t.setPlaceholder("0").setValue(this.amountFrom).onChange((v): void => {
           this.amountFrom = v;
           this.recalcTo();
           this.updateToDisplay();
@@ -77,7 +77,7 @@ export class RemittanceModal extends Modal {
       .setName("Service")
       .addDropdown((d) => {
         services.forEach((s) => d.addOption(s, s));
-        d.setValue(this.service).onChange((v) => {
+        d.setValue(this.service).onChange((v): void => {
           this.service = v;
           this.fee = this.plugin.settings.transferServiceFees[v] ?? 0;
           this.recalcTo();
@@ -91,7 +91,7 @@ export class RemittanceModal extends Modal {
       .setName(`Fee (${this.base})`)
       .setDesc("Transfer fee — pre-filled from last use")
       .addText((t) =>
-        t.setValue(String(this.fee)).onChange((v) => {
+        t.setValue(String(this.fee)).onChange((v): void => {
           this.fee = parseFloat(v) || 0;
           this.recalcTo();
           this.updateToDisplay();
@@ -103,7 +103,7 @@ export class RemittanceModal extends Modal {
       .setName(`Rate (${this.base} → ${this.sec})`)
       .setDesc("Rate at time of transfer")
       .addText((t) =>
-        t.setValue(String(this.fxRate)).onChange((v) => {
+        t.setValue(String(this.fxRate)).onChange((v): void => {
           this.fxRate = parseFloat(v) || 0;
           this.recalcTo();
           this.updateToDisplay();

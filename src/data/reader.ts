@@ -47,7 +47,8 @@ export async function readAllTransactions(
   const results: Transaction[][] = await Promise.all(
     files.map((file) => readMonthTransactions(app, settings, file.name.replace(".md", "")))
   );
-  return results.flat().sort((a, b) => a.date.localeCompare(b.date));
+  const flat: Transaction[] = ([] as Transaction[]).concat(...results);
+  return flat.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function convertToBase(

@@ -67,7 +67,7 @@ export class EditTransactionModal extends Modal {
       .setName("Category")
       .addDropdown((d) => {
         Object.keys(catMap).forEach((c) => d.addOption(c, c));
-        d.setValue(this.category).onChange((v) => {
+        d.setValue(this.category).onChange((v): void => {
           this.category = v;
           this.subcategory = catMap[v]?.[0] ?? "Other";
           void this.render().catch(console.error);

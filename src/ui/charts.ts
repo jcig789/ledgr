@@ -519,7 +519,7 @@ export function renderTrendLine(
   const chartW = W - PAD.left - PAD.right;
   const chartH = H - PAD.top - PAD.bottom;
 
-  const allValues: number[] = series.flatMap((s) => s.values).filter((v) => isFinite(v));
+  const allValues: number[] = series.reduce<number[]>((acc, s) => acc.concat(s.values), []).filter((v) => isFinite(v));
   const minV = Math.min(0, ...allValues);
   const maxV = Math.max(...allValues) || 1;
   const numPoints = Math.max(...series.map((s) => s.values.length));

@@ -55,7 +55,7 @@ export class QuickCaptureModal extends Modal {
           .addOption("expense", "Expense")
           .addOption("income", "Income")
           .setValue(this.type)
-          .onChange((v) => {
+          .onChange((v): void => {
             this.type = v as TransactionType;
             const map = v === "income" ? this.catStore.income : this.catStore.expense;
             this.category = Object.keys(map)[0] ?? "Other";
@@ -91,7 +91,7 @@ export class QuickCaptureModal extends Modal {
       .setName("Category")
       .addDropdown((d) => {
         catNames.forEach((c) => d.addOption(c, c));
-        d.setValue(this.category).onChange((v) => {
+        d.setValue(this.category).onChange((v): void => {
           this.category = v;
           this.subcategory = catMap[v][0];
           // Update only subcategory dropdown
