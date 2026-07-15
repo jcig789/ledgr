@@ -54,8 +54,11 @@ export class NetWorthView extends ItemView {
     // ── Controls bar ──
     const header = contentEl.createDiv("ledgr-header");
 
+    // Single row: currencies left, actions right
+    const controlRow = header.createDiv("ledgr-controls-row");
+
     const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
-    const currencyRow = header.createDiv("ledgr-currency-row");
+    const currencyRow = controlRow.createDiv("ledgr-currency-row");
     allCurrencies.forEach((c) => {
       const btn = currencyRow.createEl("button", {
         text: c,
@@ -65,7 +68,7 @@ export class NetWorthView extends ItemView {
       btn.onclick = () => { this.viewCurrency = c; this.render(); };
     });
 
-    const btnRow = header.createDiv("ledgr-btn-row");
+    const btnRow = controlRow.createDiv("ledgr-btn-row");
     const editBtn = btnRow.createEl("button", {
       text: this.editMode ? "Save" : "Edit",
       cls: this.editMode ? "ledgr-log-btn mod-cta" : "ledgr-budget-btn",

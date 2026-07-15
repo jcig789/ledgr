@@ -188,8 +188,7 @@
   flex-direction: column;
   gap: var(--ledgr-spacing-sm);
   margin-bottom: var(--ledgr-spacing-lg);
-  /* Fixed min-height prevents content shift when controls differ between views */
-  min-height: 90px;
+  min-height: 72px; /* uniform height across Dashboard, Net Worth, Statements */
 }
 
 /* Month navigation — private bank statement header */
@@ -343,6 +342,8 @@
 .ledgr-section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--ledgr-spacing-sm);
   margin-bottom: var(--ledgr-spacing-md);
   border-left: 1px solid var(--ledgr-accent);
   padding-left: var(--ledgr-spacing-sm);
@@ -1600,6 +1601,16 @@
   letter-spacing: 0.04em;
 }
 
+/* ─── Controls row: currency left, actions right ────────────────────── */
+.ledgr-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ledgr-spacing-sm);
+  flex-wrap: wrap;
+}
+
+
 /* ─── Net Worth Visuals ──────────────────────────────────────────────── */
 .ledgr-nw-visuals {
   display: flex;
@@ -1608,6 +1619,8 @@
   margin-bottom: var(--ledgr-spacing-lg);
   padding-bottom: var(--ledgr-spacing-lg);
   border-bottom: 1px solid var(--ledgr-rule);
+  overflow: hidden;
+  min-width: 0;
 }
 
 /* Donut takes fixed width, bars fill remaining */
@@ -1644,9 +1657,10 @@
 
 .ledgr-nw-bar-row {
   display: grid;
-  grid-template-columns: minmax(80px, 120px) 1fr auto;
+  grid-template-columns: minmax(60px, 100px) 1fr minmax(70px, auto);
   align-items: center;
   gap: var(--ledgr-spacing-sm);
+  overflow: hidden;
 }
 
 .ledgr-nw-bar-label {
@@ -1971,6 +1985,34 @@
   text-align: right;
 }
 
+/* Budget grid — single CSS grid ensures header + rows share identical column widths */
+.ledgr-stmt-budget-grid {
+  display: grid;
+  grid-template-columns: 1fr minmax(90px, auto) minmax(90px, auto) minmax(90px, auto);
+  gap: 0 var(--ledgr-spacing-sm);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-stmt-budget-cell {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--color-base-15);
+  font-size: var(--ledgr-font-body);
+  display: flex;
+  align-items: center;
+}
+
+.ledgr-stmt-budget-name {
+  color: var(--ledgr-text);
+}
+
+.ledgr-stmt-budget-total {
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  border-top: 1px solid var(--ledgr-rule);
+  border-bottom: none;
+}
+
 /* 4-col subtotal row — underline only on first amount column */
 .ledgr-stmt-subtotal-4col {
   font-weight: 600;
@@ -2173,6 +2215,16 @@
 
   .ledgr-remit-stats {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ledgr-controls-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ledgr-controls-row .ledgr-btn-row {
+    width: 100%;
+    flex-wrap: wrap;
   }
 
   .ledgr-summary-row {

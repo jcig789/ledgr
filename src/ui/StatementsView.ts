@@ -153,48 +153,49 @@ export class StatementsView extends ItemView {
     const hasBudgets = Object.keys(budgetConfig.limits).length > 0;
 
     if (hasBudgets) {
-      const colHeader = expSection.createDiv("ledgr-stmt-col-header");
-      colHeader.createEl("span", { text: "" });
-      colHeader.createEl("span", { text: "Actual", cls: "ledgr-stmt-col-hdr" });
-      colHeader.createEl("span", { text: "Budget", cls: "ledgr-stmt-col-hdr" });
-      colHeader.createEl("span", { text: "Variance", cls: "ledgr-stmt-col-hdr" });
-    }
+      // Use a single CSS grid table so header + rows share the same column widths
+      const grid = expSection.createDiv("ledgr-stmt-budget-grid");
 
-    Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
-      const budgetRaw = budgetConfig.limits[cat];
-      const budget = budgetRaw
-        ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
-        : undefined;
+      // Header row
+      grid.createEl("span", { text: "", cls: "ledgr-stmt-budget-cell" });
+      grid.createEl("span", { text: "Actual", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
+      grid.createEl("span", { text: "Budget", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
+      grid.createEl("span", { text: "Variance", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
 
-      if (hasBudgets && budget !== undefined) {
-        // CPA convention: expenses shown as positive numbers; variance = budget - actual
-        // Positive variance = under budget (favorable); negative = over budget (unfavorable)
+      Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
+        const budgetRaw = budgetConfig.limits[cat];
+        const budget = budgetRaw
+          ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
+          : undefined;
         const actual = amt as number;
-        const variance = budget - actual;
-        const row = expSection.createDiv("ledgr-stmt-line ledgr-stmt-line-4col");
-        row.createEl("span", { text: cat });
-        row.createEl("span", { text: fmt(actual) as string, cls: "ledgr-stmt-amt" });
-        row.createEl("span", { text: fmt(budget) as string, cls: "ledgr-stmt-amt ledgr-text-faint" });
-        // Variance: positive = under budget (good), negative = over budget (bad)
-        // Show as +X or (X) with color only — no F/U suffixes
-        row.createEl("span", {
-          text: variance >= 0 ? `+${fmt(variance)}` : `(${fmt(Math.abs(variance))})`,
-          cls: `ledgr-stmt-amt ${variance >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
-        });
-      } else {
-        this.stmtLine(expSection, cat, fmt(amt as number) as string);
-      }
-    });
-    // Total Expenses — spans full width in both layouts
-    if (hasBudgets) {
-      const totalRow = expSection.createDiv("ledgr-stmt-line ledgr-stmt-line-4col ledgr-stmt-subtotal-4col");
-      totalRow.createEl("span", { text: "Total Expenses" });
-      totalRow.createEl("span", { text: fmt(summary.totalExpenses) as string, cls: "ledgr-stmt-amt" });
-      totalRow.createEl("span", { cls: "ledgr-stmt-amt" });
-      totalRow.createEl("span", { cls: "ledgr-stmt-amt" });
+
+        grid.createEl("span", { text: cat, cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-name" });
+        grid.createEl("span", { text: fmt(actual) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt" });
+
+        if (budget !== undefined) {
+          const variance = budget - actual;
+          grid.createEl("span", { text: fmt(budget) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-text-faint" });
+          grid.createEl("span", {
+            text: variance >= 0 ? `+${fmt(variance)}` : `(${fmt(Math.abs(variance))})`,
+            cls: `ledgr-stmt-budget-cell ledgr-stmt-amt ${variance >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
+          });
+        } else {
+          grid.createEl("span", { text: "—", cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-text-faint" });
+          grid.createEl("span", { text: "—", cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-text-faint" });
+        }
+      });
+
+      // Total row inside the same grid
+      grid.createEl("span", { text: "Total Expenses", cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-total" });
+      grid.createEl("span", { text: fmt(summary.totalExpenses) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-stmt-budget-total" });
+      grid.createEl("span", { cls: "ledgr-stmt-budget-cell" });
+      grid.createEl("span", { cls: "ledgr-stmt-budget-cell" });
     } else {
-      this.stmtSubtotal(expSection, "Total Expenses", fmt(summary.totalExpenses) as string);
+      Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
+        this.stmtLine(expSection, cat, fmt(amt as number) as string);
+      });
     }
+
 
     // Bottom totals
     const totalEl = parent.createDiv("ledgr-stmt-total");
@@ -266,7 +267,7 @@ export class StatementsView extends ItemView {
       netTd.addClass("ledgr-text-right");
       if (s.totalIncome > 0 || s.totalExpenses > 0) {
         netTd.textContent = fmtSigned(s.net) as string;
-        netTd.className = s.net >= 0 ? "ledgr-positive" : "ledgr-negative";
+        netTd.addClass(s.net >= 0 ? "ledgr-positive" : "ledgr-negative");
       } else {
         netTd.textContent = "—";
       }

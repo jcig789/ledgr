@@ -67,12 +67,12 @@ export class DashboardView extends ItemView {
     // ── Nav bar (always first, same position across all views) ──
     renderNavBar(contentEl, this.app, this.plugin, "dashboard");
 
-    // ── Controls bar (fixed structure below nav) ──
+    // ── Controls bar: Row 1 — currency left, actions right ──
     const header = contentEl.createDiv("ledgr-header");
 
-    // Row 1: currency toggle — driven by settings, not hardcoded
+    const row1 = header.createDiv("ledgr-controls-row");
     const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
-    const currencyRow = header.createDiv("ledgr-currency-row");
+    const currencyRow = row1.createDiv("ledgr-currency-row");
     allCurrencies.forEach((c) => {
       const btn = currencyRow.createEl("button", {
         text: c,
@@ -82,7 +82,21 @@ export class DashboardView extends ItemView {
       btn.onclick = async () => { this.viewCurrency = c; await this.render(); };
     });
 
-    // Row 2: month navigation
+    // Action buttons — right side
+    const btnRow = row1.createDiv("ledgr-btn-row");
+    const logBtn = btnRow.createEl("button", { text: "+ Log", cls: "ledgr-log-btn mod-cta" });
+    logBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
+    if (this.plugin.settings.enableTransferTracker) {
+      const remitBtn = btnRow.createEl("button", { text: "Log Transfer", cls: "ledgr-budget-btn" });
+      remitBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
+    }
+    const budgetBtn = btnRow.createEl("button", { text: "Budgets", cls: "ledgr-budget-btn" });
+    budgetBtn.onclick = () => new BudgetModal(this.app, this.plugin).open();
+    const configBtn = btnRow.createEl("button", { text: "Settings", cls: "ledgr-budget-btn ledgr-config-btn" });
+    configBtn.setAttribute("aria-label", "Settings");
+    configBtn.onclick = () => new ConfigModal(this.app, this.plugin).open();
+
+    // Row 2: month navigation (full width, centered)
     const monthRow = header.createDiv("ledgr-month-row");
     const prevBtn = monthRow.createEl("button", { text: "←" });
     prevBtn.setAttribute("aria-label", "Previous month");
@@ -109,20 +123,6 @@ export class DashboardView extends ItemView {
       };
     }
 
-    // Row 3: action buttons
-    const btnRow = header.createDiv("ledgr-btn-row");
-    const logBtn = btnRow.createEl("button", { text: "+ Log", cls: "ledgr-log-btn mod-cta" });
-    logBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
-    if (this.plugin.settings.enableTransferTracker) {
-      const remitBtn = btnRow.createEl("button", { text: "Log Transfer", cls: "ledgr-budget-btn" });
-      remitBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
-    }
-    const budgetBtn = btnRow.createEl("button", { text: "Budgets", cls: "ledgr-budget-btn" });
-    budgetBtn.onclick = () => new BudgetModal(this.app, this.plugin).open();
-    const configBtn = btnRow.createEl("button", { text: "Settings", cls: "ledgr-budget-btn ledgr-config-btn" });
-    configBtn.setAttribute("aria-label", "Settings");
-    configBtn.onclick = () => new ConfigModal(this.app, this.plugin).open();
-
     // Row 4: exchange rate staleness banner (conditional)
     const rates = this.plugin.settings.exchangeRates;
     if (!rates.updatedAt || window.moment().diff(window.moment(rates.updatedAt), "days") > 7) {
@@ -139,11 +139,6 @@ export class DashboardView extends ItemView {
     if (transactions.length === 0 && prevTransactions.length === 0 && remittanceStore.remittances.length === 0) {
       this.renderFirstRun(contentEl);
       return;
-    }
-
-    // Transfer widget — only shown when feature is enabled and data exists
-    if (this.plugin.settings.enableTransferTracker && remittanceStore.remittances.length > 0) {
-      this.renderRemittanceWidget(contentEl, remitSummary, remittanceStore);
     }
 
     // Summary row: cards + gauge side by side
@@ -215,6 +210,11 @@ export class DashboardView extends ItemView {
         delBtn.title = "Delete transaction";
         delBtn.onclick = () => this.handleDelete(delBtn, tr, this.currentMonth, actualIndex);
       });
+    }
+
+    // Transfer widget — below transactions
+    if (this.plugin.settings.enableTransferTracker && remittanceStore.remittances.length > 0) {
+      this.renderRemittanceWidget(contentEl, remitSummary, remittanceStore);
     }
   }
 
