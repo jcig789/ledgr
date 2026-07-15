@@ -44,7 +44,7 @@ export async function readAllTransactions(
     (!year || f.name.startsWith(year))
   );
 
-  const results = await Promise.all(
+  const results: Transaction[][] = await Promise.all(
     files.map((file) => readMonthTransactions(app, settings, file.name.replace(".md", "")))
   );
   return results.flat().sort((a, b) => a.date.localeCompare(b.date));

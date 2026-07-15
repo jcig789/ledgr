@@ -38,7 +38,7 @@ export class EditTransactionModal extends Modal {
 
   async onOpen() {
     this.catStore = await loadCategories(this.app, this.plugin.settings);
-    this.render().catch(console.error);
+    void this.render().catch(console.error);
     this.contentEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
@@ -70,7 +70,7 @@ export class EditTransactionModal extends Modal {
         d.setValue(this.category).onChange((v) => {
           this.category = v;
           this.subcategory = catMap[v]?.[0] ?? "Other";
-          this.render().catch(console.error);
+          void this.render().catch(console.error);
         });
         return d;
       });

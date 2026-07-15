@@ -34,7 +34,7 @@ export class GoalModal extends Modal {
     }
   }
 
-  onOpen() { this.render().catch(console.error); }
+  onOpen() { void this.render().catch(console.error); }
 
   async render() {
     const { contentEl } = this;

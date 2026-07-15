@@ -30,7 +30,7 @@ export class RemittanceModal extends Modal {
   }
 
   onOpen() {
-    this.render().catch(console.error);
+    void this.render().catch(console.error);
     this.contentEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
@@ -81,7 +81,7 @@ export class RemittanceModal extends Modal {
           this.service = v;
           this.fee = this.plugin.settings.transferServiceFees[v] ?? 0;
           this.recalcTo();
-          this.render().catch(console.error);
+          void this.render().catch(console.error);
         });
         return d;
       });

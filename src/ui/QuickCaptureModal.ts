@@ -33,7 +33,7 @@ export class QuickCaptureModal extends Modal {
       this.category = firstCat;
       this.subcategory = this.catStore.expense[firstCat]?.[0] ?? "Other";
     }
-    this.render();
+    void this.render();
     this.contentEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
@@ -141,7 +141,7 @@ export class QuickCaptureModal extends Modal {
   // Targeted update: only swap category dropdown options
   updateCategoryDropdowns() {
     // Re-render just category + subcategory by full render (focus is not in these fields)
-    this.render();
+    void this.render();
     window.setTimeout(() => this.amtInput?.focus(), 50);
   }
 

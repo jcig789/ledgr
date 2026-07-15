@@ -107,10 +107,10 @@ export class StatementsView extends ItemView {
       const months = Array.from({ length: 12 }, (_, i) =>
         window.moment(`${this.selectedYear}-01`).add(i, "month").format("YYYY-MM")
       );
-      const monthlyTxs = await Promise.all(
+      const monthlyTxs: Transaction[][] = await Promise.all(
         months.map((m) => readMonthTransactions(this.app, this.plugin.settings, m))
       );
-      const allTxs = monthlyTxs.flat();
+      const allTxs: Transaction[] = monthlyTxs.flat();
       await this.renderPL(stmtWrap, allTxs, budgetConfig, fmt, fmtSigned);
     } else if (this.activeTab === "cashflow") {
       await this.renderCashFlow(stmtWrap, fmt, fmtSigned);
