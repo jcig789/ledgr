@@ -191,9 +191,9 @@ export class NetWorthView extends ItemView {
       row.createEl("span", { text: a.name, cls: "ledgr-nw-bar-label" });
       const barWrap = row.createDiv("ledgr-nw-bar-track");
       const bar = barWrap.createDiv("ledgr-nw-bar-fill");
-      bar.style.backgroundColor = color; // dynamic value — cannot use static CSS class
-      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
-      window.requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; }); // dynamic value — cannot use static CSS class
+      bar.setCssStyles({ backgroundColor: color });
+      bar.setCssStyles({ width: "0%" });
+      window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${Math.round(pct)}%` }); });
       row.createEl("span", { text: this.fmt(balance), cls: "ledgr-nw-bar-amt" });
     });
   }

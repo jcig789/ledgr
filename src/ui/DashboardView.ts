@@ -428,10 +428,9 @@ export class DashboardView extends ItemView {
       }
       const barWrap = row.createDiv("ledgr-bar-wrap");
       const bar = barWrap.createDiv(`ledgr-bar${overBudget ? " ledgr-bar-over" : ""}`);
-      // Use category color for bar, red only if over budget
-      if (!overBudget) bar.style.backgroundColor = catColor; // dynamic value — cannot use static CSS class
-      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
-      window.requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; }); // dynamic value — cannot use static CSS class
+      if (!overBudget) bar.setCssStyles({ backgroundColor: catColor });
+      bar.setCssStyles({ width: "0%" });
+      window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${Math.round(pct)}%` }); });
       const amtText = budget ? `${fmt(amt)} / ${fmt(budget)}` : fmt(amt);
       row.createEl("span", { text: amtText, cls: `ledgr-cat-amt${overBudget ? " ledgr-negative" : ""}` });
     });

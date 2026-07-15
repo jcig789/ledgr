@@ -2,7 +2,7 @@
   "id": "ledgr",
   "name": "Ledgr",
   "version": "0.1.3",
-  "minAppVersion": "1.6.0",
+  "minAppVersion": "1.1.0",
   "description": "Multi-currency personal finance. Track spending, budgets, net worth, and international transfers — all in your vault.",
   "author": "jcig789",
   "authorUrl": "https://github.com/jcig789",
