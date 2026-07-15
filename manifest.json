@@ -1,0 +1,11 @@
+{
+  "id": "ledgr",
+  "name": "Ledgr",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Multi-currency personal finance for Obsidian. Track spending, budgets, net worth, and international transfers — all in your vault.",
+  "author": "jcig789",
+  "authorUrl": "https://github.com/jcig789",
+  "fundingUrl": "https://buymeacoffee.com/jcig",
+  "isDesktopOnly": false
+}

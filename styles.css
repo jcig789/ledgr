@@ -1,0 +1,2213 @@
+/* Ledgr — Old Money Design System */
+/*
+ * Design language: Private banking. Understated authority.
+ * Charcoal + warm ivory + muted gold. No gradients. No emojis.
+ * Typography: small caps labels, tabular numerals, generous whitespace.
+ */
+
+/* ─── Design tokens ──────────────────────────────────────────────────── */
+/* Scoped to all Ledgr contexts including modals */
+.ledgr-dashboard,
+.ledgr-networth,
+.ledgr-statements,
+.ledgr-quick-capture,
+.ledgr-config-modal,
+.modal-content {
+  --ledgr-accent:          #2C2C2C;
+  --ledgr-accent-muted:    #5A5A5A;
+  --ledgr-rule:            var(--color-base-30);
+  --ledgr-surface:         transparent;
+  --ledgr-surface-raised:  var(--color-base-10);
+  --ledgr-text:            var(--text-normal);
+  --ledgr-text-secondary:  var(--text-muted);
+  --ledgr-text-faint:      var(--text-faint);
+  --ledgr-green:           var(--color-green);
+  --ledgr-red:             var(--color-red);
+  --ledgr-radius-sm:       2px;
+  --ledgr-radius:          3px;
+  --ledgr-radius-md:       4px;
+  --ledgr-spacing-xs:      4px;
+  --ledgr-spacing-sm:      8px;
+  --ledgr-spacing-md:      16px;
+  --ledgr-spacing-lg:      28px;
+  --ledgr-spacing-xl:      40px;
+  --ledgr-font-label:      0.72em;
+  --ledgr-font-sm:         0.82em;
+  --ledgr-font-body:       0.9em;
+}
+
+/* Dark mode token overrides */
+.theme-dark .ledgr-dashboard,
+.theme-dark .ledgr-networth,
+.theme-dark .ledgr-statements,
+.theme-dark .ledgr-quick-capture,
+.theme-dark .ledgr-config-modal,
+.theme-dark .modal-content {
+  --ledgr-accent:         #C8BFA8;
+  --ledgr-accent-muted:   #8A8070;
+  --ledgr-rule:           var(--color-base-35);
+  --ledgr-surface-raised: var(--color-base-15);
+}
+
+/* Override Obsidian's .mod-cta (purple) inside all Ledgr surfaces */
+.ledgr-dashboard .mod-cta,
+.ledgr-networth .mod-cta,
+.ledgr-statements .mod-cta,
+.ledgr-quick-capture .mod-cta,
+.ledgr-config-modal .mod-cta,
+.modal .ledgr-quick-capture .mod-cta,
+.modal .mod-cta {
+  background-color: var(--ledgr-accent) !important;
+  color: #fff !important;
+  border-color: var(--ledgr-accent) !important;
+  border-radius: var(--ledgr-radius-md) !important;
+  box-shadow: none !important;
+}
+
+.theme-dark .ledgr-dashboard .mod-cta,
+.theme-dark .ledgr-networth .mod-cta,
+.theme-dark .modal .mod-cta {
+  color: #1a1a1a !important;
+}
+
+.modal .mod-cta:hover {
+  background-color: var(--ledgr-accent-muted) !important;
+  border-color: var(--ledgr-accent-muted) !important;
+}
+
+/* ─── Layout wrappers ────────────────────────────────────────────────── */
+.ledgr-dashboard,
+.ledgr-networth {
+  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md);
+  max-width: 860px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* ─── Navigation bar ─────────────────────────────────────────────────── */
+.ledgr-nav {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  margin-bottom: var(--ledgr-spacing-lg);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-nav-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: var(--ledgr-spacing-xs);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  border-radius: 0;
+  cursor: pointer;
+  flex: none;
+  min-height: 36px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ledgr-nav-btn:hover {
+  background: transparent;
+  border-bottom-color: var(--ledgr-accent-muted);
+}
+
+.ledgr-nav-btn.active {
+  background: transparent;
+  border-bottom-color: var(--ledgr-accent);
+  cursor: default;
+}
+
+.ledgr-nav-btn.active .ledgr-nav-label {
+  color: var(--ledgr-accent);
+  font-weight: 600;
+}
+
+.ledgr-nav-btn.active .ledgr-nav-icon {
+  filter: none;
+}
+
+.ledgr-nav-icon {
+  display: none;
+}
+
+.ledgr-nav-label {
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* Log button — right-aligned text link style */
+.ledgr-nav-log {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-left: auto;
+  padding: var(--ledgr-spacing-sm) 0 var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  flex: none;
+}
+
+.ledgr-nav-log .ledgr-nav-label {
+  color: var(--ledgr-accent-muted);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  font-size: var(--ledgr-font-sm);
+}
+
+.ledgr-nav-log:hover {
+  background: transparent;
+  border-bottom-color: transparent;
+}
+
+.ledgr-nav-log:hover .ledgr-nav-label {
+  color: var(--ledgr-accent);
+}
+
+.ledgr-nav-plus {
+  font-size: 1em;
+  font-weight: 400;
+  color: var(--ledgr-accent-muted);
+  line-height: 1;
+}
+
+/* ─── Header ─────────────────────────────────────────────────────────── */
+.ledgr-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-sm);
+  margin-bottom: var(--ledgr-spacing-lg);
+  /* Fixed min-height prevents content shift when controls differ between views */
+  min-height: 90px;
+}
+
+/* Month navigation — private bank statement header */
+.ledgr-month-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-md);
+}
+
+.ledgr-month-row button {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--ledgr-rule);
+  border-radius: 0;
+  cursor: pointer;
+  padding: 3px var(--ledgr-spacing-sm);
+  min-height: 28px;
+  min-width: 28px;
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-sm);
+  transition: color 0.15s ease;
+}
+
+.ledgr-month-row button:hover {
+  color: var(--ledgr-accent);
+  border-bottom-color: var(--ledgr-accent);
+}
+
+.ledgr-month-label {
+  font-weight: 600;
+  font-size: 1em;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text);
+}
+
+/* Currency selectors — compact text-based selectors */
+.ledgr-currency-row {
+  display: flex;
+  gap: var(--ledgr-spacing-xs);
+}
+
+.ledgr-currency-btn {
+  padding: 3px 10px;
+  border-radius: var(--ledgr-radius-sm);
+  border: 1px solid var(--ledgr-rule);
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--ledgr-font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+  letter-spacing: 0.03em;
+  min-height: 26px;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ledgr-currency-btn:hover {
+  border-color: var(--ledgr-accent-muted);
+  color: var(--ledgr-text);
+}
+
+.ledgr-currency-btn.active {
+  background: transparent;
+  color: var(--ledgr-accent);
+  border-color: var(--ledgr-accent);
+  font-weight: 600;
+}
+
+/* Log button */
+.ledgr-log-btn {
+  align-self: flex-start;
+  padding: 5px 14px;
+  border-radius: var(--ledgr-radius-md);
+  cursor: pointer;
+  font-size: var(--ledgr-font-body);
+  min-height: 30px;
+}
+
+/* ─── Summary cards ──────────────────────────────────────────────────── */
+.ledgr-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+
+.ledgr-card {
+  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md) var(--ledgr-spacing-md);
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--ledgr-accent);
+  border-left: none;
+  border-right: none;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-card-label {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  margin-bottom: var(--ledgr-spacing-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  text-transform: none;
+}
+
+.ledgr-card-value {
+  font-size: 1.45em;
+  font-weight: 500;
+  margin-bottom: var(--ledgr-spacing-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ledgr-text);
+}
+
+.ledgr-card-subtitle {
+  font-size: 0.7em;
+  color: var(--ledgr-text-faint);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+.ledgr-cards-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.ledgr-card.ledgr-sent .ledgr-card-value {
+  color: var(--ledgr-text);
+}
+
+.ledgr-card-trend {
+  font-size: var(--ledgr-font-label);
+  margin-top: var(--ledgr-spacing-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledgr-trend-good { color: var(--ledgr-green); }
+.ledgr-trend-bad  { color: var(--ledgr-red); }
+
+.ledgr-card.ledgr-income .ledgr-card-value   { color: var(--ledgr-green); }
+.ledgr-card.ledgr-expense .ledgr-card-value  { color: var(--ledgr-red); }
+.ledgr-card.ledgr-positive .ledgr-card-value { color: var(--ledgr-green); }
+.ledgr-card.ledgr-negative .ledgr-card-value { color: var(--ledgr-red); }
+.ledgr-card.ledgr-neutral .ledgr-card-value  { color: var(--ledgr-text); }
+
+/* ─── Section structure ──────────────────────────────────────────────── */
+.ledgr-section {
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+
+.ledgr-section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--ledgr-spacing-md);
+  border-left: 1px solid var(--ledgr-accent);
+  padding-left: var(--ledgr-spacing-sm);
+}
+
+.ledgr-section-header h3,
+.ledgr-section h3 {
+  margin: 0;
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  font-variant: small-caps;
+  letter-spacing: 0.1em;
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* ─── Category breakdown ─────────────────────────────────────────────── */
+.ledgr-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ledgr-breakdown-row {
+  display: grid;
+  grid-template-columns: 210px 1fr 150px;
+  align-items: center;
+  gap: 12px;
+}
+
+.ledgr-cat-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ledgr-cat-type-tag {
+  font-size: 0.65em;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: var(--ledgr-radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ledgr-cat-type-fixed {
+  color: var(--ledgr-text-faint);
+  border: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-cat-type-variable {
+  color: var(--ledgr-text-faint);
+  border: 1px solid transparent;
+}
+
+.ledgr-cat-name {
+  font-size: var(--ledgr-font-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ledgr-text);
+}
+
+.ledgr-bar-wrap {
+  background: var(--color-base-25);
+  border-radius: 0;
+  height: 4px;
+  overflow: hidden;
+}
+
+.ledgr-bar {
+  height: 100%;
+  background: var(--ledgr-accent);
+  border-radius: 0;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ledgr-bar-over {
+  background: var(--ledgr-red) !important;
+}
+
+.ledgr-cat-amt {
+  font-size: var(--ledgr-font-sm);
+  text-align: right;
+  color: var(--ledgr-text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Transaction table ──────────────────────────────────────────────── */
+.ledgr-tx-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ledgr-tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-tx-table th {
+  text-align: left;
+  padding: var(--ledgr-spacing-xs) var(--ledgr-spacing-sm);
+  border-bottom: 1px solid var(--color-base-40);
+  color: var(--ledgr-text-secondary);
+  font-weight: 500;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-size: var(--ledgr-font-label);
+  white-space: nowrap;
+}
+
+.ledgr-tx-table td {
+  padding: 10px var(--ledgr-spacing-sm);
+  border-bottom: 1px solid var(--ledgr-rule);
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Date column styling */
+.ledgr-tx-table td:first-child {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.ledgr-tx-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ledgr-tx-table tr.pending-delete td {
+  background: rgba(var(--color-red-rgb), 0.04);
+}
+
+/* ─── Badges — small caps inline, no background ──────────────────────── */
+.ledgr-badge {
+  font-size: 0.68em;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ledgr-badge-income {
+  background: transparent;
+  color: var(--ledgr-green);
+}
+
+.ledgr-badge-expense {
+  background: transparent;
+  color: var(--ledgr-red);
+}
+
+/* ─── Color utility classes ─────────────────────────────────────────── */
+.ledgr-income  { color: var(--ledgr-green); }
+.ledgr-expense { color: var(--ledgr-red); }
+.ledgr-positive { color: var(--ledgr-green); }
+.ledgr-negative { color: var(--ledgr-red); }
+
+/* ─── Buttons ────────────────────────────────────────────────────────── */
+.ledgr-btn-row {
+  display: flex;
+  gap: var(--ledgr-spacing-sm);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.ledgr-budget-btn {
+  padding: 5px 14px;
+  border-radius: var(--ledgr-radius-md);
+  border: 1px solid var(--ledgr-rule);
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--ledgr-font-body);
+  min-height: 30px;
+  color: var(--ledgr-text-secondary);
+  letter-spacing: 0.02em;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.ledgr-budget-btn:hover {
+  border-color: var(--ledgr-accent-muted);
+  color: var(--ledgr-text);
+}
+
+.ledgr-tx-actions {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ledgr-th-actions { width: 60px; }
+
+.ledgr-edit-btn {
+  background: transparent;
+  border: none;
+  color: var(--ledgr-text-faint);
+  cursor: pointer;
+  font-size: var(--ledgr-font-sm);
+  padding: 4px var(--ledgr-spacing-sm);
+  border-radius: var(--ledgr-radius-md);
+  min-height: 28px;
+  min-width: 28px;
+  opacity: 0.4;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.ledgr-edit-btn:hover {
+  opacity: 1;
+  color: var(--ledgr-accent);
+}
+
+.ledgr-chart-wrap {
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+/* Delete buttons */
+.ledgr-del-btn {
+  background: transparent;
+  border: none;
+  color: var(--ledgr-text-faint);
+  cursor: pointer;
+  font-size: var(--ledgr-font-sm);
+  padding: 4px var(--ledgr-spacing-sm);
+  border-radius: var(--ledgr-radius-md);
+  min-height: 28px;
+  min-width: 28px;
+  opacity: 0.5;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.ledgr-del-btn:hover {
+  opacity: 1;
+  color: var(--ledgr-red);
+}
+
+.ledgr-del-confirm {
+  opacity: 1 !important;
+  color: var(--ledgr-red) !important;
+  border: 1px solid var(--ledgr-red) !important;
+  border-radius: var(--ledgr-radius-md) !important;
+  font-size: 0.75em !important;
+  padding: 3px var(--ledgr-spacing-sm) !important;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* Destructive / remove buttons */
+.ledgr-remove-btn {
+  background: transparent;
+  border: 1px solid var(--ledgr-red);
+  color: var(--ledgr-red);
+  border-radius: var(--ledgr-radius-md);
+  padding: 3px 10px;
+  cursor: pointer;
+  font-size: var(--ledgr-font-sm);
+  min-height: 28px;
+  transition: background 0.15s ease;
+}
+
+.ledgr-remove-btn:hover {
+  background: rgba(var(--color-red-rgb), 0.06);
+}
+
+/* ─── Empty / meta states ─────────────────────────────────────────────── */
+.ledgr-empty-state {
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+  padding: var(--ledgr-spacing-sm) 0;
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-empty {
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+}
+
+.ledgr-meta {
+  color: var(--ledgr-text-faint);
+  font-size: var(--ledgr-font-sm);
+}
+
+.ledgr-error {
+  color: var(--ledgr-red);
+  font-size: var(--ledgr-font-sm);
+  margin: -8px 0 8px 0;
+  padding: 0 var(--ledgr-spacing-md);
+}
+
+/* ─── Inline inputs ──────────────────────────────────────────────────── */
+.ledgr-inline-input {
+  border: none;
+  border-bottom: 1px solid var(--color-base-40);
+  border-radius: 0;
+  padding: 4px var(--ledgr-spacing-xs);
+  background: transparent;
+  color: var(--ledgr-text);
+  font-size: var(--ledgr-font-body);
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+
+.ledgr-inline-input:focus {
+  border-bottom-color: var(--ledgr-accent);
+  outline: none;
+}
+
+.ledgr-inline-short { width: 80px; }
+
+/* ─── Config modal tabs ───────────────────────────────────────────────── */
+.ledgr-tab-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--ledgr-spacing-md);
+  border-bottom: 1px solid var(--ledgr-rule);
+  padding-bottom: 0;
+}
+
+.ledgr-tab-btn {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  padding: var(--ledgr-spacing-xs) var(--ledgr-spacing-md);
+  border-radius: 0;
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-body);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  min-height: 32px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ledgr-tab-btn:hover {
+  color: var(--ledgr-text);
+}
+
+.ledgr-tab-btn.active {
+  background: transparent;
+  color: var(--ledgr-accent);
+  border-bottom-color: var(--ledgr-accent);
+  font-weight: 600;
+}
+
+.ledgr-config-body {
+  padding-top: var(--ledgr-spacing-sm);
+}
+
+.ledgr-cat-block {
+  margin-bottom: var(--ledgr-spacing-md);
+  padding: 12px var(--ledgr-spacing-md);
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+}
+
+.ledgr-cat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-sub-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-sub-row {
+  display: flex;
+  gap: var(--ledgr-spacing-sm);
+  align-items: center;
+}
+
+.ledgr-config-btn {
+  font-size: var(--ledgr-font-body);
+  padding: 6px 10px;
+  min-height: 32px;
+}
+
+/* ─── Status labels ──────────────────────────────────────────────────── */
+.ledgr-stale-warning {
+  color: var(--color-yellow);
+  font-size: var(--ledgr-font-sm);
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-stale-ok {
+  color: var(--ledgr-green);
+  font-size: var(--ledgr-font-sm);
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+/* ─── First-run onboarding ───────────────────────────────────────────── */
+.ledgr-first-run {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--ledgr-spacing-xl) var(--ledgr-spacing-lg);
+  gap: var(--ledgr-spacing-md);
+}
+
+.ledgr-first-run-icon {
+  font-size: 0;
+  margin-bottom: var(--ledgr-spacing-xs);
+  width: 32px;
+  height: 1px;
+  background: var(--ledgr-accent);
+  display: block;
+}
+
+.ledgr-first-run h3 {
+  font-size: 1.2em;
+  margin: 0;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+}
+
+.ledgr-first-run p {
+  color: var(--ledgr-text-secondary);
+  max-width: 360px;
+  margin: 0;
+  font-size: var(--ledgr-font-body);
+  line-height: 1.6;
+}
+
+.ledgr-first-run-steps {
+  display: flex;
+  gap: var(--ledgr-spacing-sm);
+  margin: var(--ledgr-spacing-sm) 0;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ledgr-first-run-step {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  background: transparent;
+  border: 1px solid var(--ledgr-rule);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  border-radius: var(--ledgr-radius-md);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: 0;
+  background: transparent;
+  border: 1px solid var(--ledgr-accent);
+  color: var(--ledgr-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75em;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.ledgr-first-run-cta {
+  margin-top: var(--ledgr-spacing-sm);
+  padding: 8px 24px;
+  font-size: var(--ledgr-font-body);
+  border-radius: var(--ledgr-radius-md);
+}
+
+.ledgr-first-run-hint {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  margin: 0;
+}
+
+.ledgr-first-run-hint a {
+  color: var(--ledgr-accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid var(--ledgr-rule);
+  padding-bottom: 1px;
+  transition: border-color 0.15s ease;
+}
+
+.ledgr-first-run-hint a:hover {
+  border-bottom-color: var(--ledgr-accent);
+}
+
+/* ─── Exchange rate staleness banner ─────────────────────────────────── */
+.ledgr-rate-banner {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  padding: 6px var(--ledgr-spacing-md);
+  border-left: 2px solid var(--color-yellow);
+  margin-bottom: var(--ledgr-spacing-sm);
+  background: transparent;
+}
+
+.ledgr-rate-banner-link {
+  color: var(--ledgr-accent);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-rate-banner-link:hover {
+  border-bottom-color: var(--ledgr-accent);
+}
+
+/* ─── Remittance widget ───────────────────────────────────────────────── */
+.ledgr-remit-widget {
+  border-top: 1px solid var(--ledgr-accent);
+  border-bottom: 1px solid var(--ledgr-rule);
+  padding: var(--ledgr-spacing-md) 0;
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+
+.ledgr-remit-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+.ledgr-remit-widget-title {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-sm);
+  letter-spacing: 0.08em;
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-remit-add {
+  font-size: var(--ledgr-font-sm);
+  padding: 3px 10px;
+  min-height: 26px;
+}
+
+.ledgr-remit-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--ledgr-spacing-md);
+}
+
+.ledgr-remit-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ledgr-remit-stat-label {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-faint);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+
+.ledgr-remit-stat-jpy {
+  font-size: var(--ledgr-font-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-remit-stat-php {
+  font-size: var(--ledgr-font-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+  font-weight: 500;
+}
+
+.ledgr-remit-lifetime .ledgr-remit-stat-php {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: var(--ledgr-accent);
+}
+
+.ledgr-remit-rate {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  font-variant-numeric: tabular-nums;
+  margin: -4px 0 var(--ledgr-spacing-sm);
+}
+
+/* ─── Opex / Capex tabs ───────────────────────────────────────────────── */
+.ledgr-opex-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--ledgr-spacing-md);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-opex-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  padding: 4px var(--ledgr-spacing-md);
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-body);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  border-radius: 0;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.ledgr-opex-tab:hover { color: var(--ledgr-text); }
+
+.ledgr-opex-tab.active {
+  color: var(--ledgr-accent);
+  border-bottom-color: var(--ledgr-accent);
+  font-weight: 600;
+}
+
+.ledgr-opex-total {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--ledgr-spacing-xs) 0;
+  margin-bottom: var(--ledgr-spacing-sm);
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-opex-total-amt {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  color: var(--ledgr-text);
+}
+
+/* ─── Onboarding modal ────────────────────────────────────────────────── */
+.ledgr-onboarding {
+  max-width: 480px;
+}
+
+.ledgr-onboarding-progress {
+  display: flex;
+  gap: var(--ledgr-spacing-sm);
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+
+.ledgr-onboarding-dot {
+  width: 24px;
+  height: 2px;
+  background: var(--ledgr-rule);
+  border-radius: 0;
+  display: block;
+  transition: background 0.2s ease;
+}
+
+.ledgr-onboarding-dot.active {
+  background: var(--ledgr-accent);
+  width: 40px;
+}
+
+.ledgr-onboarding-dot.done {
+  background: var(--ledgr-accent-muted);
+}
+
+.ledgr-onboarding-sub {
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-body);
+  margin-bottom: var(--ledgr-spacing-lg);
+  line-height: 1.6;
+}
+
+.ledgr-onboarding-trust {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  margin-top: var(--ledgr-spacing-sm);
+  font-style: italic;
+}
+
+.ledgr-onboarding-examples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-xs);
+  margin: var(--ledgr-spacing-md) 0;
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+}
+
+.ledgr-onboarding-example {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text-secondary);
+  padding: 3px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-onboarding-example:last-child { border-bottom: none; }
+
+.ledgr-onboarding-example-amt {
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+}
+
+.ledgr-onboarding-cta {
+  margin-top: var(--ledgr-spacing-md);
+  width: 100%;
+  border-radius: var(--ledgr-radius-md);
+}
+
+.ledgr-onboarding-back {
+  margin-top: var(--ledgr-spacing-sm);
+  margin-right: var(--ledgr-spacing-sm);
+}
+
+.ledgr-first-run-remit {
+  margin-top: var(--ledgr-spacing-xs);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CHART SYSTEM — Old Money Edition
+   Pure SVG + CSS. No external libraries. No gradients. No animations
+   beyond a single opacity fade on mount.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Category color palette ─────────────────────────────────────────
+   10 muted, warm-earth tones. Each has a light-mode and dark-mode
+   variant defined on the same token. Dark variants are slightly
+   more saturated to read against dark surfaces.
+
+   Usage: var(--ledgr-cat-1) … var(--ledgr-cat-10)
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-dashboard,
+.ledgr-networth,
+.ledgr-config-modal,
+.modal-content {
+  /* Food & Drink  */ --ledgr-cat-1:  #7A6A55;
+  /* Transport     */ --ledgr-cat-2:  #5C7068;
+  /* Housing       */ --ledgr-cat-3:  #8A7560;
+  /* Health        */ --ledgr-cat-4:  #6B7E72;
+  /* Personal Care */ --ledgr-cat-5:  #957A6A;
+  /* Entertainment */ --ledgr-cat-6:  #6E6E80;
+  /* Social        */ --ledgr-cat-7:  #7D8A6A;
+  /* Travel        */ --ledgr-cat-8:  #7A6678;
+  /* Subscriptions */ --ledgr-cat-9:  #5A7080;
+  /* Family        */ --ledgr-cat-10: #8A7048;
+
+  /* Net worth composition segments */
+  --ledgr-seg-bank:   #7A6A55;
+  --ledgr-seg-invest: #5C7068;
+  --ledgr-seg-liab:   #8A4A4A;
+}
+
+.theme-dark .ledgr-dashboard,
+.theme-dark .ledgr-networth,
+.theme-dark .ledgr-config-modal,
+.theme-dark .modal-content {
+  --ledgr-cat-1:  #A08B72;
+  --ledgr-cat-2:  #7A9A8A;
+  --ledgr-cat-3:  #B09878;
+  --ledgr-cat-4:  #8A9E92;
+  --ledgr-cat-5:  #B89A88;
+  --ledgr-cat-6:  #9090A4;
+  --ledgr-cat-7:  #9EAE86;
+  --ledgr-cat-8:  #A08498;
+  --ledgr-cat-9:  #7896A8;
+  --ledgr-cat-10: #B09060;
+
+  --ledgr-seg-bank:   #A08B72;
+  --ledgr-seg-invest: #7A9A8A;
+  --ledgr-seg-liab:   #B07070;
+}
+
+/* ─── Donut / Ring chart ─────────────────────────────────────────────
+   Outer wrapper: fixed square. SVG fills it.
+   Center label is absolutely positioned and uses tabular numerals.
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ledgr-spacing-md);
+}
+
+/* The ring chart row: donut left, legend right */
+.ledgr-ring-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ledgr-spacing-lg);
+  width: 100%;
+}
+
+.ledgr-donut-frame {
+  position: relative;
+  flex-shrink: 0;
+  width: 160px;
+  height: 160px;
+}
+
+.ledgr-donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* start arcs at 12-o'clock */
+  overflow: visible;
+}
+
+/* Track ring — the grey backdrop circle */
+.ledgr-donut-track {
+  fill: none;
+  stroke: var(--color-base-20);
+  stroke-width: 18;
+}
+
+.theme-dark .ledgr-donut-track {
+  stroke: var(--color-base-25);
+}
+
+/* Individual arc segments */
+.ledgr-donut-arc {
+  fill: none;
+  stroke-width: 18;
+  stroke-linecap: butt; /* flat ends = precise joins */
+  opacity: 0.88;
+  transition: opacity 0.15s ease;
+}
+
+.ledgr-donut-arc:hover {
+  opacity: 1;
+}
+
+/* Center label — counter-rotated since SVG is rotated */
+.ledgr-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  gap: 1px;
+}
+
+.ledgr-donut-center-value {
+  font-size: 1.1em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ledgr-text);
+  line-height: 1;
+}
+
+.ledgr-donut-center-label {
+  font-size: 0.58em;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ledgr-text-secondary);
+  line-height: 1;
+}
+
+/* ─── Donut legend ───────────────────────────────────────────────────
+   Vertical list, right of the donut. Color swatch + label + amount.
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  padding-top: 4px;
+}
+
+.ledgr-legend-item {
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  cursor: default;
+}
+
+.ledgr-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.ledgr-legend-label {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.ledgr-legend-amt {
+  font-size: var(--ledgr-font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-faint);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ─── Net worth composition bar ──────────────────────────────────────
+   Single horizontal bar, segmented. No rounded ends except outermost.
+   Legend below with the same swatch pattern.
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-comp-bar-wrap {
+  width: 100%;
+}
+
+.ledgr-comp-bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--ledgr-radius-sm);
+  overflow: hidden;
+  width: 100%;
+  background: var(--color-base-20);
+  gap: 1px; /* hairline gap between segments */
+}
+
+.theme-dark .ledgr-comp-bar {
+  background: var(--color-base-25);
+}
+
+.ledgr-comp-seg {
+  height: 100%;
+  flex-shrink: 0;
+  opacity: 0.88;
+  transition: opacity 0.15s ease, flex-basis 0.3s ease;
+}
+
+.ledgr-comp-seg:hover {
+  opacity: 1;
+}
+
+/* First / last segments get the outer border-radius */
+.ledgr-comp-seg:first-child {
+  border-radius: var(--ledgr-radius-sm) 0 0 var(--ledgr-radius-sm);
+}
+
+.ledgr-comp-seg:last-child {
+  border-radius: 0 var(--ledgr-radius-sm) var(--ledgr-radius-sm) 0;
+}
+
+.ledgr-comp-bar-legend {
+  display: flex;
+  gap: var(--ledgr-spacing-md);
+  margin-top: var(--ledgr-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ledgr-comp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ledgr-comp-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.ledgr-comp-legend-label {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-faint);
+}
+
+.ledgr-comp-legend-amt {
+  font-size: var(--ledgr-font-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+}
+
+/* ─── Sparkline ──────────────────────────────────────────────────────
+   20×40px inline SVG. A single <path> element. No axes, no labels.
+   Used inside ledgr-cards as a trend indicator.
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-sparkline {
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.ledgr-sparkline svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.ledgr-sparkline-path {
+  fill: none;
+  stroke: var(--ledgr-accent-muted);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.7;
+}
+
+.ledgr-sparkline-path.ledgr-spark-up {
+  stroke: var(--ledgr-green);
+}
+
+.ledgr-sparkline-path.ledgr-spark-down {
+  stroke: var(--ledgr-red);
+}
+
+/* Sparkline inside a card — right-aligned, sitting next to card-value */
+.ledgr-card-value-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+}
+
+/* ─── Section: chart + breakdown side-by-side layout ────────────────
+   On wider viewports the ring chart sits left of the category list.
+   On narrow panels they stack.
+   ─────────────────────────────────────────────────────────────────── */
+.ledgr-breakdown-chart-section {
+  display: flex;
+  gap: var(--ledgr-spacing-lg);
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+
+/* On narrow panels (< 560px) stack chart above breakdown list */
+@media (max-width: 560px) {
+  .ledgr-breakdown-chart-section {
+    flex-direction: column;
+  }
+
+  .ledgr-ring-row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ledgr-donut-legend {
+    padding-top: 0;
+    width: 100%;
+  }
+}
+
+/* Summary row: cards + gauge side by side */
+.ledgr-summary-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-lg);
+  width: 100%;
+  overflow: hidden;
+}
+
+.ledgr-summary-row .ledgr-cards {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.ledgr-gauge-aside {
+  flex-shrink: 0;
+  width: 140px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: var(--ledgr-spacing-sm);
+}
+
+/* Category color dot */
+.ledgr-cat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ─── Gauge chart ────────────────────────────────────────────────────── */
+.ledgr-gauge-wrap {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ledgr-gauge-svg {
+  width: 100%;
+  max-width: 140px;
+  height: auto;
+  overflow: visible;
+}
+
+.ledgr-gauge-track {
+  fill: none;
+  stroke: var(--ledgr-rule);
+  stroke-width: 6;
+  stroke-linecap: butt;
+}
+
+.ledgr-gauge-fill {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+.ledgr-gauge-center {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ledgr-gauge-value {
+  font-size: 1.4em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+  line-height: 1;
+}
+
+.ledgr-gauge-label {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-faint);
+  white-space: nowrap;
+}
+
+/* ─── Trend line chart ───────────────────────────────────────────────── */
+.ledgr-trend-wrap {
+  width: 100%;
+}
+
+.ledgr-trend-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.ledgr-trend-grid {
+  stroke: var(--ledgr-rule);
+  stroke-width: 0.5;
+}
+
+.ledgr-trend-line {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.85;
+}
+
+.ledgr-trend-axis-label {
+  font-size: 5.5px;
+  fill: var(--ledgr-text-faint);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.ledgr-trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  margin-top: var(--ledgr-spacing-sm);
+}
+
+.ledgr-trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-trend-legend-swatch {
+  width: 16px;
+  height: 2px;
+  display: inline-block;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.ledgr-trend-legend-label {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Budget scale ───────────────────────────────────────────────────── */
+.ledgr-scale-wrap {
+  width: 100%;
+  padding: var(--ledgr-spacing-sm) 0;
+}
+
+.ledgr-scale-label {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-secondary);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-scale-track {
+  display: flex;
+  height: 8px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-scale-seg {
+  flex: 1;
+}
+
+.ledgr-scale-indicator {
+  position: relative;
+  height: 10px;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-scale-arrow {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--ledgr-accent);
+}
+
+.ledgr-scale-zones {
+  display: flex;
+  justify-content: space-between;
+}
+
+.ledgr-scale-zone-label {
+  font-size: 0.65em;
+  color: var(--ledgr-text-faint);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Net Worth Visuals ──────────────────────────────────────────────── */
+.ledgr-nw-visuals {
+  display: flex;
+  gap: var(--ledgr-spacing-lg);
+  align-items: flex-start;
+  margin-bottom: var(--ledgr-spacing-lg);
+  padding-bottom: var(--ledgr-spacing-lg);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+/* Donut takes fixed width, bars fill remaining */
+.ledgr-nw-donut-wrap {
+  flex-shrink: 0;
+  width: 200px;
+}
+
+/* Inside Net Worth, stack donut legend below chart instead of to the right */
+.ledgr-nw-donut-wrap .ledgr-ring-row {
+  flex-direction: column;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+}
+
+.ledgr-nw-donut-wrap .ledgr-donut-legend {
+  padding-top: 0;
+  width: 100%;
+}
+
+.ledgr-nw-donut-wrap .ledgr-donut-frame {
+  width: 130px;
+  flex-shrink: 0;
+}
+
+.ledgr-nw-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-sm);
+  padding-top: var(--ledgr-spacing-xs);
+  min-width: 0;
+}
+
+.ledgr-nw-bar-row {
+  display: grid;
+  grid-template-columns: minmax(80px, 120px) 1fr auto;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+}
+
+.ledgr-nw-bar-label {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ledgr-nw-bar-track {
+  background: var(--color-base-20);
+  height: 6px;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.ledgr-nw-bar-fill {
+  height: 100%;
+  border-radius: 0;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ledgr-nw-bar-amt {
+  font-size: var(--ledgr-font-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+  white-space: nowrap;
+  text-align: right;
+  min-width: 80px;
+}
+
+/* Mobile: stack donut above bars */
+@media (max-width: 560px) {
+  .ledgr-nw-visuals {
+    flex-direction: column;
+    gap: var(--ledgr-spacing-md);
+  }
+  .ledgr-nw-donut-wrap {
+    width: 100%;
+  }
+  .ledgr-nw-bar-row {
+    grid-template-columns: 100px 1fr auto;
+  }
+}
+
+/* ─── Date picker ────────────────────────────────────────────────────── */
+.ledgr-date-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.ledgr-date-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-sm);
+  color: var(--ledgr-text);
+  font-family: inherit;
+  font-size: var(--ledgr-font-body);
+  font-variant-numeric: tabular-nums;
+  padding: 4px 8px;
+  min-height: 32px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.ledgr-date-input:focus {
+  outline: none;
+  border-color: var(--ledgr-accent);
+}
+
+.ledgr-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0.5;
+  cursor: pointer;
+  filter: var(--icon-filter, none);
+}
+
+.ledgr-date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.theme-dark .ledgr-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
+}
+
+/* ─── Daily Countdown ────────────────────────────────────────────────── */
+.ledgr-countdown {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0;
+  padding: var(--ledgr-spacing-sm) 0;
+  border-top: 1px solid var(--ledgr-accent);
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: var(--ledgr-spacing-lg);
+}
+.ledgr-countdown-days {
+  font-size: 1.1em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-accent);
+}
+.ledgr-countdown-days.ledgr-countdown-warn { color: var(--ledgr-cat-8); }
+.ledgr-countdown-days.ledgr-countdown-over { color: var(--ledgr-red); }
+.ledgr-countdown-label {
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-secondary);
+  margin-left: 4px;
+}
+.ledgr-countdown-sep { color: var(--ledgr-text-faint); padding: 0 var(--ledgr-spacing-sm); }
+.ledgr-countdown-budget { font-size: var(--ledgr-font-body); font-variant-numeric: tabular-nums; color: var(--ledgr-text); }
+.ledgr-countdown-budget.ledgr-countdown-over { color: var(--ledgr-red); }
+.ledgr-countdown-suffix { font-size: var(--ledgr-font-sm); color: var(--ledgr-text-faint); margin-left: 3px; }
+
+/* ─── Savings Goals ──────────────────────────────────────────────────── */
+.ledgr-goal-card {
+  padding: var(--ledgr-spacing-md);
+  border-top: 1px solid var(--ledgr-accent);
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: var(--ledgr-spacing-md);
+}
+.ledgr-goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-goal-add-btn { font-size: var(--ledgr-font-sm); padding: 3px 10px; min-height: 26px; }
+.ledgr-goal-actions { display: flex; gap: 2px; }
+.ledgr-goal-name {
+  font-variant: small-caps;
+  font-size: 0.78em;
+  letter-spacing: 0.08em;
+  color: var(--ledgr-text-secondary);
+}
+.ledgr-goal-progress-label {
+  font-size: 1.05em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-goal-target { color: var(--ledgr-text-secondary); font-weight: 400; }
+.ledgr-goal-bar-row { display: flex; align-items: center; gap: var(--ledgr-spacing-sm); margin-bottom: var(--ledgr-spacing-sm); }
+.ledgr-goal-bar-wrap { flex: 1; background: var(--color-base-25); height: 6px; overflow: hidden; border-radius: 0; }
+.ledgr-goal-bar { height: 100%; background: var(--ledgr-accent); border-radius: 0; transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.ledgr-goal-bar.ledgr-goal-complete { background: var(--ledgr-green); }
+.ledgr-goal-bar.ledgr-goal-behind { background: var(--ledgr-cat-8); }
+.ledgr-goal-pct { font-size: var(--ledgr-font-label); font-variant-numeric: tabular-nums; color: var(--ledgr-text-faint); white-space: nowrap; min-width: 34px; text-align: right; }
+.ledgr-goal-meta { display: flex; align-items: center; font-size: var(--ledgr-font-sm); color: var(--ledgr-text-secondary); flex-wrap: wrap; }
+.ledgr-goal-meta-sep { color: var(--ledgr-text-faint); padding: 0 var(--ledgr-spacing-xs); }
+.ledgr-goal-status-good { font-variant: small-caps; letter-spacing: 0.04em; color: var(--ledgr-green); }
+.ledgr-goal-status-warn { font-variant: small-caps; letter-spacing: 0.04em; color: var(--ledgr-cat-8); }
+.ledgr-goal-date { color: var(--ledgr-text-faint); font-style: italic; }
+
+/* ─── Transfer History ───────────────────────────────────────────────── */
+.ledgr-remit-widget-actions { display: flex; align-items: center; gap: var(--ledgr-spacing-sm); }
+.ledgr-remit-history-wrap { margin-top: var(--ledgr-spacing-sm); }
+.ledgr-remit-history-toggle {
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--ledgr-accent-muted);
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+.ledgr-remit-history-toggle:hover { color: var(--ledgr-accent); border-bottom-color: var(--ledgr-accent); }
+.ledgr-remit-row-rate { font-size: var(--ledgr-font-label); color: var(--ledgr-text-faint); font-style: italic; font-variant-numeric: tabular-nums; }
+.ledgr-remit-received { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--ledgr-text); text-align: right; }
+.ledgr-remit-history-footer {
+  display: flex;
+  gap: var(--ledgr-spacing-md);
+  padding: var(--ledgr-spacing-sm) 0;
+  border-top: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-wrap: wrap;
+}
+.ledgr-remit-history-footer-val { font-weight: 500; color: var(--ledgr-text); }
+.ledgr-text-faint { color: var(--ledgr-text-faint); }
+
+/* ─── Financial Statements — CPA/CFA presentation ───────────────────── */
+.ledgr-statements {
+  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md);
+  max-width: 860px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Document container — full available width */
+.ledgr-stmt {
+  width: 100%;
+}
+
+/* Statement type tab bar */
+.ledgr-stmt-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--ledgr-spacing-lg);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+.ledgr-stmt-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  padding: var(--ledgr-spacing-xs) var(--ledgr-spacing-md);
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-body);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  border-radius: 0;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.ledgr-stmt-tab:hover { color: var(--ledgr-text); }
+.ledgr-stmt-tab.active {
+  color: var(--ledgr-accent);
+  border-bottom-color: var(--ledgr-accent);
+  font-weight: 600;
+}
+
+/* Document header — entity name + period centered (CPA standard) */
+.ledgr-stmt-doc-header {
+  text-align: center;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+.ledgr-stmt-doc-title {
+  font-variant: small-caps;
+  font-size: 1.05em;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ledgr-text);
+}
+.ledgr-stmt-doc-period {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  font-style: italic;
+  margin-top: 2px;
+}
+.ledgr-stmt-doc-rule {
+  border-top: 1px solid var(--ledgr-accent);
+  margin: var(--ledgr-spacing-sm) 0 var(--ledgr-spacing-md);
+}
+
+/* Section structure */
+.ledgr-stmt-section { margin-bottom: var(--ledgr-spacing-md); }
+.ledgr-stmt-spacer { height: var(--ledgr-spacing-md); border-top: 1px solid var(--color-base-15); }
+
+/* Section label — like "ASSETS", "REVENUE" */
+.ledgr-stmt-section-label {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-body);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ledgr-text);
+  padding: var(--ledgr-spacing-xs) 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: 4px;
+}
+
+/* Group label within section — "Bank Accounts", "Investment Accounts" */
+.ledgr-stmt-group-label {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-faint);
+  padding: 6px 0 2px;
+  margin-top: var(--ledgr-spacing-xs);
+}
+
+/* Standard line item */
+.ledgr-stmt-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 0;
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text);
+}
+.ledgr-stmt-line:not(:last-child) {
+  border-bottom: 1px solid var(--color-base-15);
+}
+.ledgr-stmt-line-indent {
+  padding-left: var(--ledgr-spacing-md);
+  color: var(--ledgr-text-secondary);
+}
+
+/* 4-column line (with budget + variance) */
+.ledgr-stmt-line-4col {
+  display: grid;
+  grid-template-columns: 1fr minmax(80px, auto) minmax(80px, auto) minmax(80px, auto);
+  gap: var(--ledgr-spacing-sm);
+  padding: 5px 0;
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text);
+  border-bottom: 1px solid var(--color-base-15);
+}
+
+/* Column header for 4-col layout */
+.ledgr-stmt-col-header {
+  display: grid;
+  grid-template-columns: 1fr minmax(80px, auto) minmax(80px, auto) minmax(80px, auto);
+  gap: var(--ledgr-spacing-sm);
+  padding: 2px 0 4px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+.ledgr-stmt-col-hdr {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-faint);
+  min-width: 70px;
+  text-align: right;
+}
+
+/* 4-col subtotal row — underline only on first amount column */
+.ledgr-stmt-subtotal-4col {
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+.ledgr-stmt-subtotal-4col .ledgr-stmt-amt:first-of-type {
+  border-top: 1px solid var(--ledgr-rule);
+  padding-top: 3px;
+}
+
+/* Amount — right-aligned, tabular */
+.ledgr-stmt-amt {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  text-align: right;
+  min-width: 120px;
+}
+
+/* Subtotal — single underline on amount */
+.ledgr-stmt-subtotal {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0 3px;
+  font-weight: 500;
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-sm);
+}
+.ledgr-stmt-subtotal .ledgr-stmt-amt {
+  border-top: 1px solid var(--ledgr-rule);
+  padding-top: 3px;
+  color: var(--ledgr-text);
+}
+
+/* Grand total — double underline (CPA convention: single above, double below) */
+.ledgr-stmt-grand-total {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  font-weight: 600;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+}
+.ledgr-stmt-grand-total .ledgr-stmt-amt {
+  border-top: 1px solid var(--ledgr-accent);
+  border-bottom: 3px double var(--ledgr-accent);
+  padding: 3px 0 4px;
+}
+
+/* Net savings / bottom-line total row */
+.ledgr-stmt-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: var(--ledgr-spacing-sm) 0;
+  border-top: 2px solid var(--ledgr-accent);
+  border-bottom: 2px solid var(--ledgr-accent);
+  margin-top: var(--ledgr-spacing-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  font-size: 1em;
+}
+
+.ledgr-stmt-rate-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-secondary);
+  border-top: 1px solid var(--color-base-15);
+}
+.ledgr-stmt-rate-label { font-variant: small-caps; letter-spacing: 0.05em; }
+
+/* Cash flow table */
+.ledgr-stmt-cf-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ledgr-font-body);
+}
+.ledgr-stmt-cf-table th {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-secondary);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-weight: 500;
+}
+.ledgr-stmt-cf-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--color-base-15);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+}
+.ledgr-stmt-cf-future td { color: var(--ledgr-text-faint); }
+.ledgr-stmt-cf-total td {
+  border-top: 2px solid var(--ledgr-accent);
+  border-bottom: 3px double var(--ledgr-accent);
+  font-weight: 700;
+  font-variant: small-caps;
+  padding: 6px 0;
+  letter-spacing: 0.04em;
+}
+
+.ledgr-stmt-comp-bar { margin-top: var(--ledgr-spacing-md); }
+
+/* Refresh button */
+.ledgr-stmt-refresh-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ledgr-text-faint);
+  font-size: 1em;
+  padding: 0 var(--ledgr-spacing-xs);
+  margin-left: var(--ledgr-spacing-sm);
+  opacity: 0.6;
+  transition: opacity 0.15s ease, transform 0.3s ease;
+  line-height: 1;
+}
+.ledgr-stmt-refresh-btn:hover {
+  opacity: 1;
+  color: var(--ledgr-accent);
+}
+
+/* Footnote / basis of presentation */
+.ledgr-stmt-footnote {
+  font-size: 0.72em;
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+  margin-top: var(--ledgr-spacing-lg);
+  border-top: 1px solid var(--color-base-15);
+  padding-top: var(--ledgr-spacing-xs);
+}
+
+/* ─── Mobile responsive ─────────────────────────────────────────────── */
+@media (max-width: 500px) {
+  .ledgr-dashboard,
+  .ledgr-networth {
+    padding: var(--ledgr-spacing-md);
+  }
+
+  .ledgr-cards {
+    grid-template-columns: 1fr;
+    gap: var(--ledgr-spacing-sm);
+  }
+
+  .ledgr-breakdown-row {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: var(--ledgr-spacing-xs) var(--ledgr-spacing-sm);
+  }
+
+  .ledgr-bar-wrap {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .ledgr-cat-amt {
+    text-align: right;
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  /* Hide Note column on mobile */
+  .ledgr-tx-table th:nth-child(4),
+  .ledgr-tx-table td:nth-child(4) {
+    display: none;
+  }
+
+  /* Adequate touch targets */
+  .ledgr-currency-btn,
+  .ledgr-month-row button,
+  .ledgr-budget-btn,
+  .ledgr-log-btn,
+  .ledgr-del-btn,
+  .ledgr-remove-btn,
+  .ledgr-tab-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .ledgr-currency-btn,
+  .ledgr-budget-btn {
+    padding: 10px var(--ledgr-spacing-md);
+  }
+
+  .ledgr-del-btn {
+    padding: 10px 12px;
+  }
+
+  .ledgr-nav-btn {
+    padding: var(--ledgr-spacing-sm);
+  }
+
+  .ledgr-nav-label {
+    font-size: 0.7em;
+  }
+
+  .ledgr-remit-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ledgr-summary-row {
+    flex-direction: column;
+  }
+
+  .ledgr-gauge-aside {
+    width: 100%;
+    align-items: center;
+  }
+
+  /* Statements 4-col: hide budget + variance on mobile, show only actual */
+  .ledgr-stmt-line-4col {
+    grid-template-columns: 1fr auto;
+  }
+  .ledgr-stmt-line-4col span:nth-child(3),
+  .ledgr-stmt-line-4col span:nth-child(4),
+  .ledgr-stmt-col-header span:nth-child(3),
+  .ledgr-stmt-col-header span:nth-child(4) {
+    display: none;
+  }
+  .ledgr-stmt-col-header {
+    grid-template-columns: 1fr auto;
+  }
+  .ledgr-stmt-subtotal-4col {
+    grid-template-columns: 1fr auto;
+  }
+  .ledgr-stmt-subtotal-4col span:nth-child(3),
+  .ledgr-stmt-subtotal-4col span:nth-child(4) {
+    display: none;
+  }
+
+  /* Cash flow table on mobile — hide outflows, show only inflows + net */
+  .ledgr-stmt-cf-table th:nth-child(3),
+  .ledgr-stmt-cf-table td:nth-child(3) {
+    display: none;
+  }
+}
