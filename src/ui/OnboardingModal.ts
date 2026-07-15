@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice } from "obsidian";
+import { App, Modal, Setting } from "obsidian";
 import LedgrPlugin from "../main";
 
 export class OnboardingModal extends Modal {

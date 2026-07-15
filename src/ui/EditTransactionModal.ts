@@ -93,7 +93,7 @@ export class EditTransactionModal extends Modal {
     const dateSetting = new Setting(contentEl).setName("Date");
     (await import("./DatePicker")).createDateInput(dateSetting.controlEl, this.date, (v) => (this.date = v));
 
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-edit", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-edit ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
@@ -102,15 +102,15 @@ export class EditTransactionModal extends Modal {
 
   async save() {
     const errEl = this.contentEl.querySelector<HTMLElement>(".ledgr-error-edit");
-    if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+    if (errEl) { errEl.addClass("ledgr-hidden"); errEl.textContent = ""; }
 
     const amt = parseFloat(this.amount);
     if (!amt || isNaN(amt) || amt <= 0) {
-      if (errEl) { errEl.textContent = "Please enter a valid amount."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Please enter a valid amount."; errEl.removeClass("ledgr-hidden"); }
       return;
     }
     if (!window.moment(this.date, "YYYY-MM-DD", true).isValid()) {
-      if (errEl) { errEl.textContent = "Date must be YYYY-MM-DD."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Date must be YYYY-MM-DD."; errEl.removeClass("ledgr-hidden"); }
       return;
     }
 

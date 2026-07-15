@@ -10,8 +10,8 @@ import { renderNavBar } from "./NavBar";
 import { loadBudgets } from "../data/budgets";
 import { convertToBase } from "../data/reader";
 import { loadRemittances, getRemittanceSummary } from "../data/remittances";
-import { getCategoryType, getSubcategoryType } from "../constants/categories";
-import { renderDonutChart, renderSparkline, buildSpendingSegments, renderGauge, renderTrendLine, renderBudgetScale, categoryColor } from "./charts";
+import { getCategoryType } from "../constants/categories";
+import { renderDonutChart, buildSpendingSegments, renderGauge, renderTrendLine, categoryColor } from "./charts";
 import { EditTransactionModal } from "./EditTransactionModal";
 
 export const DASHBOARD_VIEW_TYPE = "ledgr-dashboard";
@@ -62,8 +62,6 @@ export class DashboardView extends ItemView {
     const remitSummary = getRemittanceSummary(remittanceStore, this.currentMonth);
 
     const fmt = (n: number) => `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
-    const fmtPHP = (n: number) => `₱${Math.round(n).toLocaleString()}`;
-    const fmtJPY = (n: number) => `¥${Math.round(n).toLocaleString()}`;
     const isCurrentMonth = this.currentMonth >= window.moment().format("YYYY-MM");
 
     // ── Nav bar (always first, same position across all views) ──
@@ -101,8 +99,7 @@ export class DashboardView extends ItemView {
     nextBtn.setAttribute("aria-label", "Next month");
     if (isCurrentMonth) {
       nextBtn.setAttribute("disabled", "true");
-      nextBtn.style.opacity = "0.3";
-      nextBtn.style.cursor = "default";
+      nextBtn.addClass("ledgr-btn-disabled");
     } else {
       nextBtn.onclick = async () => {
         const next = window.moment(this.currentMonth).add(1, "month").format("YYYY-MM");
@@ -206,7 +203,7 @@ export class DashboardView extends ItemView {
           text: `${tx.currency} ${tx.amount.toLocaleString()}`,
           cls: tx.type === "income" ? "ledgr-income" : "ledgr-expense",
         });
-        amtCell.style.textAlign = "right";
+        amtCell.addClass("ledgr-text-right");
         const actionTd = tr.createEl("td", { cls: "ledgr-tx-actions" });
         const editBtn = actionTd.createEl("button", { text: "✎", cls: "ledgr-edit-btn" });
         editBtn.title = "Edit transaction";
@@ -245,11 +242,11 @@ export class DashboardView extends ItemView {
       cls: "ledgr-remit-history-toggle",
     });
     const historyContent = historyWrap.createDiv("ledgr-remit-history-content");
-    historyContent.style.display = "none";
+    historyContent.addClass("ledgr-hidden");
 
     toggleLink.onclick = () => {
       historyOpen = !historyOpen;
-      historyContent.style.display = historyOpen ? "block" : "none";
+      historyContent.toggleClass("ledgr-hidden", !historyOpen);
       toggleLink.textContent = historyOpen
         ? "Hide history"
         : `Show history (${store.remittances.length})`;
@@ -422,7 +419,7 @@ export class DashboardView extends ItemView {
       const nameWrap = row.createDiv("ledgr-cat-name-wrap");
       // Color dot matching donut
       const dot = nameWrap.createEl("span", { cls: "ledgr-cat-dot" });
-      dot.style.backgroundColor = catColor;
+      dot.style.backgroundColor = catColor; // dynamic value — cannot use static CSS class
       nameWrap.createEl("span", { text: cat, cls: "ledgr-cat-name" });
       if (catType === "fixed") {
         nameWrap.createEl("span", { text: "fixed", cls: "ledgr-cat-type-tag ledgr-cat-type-fixed" });
@@ -432,9 +429,9 @@ export class DashboardView extends ItemView {
       const barWrap = row.createDiv("ledgr-bar-wrap");
       const bar = barWrap.createDiv(`ledgr-bar${overBudget ? " ledgr-bar-over" : ""}`);
       // Use category color for bar, red only if over budget
-      if (!overBudget) bar.style.backgroundColor = catColor;
-      bar.style.width = "0%";
-      requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; });
+      if (!overBudget) bar.style.backgroundColor = catColor; // dynamic value — cannot use static CSS class
+      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
+      window.requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; }); // dynamic value — cannot use static CSS class
       const amtText = budget ? `${fmt(amt)} / ${fmt(budget)}` : fmt(amt);
       row.createEl("span", { text: amtText, cls: `ledgr-cat-amt${overBudget ? " ledgr-negative" : ""}` });
     });
@@ -474,7 +471,7 @@ export class DashboardView extends ItemView {
 
   handleDelete(btn: HTMLButtonElement, row: HTMLElement, month: string, lineIndex: number) {
     if (this.pendingDelete) {
-      clearTimeout(this.pendingDelete.timer);
+      window.clearTimeout(this.pendingDelete.timer);
       this.pendingDelete = null;
       this.contentEl.querySelectorAll(".ledgr-tx-table tr.pending-delete").forEach((r) => {
         r.classList.remove("pending-delete");
@@ -497,7 +494,7 @@ export class DashboardView extends ItemView {
     this.pendingDelete = { month, lineIndex, timer };
 
     btn.onclick = async () => {
-      if (this.pendingDelete) { clearTimeout(this.pendingDelete.timer); this.pendingDelete = null; }
+      if (this.pendingDelete) { window.clearTimeout(this.pendingDelete.timer); this.pendingDelete = null; }
       await this.deleteTransaction(month, lineIndex);
     };
   }
@@ -576,7 +573,7 @@ export class DashboardView extends ItemView {
   }
 
   async onClose() {
-    if (this.pendingDelete) clearTimeout(this.pendingDelete.timer);
+    if (this.pendingDelete) window.clearTimeout(this.pendingDelete.timer);
     this.contentEl.empty();
   }
 }

@@ -13,7 +13,7 @@ export class LedgrSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "Ledgr" });
+    new Setting(containerEl).setName("Ledgr").setHeading();
     containerEl.createEl("p", {
       text: "Your money, both sides of the ocean.",
       cls: "setting-item-description",
@@ -48,7 +48,7 @@ export class LedgrSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: "Vault" });
+    new Setting(containerEl).setName("Vault").setHeading();
 
     new Setting(containerEl)
       .setName("Finance folder")
@@ -63,7 +63,7 @@ export class LedgrSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: "Daily Notes" });
+    new Setting(containerEl).setName("Daily Notes").setHeading();
 
     new Setting(containerEl)
       .setName("Append to daily note")
@@ -88,7 +88,7 @@ export class LedgrSettingTab extends PluginSettingTab {
           })
       );
 
-    containerEl.createEl("h3", { text: "Transfer Tracker" });
+    new Setting(containerEl).setName("Transfer Tracker").setHeading();
 
     new Setting(containerEl)
       .setName("Enable transfer tracker")

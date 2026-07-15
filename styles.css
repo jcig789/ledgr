@@ -2211,3 +2211,31 @@
     display: none;
   }
 }
+
+/* ─── Utility classes (used instead of inline styles) ─────────────────── */
+
+/* Hide/show elements — replaces element.style.display = "none/block" */
+.ledgr-hidden {
+  display: none !important;
+}
+
+/* Disabled button state — replaces opacity + cursor inline styles */
+.ledgr-btn-disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* Right-align table cells — replaces style.textAlign = "right" */
+.ledgr-text-right {
+  text-align: right;
+}
+
+/* Dashed trend legend swatch — replaces style.opacity = "0.5" */
+.ledgr-trend-legend-swatch-dashed {
+  opacity: 0.5;
+}
+
+/* Spaced row (modal year/month rows) — replaces style.marginBottom = "16px" */
+.ledgr-row-spaced {
+  margin-bottom: 16px;
+}

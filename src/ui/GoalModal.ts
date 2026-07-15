@@ -74,7 +74,7 @@ export class GoalModal extends Modal {
         });
     }
 
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-goal", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-goal ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText(this.editGoal ? "Save Changes" : "Add Goal").setCta().onClick(() => this.save())
@@ -83,15 +83,15 @@ export class GoalModal extends Modal {
 
   async save() {
     const errEl = this.contentEl.querySelector<HTMLElement>(".ledgr-error-goal");
-    if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+    if (errEl) { errEl.addClass("ledgr-hidden"); errEl.textContent = ""; }
 
     if (!this.name.trim()) {
-      if (errEl) { errEl.textContent = "Please enter a goal name."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Please enter a goal name."; errEl.removeClass("ledgr-hidden"); }
       return;
     }
     const amt = parseFloat(this.targetAmount);
     if (!amt || isNaN(amt) || amt <= 0) {
-      if (errEl) { errEl.textContent = "Please enter a valid target amount."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Please enter a valid target amount."; errEl.removeClass("ledgr-hidden"); }
       return;
     }
 

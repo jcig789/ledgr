@@ -1,11 +1,11 @@
 import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
 import LedgrPlugin from "../main";
-import { loadNetWorth, saveNetWorth, NetWorthData, Account, Brokerage } from "../data/networth";
+import { loadNetWorth, saveNetWorth, NetWorthData } from "../data/networth";
 import { convertToBase } from "../data/reader";
 import { Currency } from "../settings";
 import { renderNavBar } from "./NavBar";
 import { renderDonutChart, categoryColor } from "./charts";
-import { loadGoals, saveGoals, GoalStore, Goal } from "../data/goals";
+import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
 
@@ -188,9 +188,9 @@ export class NetWorthView extends ItemView {
       row.createEl("span", { text: a.name, cls: "ledgr-nw-bar-label" });
       const barWrap = row.createDiv("ledgr-nw-bar-track");
       const bar = barWrap.createDiv("ledgr-nw-bar-fill");
-      bar.style.backgroundColor = color;
-      bar.style.width = "0%";
-      requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; });
+      bar.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
+      window.requestAnimationFrame(() => { bar.style.width = `${Math.round(pct)}%`; }); // dynamic value — cannot use static CSS class
       row.createEl("span", { text: this.fmt(balance), cls: "ledgr-nw-bar-amt" });
     });
   }
@@ -228,8 +228,7 @@ export class NetWorthView extends ItemView {
       } else {
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
-        const td = tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)) });
-        td.style.textAlign = "right";
+        tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
       }
     });
   }
@@ -262,8 +261,7 @@ export class NetWorthView extends ItemView {
         });
       } else {
         tr.createEl("td", { text: b.name });
-        const td = tr.createEl("td", { text: this.fmt(this.toBase(b.value, b.currency)) });
-        td.style.textAlign = "right";
+        tr.createEl("td", { text: this.fmt(this.toBase(b.value, b.currency)), cls: "ledgr-text-right" });
       }
     });
   }
@@ -301,8 +299,7 @@ export class NetWorthView extends ItemView {
       } else {
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
-        const td = tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)) });
-        td.style.textAlign = "right";
+        tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
       }
     });
   }
@@ -468,8 +465,8 @@ export class NetWorthView extends ItemView {
       const barRow = card.createDiv("ledgr-goal-bar-row");
       const barWrap = barRow.createDiv("ledgr-goal-bar-wrap");
       const bar = barWrap.createDiv(`ledgr-goal-bar${reached ? " ledgr-goal-complete" : ""}`);
-      bar.style.width = "0%";
-      requestAnimationFrame(() => { bar.style.width = `${pct}%`; });
+      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
+      window.requestAnimationFrame(() => { bar.style.width = `${pct}%`; }); // dynamic value — cannot use static CSS class
       barRow.createEl("span", { text: `${pct}%`, cls: "ledgr-goal-pct" });
 
       // Meta row

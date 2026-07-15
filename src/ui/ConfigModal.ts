@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice, moment } from "obsidian";
+import { App, Modal, Setting, Notice } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadCategories, saveCategories, CategoryStore } from "../data/categoryStore";
 
@@ -222,8 +222,7 @@ export class ConfigModal extends Modal {
 
     // Add new category
     if (type === "expense") {
-      const addCatRow = parent.createDiv("ledgr-sub-row");
-      addCatRow.style.marginTop = "12px";
+      const addCatRow = parent.createDiv("ledgr-sub-row ledgr-row-spaced");
       const catInput = addCatRow.createEl("input") as HTMLInputElement;
       catInput.type = "text";
       catInput.placeholder = "New category name...";

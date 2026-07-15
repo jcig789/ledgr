@@ -38,7 +38,7 @@ export class QuickCaptureModal extends Modal {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.save(); }
     });
     // Auto-focus amount field
-    setTimeout(() => this.amtInput?.focus(), 50);
+    window.setTimeout(() => this.amtInput?.focus(), 50);
   }
 
   render() {
@@ -81,7 +81,7 @@ export class QuickCaptureModal extends Modal {
       });
 
     // Amount error placeholder
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-amount", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-amount ledgr-hidden", text: "" });
 
     // Category
     const catMap = this.type === "income" ? this.catStore.income : this.catStore.expense;
@@ -99,9 +99,8 @@ export class QuickCaptureModal extends Modal {
           if (subDrop) {
             while (subDrop.firstChild) subDrop.removeChild(subDrop.firstChild);
             (catMap[v] ?? ["Other"]).forEach((s) => {
-              const opt = document.createElement("option");
+              const opt = subDrop.createEl("option");
               opt.value = s; opt.textContent = s;
-              subDrop.appendChild(opt);
             });
             subDrop.value = this.subcategory;
           }
@@ -132,7 +131,7 @@ export class QuickCaptureModal extends Modal {
     createDateInput(dateSetting.controlEl, this.date, (v) => (this.date = v));
 
     // Date error placeholder
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-date", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-date ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
@@ -144,26 +143,26 @@ export class QuickCaptureModal extends Modal {
     const catMap = this.type === "income" ? this.catStore.income : this.catStore.expense;
     // Re-render just category + subcategory by full render (focus is not in these fields)
     this.render();
-    setTimeout(() => this.amtInput?.focus(), 50);
+    window.setTimeout(() => this.amtInput?.focus(), 50);
   }
 
   async save() {
     // Clear previous errors
     const amtErr = this.contentEl.querySelector<HTMLElement>(".ledgr-error-amount");
     const dateErr = this.contentEl.querySelector<HTMLElement>(".ledgr-error-date");
-    if (amtErr) { amtErr.style.display = "none"; amtErr.textContent = ""; }
-    if (dateErr) { dateErr.style.display = "none"; dateErr.textContent = ""; }
+    if (amtErr) { amtErr.addClass("ledgr-hidden"); amtErr.textContent = ""; }
+    if (dateErr) { dateErr.addClass("ledgr-hidden"); dateErr.textContent = ""; }
 
     let hasError = false;
     const amt = parseFloat(this.amount);
     if (!amt || isNaN(amt) || amt <= 0) {
-      if (amtErr) { amtErr.textContent = "Please enter a valid positive amount."; amtErr.style.display = "block"; }
+      if (amtErr) { amtErr.textContent = "Please enter a valid positive amount."; amtErr.removeClass("ledgr-hidden"); }
       this.amtInput?.focus();
       hasError = true;
     }
 
     if (!window.moment(this.date, "YYYY-MM-DD", true).isValid()) {
-      if (dateErr) { dateErr.textContent = "Date must be YYYY-MM-DD (e.g. 2026-07-14)."; dateErr.style.display = "block"; }
+      if (dateErr) { dateErr.textContent = "Date must be YYYY-MM-DD (e.g. 2026-07-14)."; dateErr.removeClass("ledgr-hidden"); }
       hasError = true;
     }
 

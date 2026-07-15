@@ -63,7 +63,7 @@ export interface ChartSegment {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function svgEl<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
-  return document.createElementNS(SVG_NS, tag) as SVGElementTagNameMap[K];
+  return window.document.createElementNS(SVG_NS, tag) as SVGElementTagNameMap[K];
 }
 
 // ─── renderDonutChart ─────────────────────────────────────────────────────────
@@ -113,7 +113,7 @@ export function renderDonutChart(
   const frame = row.createDiv("ledgr-donut-frame");
 
   // SVG element
-  const svg = document.createElementNS(SVG_NS, "svg");
+  const svg = window.document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", "0 0 100 100");
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-donut-svg");
@@ -174,7 +174,7 @@ export function renderDonutChart(
     const item = legend.createDiv("ledgr-legend-item");
 
     const swatch = item.createEl("span", { cls: "ledgr-legend-swatch" });
-    swatch.style.backgroundColor = color;
+    swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
 
     item.createEl("span", { text: seg.label, cls: "ledgr-legend-label" });
     item.createEl("span", {
@@ -244,8 +244,8 @@ export function renderCompositionBar(
     const pct = (Math.abs(seg.value) / total) * 100;
     const color = seg.color ?? categoryColor(seg.label, i);
     const segEl = bar.createDiv("ledgr-comp-seg");
-    segEl.style.flexBasis = `${pct}%`;
-    segEl.style.backgroundColor = color;
+    segEl.style.flexBasis = `${pct}%`; // dynamic value — cannot use static CSS class
+    segEl.style.backgroundColor = color; // dynamic value — cannot use static CSS class
 
     // Tooltip
     segEl.setAttribute("title",
@@ -263,7 +263,7 @@ export function renderCompositionBar(
     const item = legendRow.createDiv("ledgr-comp-legend-item");
 
     const swatch = item.createEl("span", { cls: "ledgr-comp-legend-swatch" });
-    swatch.style.backgroundColor = color;
+    swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
 
     item.createEl("span", { text: seg.label, cls: "ledgr-comp-legend-label" });
     if (seg.displayValue) {
@@ -315,12 +315,12 @@ export function renderSparkline(parent: HTMLElement, values: number[]): void {
 
   const wrapper = parent.createDiv("ledgr-sparkline");
 
-  const svg = document.createElementNS(SVG_NS, "svg");
+  const svg = window.document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("preserveAspectRatio", "none");
 
-  const path = document.createElementNS(SVG_NS, "polyline");
+  const path = window.document.createElementNS(SVG_NS, "polyline");
   path.setAttribute("points", pts.join(" "));
   path.classList.add("ledgr-sparkline-path");
   if (trendClass) path.classList.add(trendClass);
@@ -456,7 +456,7 @@ export function renderGauge(
 
   const wrap = parent.createDiv("ledgr-gauge-wrap");
 
-  const svg = document.createElementNS(SVG_NS, "svg");
+  const svg = window.document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", "0 0 100 60");
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-gauge-svg");
@@ -535,7 +535,7 @@ export function renderTrendLine(
   ];
 
   const wrap = parent.createDiv("ledgr-trend-wrap");
-  const svg = document.createElementNS(SVG_NS, "svg");
+  const svg = window.document.createElementNS(SVG_NS, "svg");
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-trend-svg");
@@ -565,14 +565,14 @@ export function renderTrendLine(
     const color = s.color ?? defaultColors[si % defaultColors.length];
     const pts = s.values.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(" ");
 
-    const polyline = document.createElementNS(SVG_NS, "polyline");
+    const polyline = window.document.createElementNS(SVG_NS, "polyline");
     polyline.setAttribute("points", pts);
     polyline.classList.add("ledgr-trend-line");
     polyline.setAttribute("stroke", color);
     if (s.dashed) polyline.setAttribute("stroke-dasharray", "4 3");
     svg.appendChild(polyline);
 
-    const dot = document.createElementNS(SVG_NS, "circle");
+    const dot = window.document.createElementNS(SVG_NS, "circle");
     dot.setAttribute("cx", String(xScale(s.values.length - 1)));
     dot.setAttribute("cy", String(yScale(s.values[s.values.length - 1])));
     dot.setAttribute("r", "2");
@@ -602,8 +602,8 @@ export function renderTrendLine(
       const color = s.color ?? defaultColors[si % defaultColors.length];
       const item = legend.createDiv("ledgr-trend-legend-item");
       const swatch = item.createEl("span", { cls: "ledgr-trend-legend-swatch" });
-      swatch.style.backgroundColor = color;
-      if (s.dashed) swatch.style.opacity = "0.5";
+      swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+      if (s.dashed) swatch.addClass("ledgr-trend-legend-swatch-dashed");
       item.createEl("span", { text: s.label, cls: "ledgr-trend-legend-label" });
     });
   }
@@ -629,13 +629,13 @@ export function renderBudgetScale(
   const colors = ["var(--ledgr-green)", "var(--ledgr-cat-9)", "var(--ledgr-cat-8)", "var(--ledgr-red)"];
   colors.forEach((c, i) => {
     const seg = track.createDiv("ledgr-scale-seg");
-    seg.style.backgroundColor = c;
-    if (i === 0) seg.style.borderRadius = "2px 0 0 2px";
-    if (i === colors.length - 1) seg.style.borderRadius = "0 2px 2px 0";
+    seg.style.backgroundColor = c; // dynamic value — cannot use static CSS class
+    if (i === 0) seg.style.borderRadius = "2px 0 0 2px"; // dynamic value — cannot use static CSS class
+    if (i === colors.length - 1) seg.style.borderRadius = "0 2px 2px 0"; // dynamic value — cannot use static CSS class
   });
 
   const indicator = wrap.createDiv("ledgr-scale-indicator");
-  indicator.style.left = `${clamped}%`;
+  indicator.style.left = `${clamped}%`; // dynamic value — cannot use static CSS class
   indicator.createDiv("ledgr-scale-arrow");
 
   const zoneRow = wrap.createDiv("ledgr-scale-zones");

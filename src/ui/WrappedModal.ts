@@ -27,8 +27,7 @@ export class WrappedModal extends Modal {
     contentEl.createEl("h2", { text: "Ledgr Wrapped" });
     contentEl.createEl("p", { text: "Generate your year-end summary.", cls: "ledgr-onboarding-sub" });
 
-    const yearRow = contentEl.createDiv("ledgr-month-row");
-    yearRow.style.marginBottom = "16px";
+    const yearRow = contentEl.createDiv("ledgr-month-row ledgr-row-spaced");
     yearRow.createEl("button", { text: "←" }).onclick = () => {
       this.selectedYear = String(parseInt(this.selectedYear) - 1);
       this.overwriteWarning = false;
@@ -47,7 +46,7 @@ export class WrappedModal extends Modal {
       warn.createEl("a", { text: "Overwrite →" }).onclick = async () => { await this.generate(true); };
     }
 
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-wrapped", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-wrapped ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText("Generate Wrapped").setCta().onClick(() => this.generate(false))
@@ -72,7 +71,7 @@ export class WrappedModal extends Modal {
     const allTxs = await readAllTransactions(this.app, this.plugin.settings, this.selectedYear);
     if (allTxs.length === 0) {
       const errEl = this.contentEl.querySelector<HTMLElement>(".ledgr-error-wrapped");
-      if (errEl) { errEl.textContent = `No transactions found for ${this.selectedYear}. Cannot generate.`; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = `No transactions found for ${this.selectedYear}. Cannot generate.`; errEl.removeClass("ledgr-hidden"); }
       return;
     }
 
@@ -109,12 +108,6 @@ export class WrappedModal extends Modal {
       }
     }
 
-    // Top category
-    const topCat = Object.entries(yearSummary.byCategory).sort((a, b) => b[1] - a[1])[0];
-
-    // Most active month (most transactions)
-    const mostActive = Object.entries(byMonth).reduce((best, [m, txs]) =>
-      txs.length > (byMonth[best]?.length ?? 0) ? m : best, Object.keys(byMonth)[0]);
 
     const isPartial = parseInt(this.selectedYear) >= parseInt(window.moment().format("YYYY"));
 

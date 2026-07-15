@@ -1,4 +1,4 @@
-import { Plugin } from "obsidian";
+import { Plugin, Platform } from "obsidian";
 import { LedgrSettings, DEFAULT_SETTINGS } from "./settings";
 import { LedgrSettingTab } from "./ui/SettingTab";
 import { QuickCaptureModal } from "./ui/QuickCaptureModal";
@@ -22,12 +22,12 @@ export default class LedgrPlugin extends Plugin {
     this.registerView(STATEMENTS_VIEW_TYPE, (leaf) => new StatementsView(leaf, this));
 
     this.addRibbonIcon("wallet", "Ledgr — Open dashboard", () => {
-      this.openDashboard();
+      void this.openDashboard();
     });
 
     // Show onboarding on first run
     if (this.settings.firstRun) {
-      setTimeout(() => new OnboardingModal(this.app, this).open(), 500);
+      window.setTimeout(() => new OnboardingModal(this.app, this).open(), 500);
     }
 
     // Auto-append to daily note when enabled
@@ -42,7 +42,7 @@ export default class LedgrPlugin extends Plugin {
     this.addSettingTab(new LedgrSettingTab(this.app, this));
 
     this.addCommand({
-      id: "ledgr-log-transaction",
+      id: "log-transaction",
       name: "Log transaction",
       callback: () => {
         new QuickCaptureModal(this.app, this.settings).open();
@@ -50,49 +50,49 @@ export default class LedgrPlugin extends Plugin {
     });
 
     this.addCommand({
-      id: "ledgr-open-dashboard",
+      id: "open-dashboard",
       name: "Open dashboard",
-      callback: () => { this.openDashboard(); },
+      callback: () => { void this.openDashboard(); },
     });
 
     this.addCommand({
-      id: "ledgr-open-networth",
+      id: "open-networth",
       name: "Open net worth",
-      callback: () => { this.openView(NETWORTH_VIEW_TYPE); },
+      callback: () => { void this.openView(NETWORTH_VIEW_TYPE); },
     });
 
     this.addCommand({
-      id: "ledgr-open-config",
+      id: "open-config",
       name: "Settings (exchange rates & categories)",
       callback: () => { new ConfigModal(this.app, this).open(); },
     });
 
     this.addCommand({
-      id: "ledgr-log-transfer",
+      id: "log-transfer",
       name: "Log transfer",
       callback: () => { new RemittanceModal(this.app, this).open(); },
     });
 
     this.addCommand({
-      id: "ledgr-append-daily-note",
+      id: "append-daily-note",
       name: "Append today's spending to daily note",
-      callback: () => { this.appendToDailyNote(); },
+      callback: () => { void this.appendToDailyNote(); },
     });
 
     this.addCommand({
-      id: "ledgr-open-statements",
+      id: "open-statements",
       name: "Open financial statements",
-      callback: () => { this.openView(STATEMENTS_VIEW_TYPE); },
+      callback: () => { void this.openView(STATEMENTS_VIEW_TYPE); },
     });
 
     this.addCommand({
-      id: "ledgr-monthly-review",
+      id: "monthly-review",
       name: "Generate monthly review note",
       callback: () => { new MonthlyReviewModal(this.app, this).open(); },
     });
 
     this.addCommand({
-      id: "ledgr-wrapped",
+      id: "wrapped",
       name: "Generate year-end summary (Wrapped)",
       callback: () => { new WrappedModal(this.app, this).open(); },
     });
@@ -173,8 +173,7 @@ export default class LedgrPlugin extends Plugin {
       return;
     }
     // On mobile, use the active leaf instead of opening a new tab
-    const isMobile = (this.app as any).isMobile;
-    const leaf = isMobile
+    const leaf = Platform.isMobile
       ? this.app.workspace.getLeaf(false)
       : this.app.workspace.getLeaf("tab");
     await leaf.setViewState({ type: viewType, active: true });
@@ -182,9 +181,6 @@ export default class LedgrPlugin extends Plugin {
   }
 
   onunload() {
-    this.app.workspace.detachLeavesOfType(DASHBOARD_VIEW_TYPE);
-    this.app.workspace.detachLeavesOfType(NETWORTH_VIEW_TYPE);
-    this.app.workspace.detachLeavesOfType(STATEMENTS_VIEW_TYPE);
     console.log("Ledgr unloaded");
   }
 

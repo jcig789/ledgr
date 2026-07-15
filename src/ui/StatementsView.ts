@@ -60,7 +60,7 @@ export class StatementsView extends ItemView {
     const nextBtn = yearRow.createEl("button", { text: "→" });
     if (this.selectedYear >= window.moment().format("YYYY")) {
       nextBtn.setAttribute("disabled", "true");
-      nextBtn.style.opacity = "0.3";
+      nextBtn.addClass("ledgr-btn-disabled");
     } else {
       nextBtn.onclick = async () => {
         this.selectedYear = String(parseInt(this.selectedYear) + 1);
@@ -73,8 +73,7 @@ export class StatementsView extends ItemView {
     refreshBtn.title = "Refresh data";
     refreshBtn.setAttribute("aria-label", "Refresh statements");
     refreshBtn.onclick = async () => {
-      refreshBtn.style.opacity = "0.4";
-      refreshBtn.style.transform = "rotate(360deg)";
+      refreshBtn.addClass("ledgr-btn-disabled");
       await this.render();
     };
 
@@ -227,7 +226,7 @@ export class StatementsView extends ItemView {
     const hrow = thead.createEl("tr");
     ["Month", "Inflows", "Outflows", "Net Cash"].forEach((h) => {
       const th = hrow.createEl("th", { text: h });
-      if (h !== "Month") th.style.textAlign = "right";
+      if (h !== "Month") th.addClass("ledgr-text-right");
     });
 
     const tbody = table.createEl("tbody");
@@ -256,15 +255,15 @@ export class StatementsView extends ItemView {
       tr.createEl("td", { text: window.moment(month).format("MMMM") });
 
       const inTd = tr.createEl("td");
-      inTd.style.textAlign = "right";
+      inTd.addClass("ledgr-text-right");
       inTd.textContent = s.totalIncome > 0 ? fmt(s.totalIncome) as string : "—";
 
       const outTd = tr.createEl("td");
-      outTd.style.textAlign = "right";
+      outTd.addClass("ledgr-text-right");
       outTd.textContent = s.totalExpenses > 0 ? fmtSigned(-s.totalExpenses) as string : "—";
 
       const netTd = tr.createEl("td");
-      netTd.style.textAlign = "right";
+      netTd.addClass("ledgr-text-right");
       if (s.totalIncome > 0 || s.totalExpenses > 0) {
         netTd.textContent = fmtSigned(s.net) as string;
         netTd.className = s.net >= 0 ? "ledgr-positive" : "ledgr-negative";
@@ -285,13 +284,10 @@ export class StatementsView extends ItemView {
     const tfoot = table.createEl("tfoot");
     const footRow = tfoot.createEl("tr", { cls: "ledgr-stmt-cf-total" });
     footRow.createEl("td", { text: "Year Total" });
-    const ftIn = footRow.createEl("td", { text: fmt(totalIn) as string, cls: "ledgr-positive" });
-    ftIn.style.textAlign = "right";
-    const ftOut = footRow.createEl("td", { text: fmtSigned(-totalOut) as string });
-    ftOut.style.textAlign = "right";
+    const ftIn = footRow.createEl("td", { text: fmt(totalIn) as string, cls: "ledgr-positive ledgr-text-right" });
+    const ftOut = footRow.createEl("td", { text: fmtSigned(-totalOut) as string, cls: "ledgr-text-right" });
     const net = totalIn - totalOut;
-    const ftNet = footRow.createEl("td", { text: fmtSigned(net) as string, cls: net >= 0 ? "ledgr-positive" : "ledgr-negative" });
-    ftNet.style.textAlign = "right";
+    footRow.createEl("td", { text: fmtSigned(net) as string, cls: `ledgr-text-right ${net >= 0 ? "ledgr-positive" : "ledgr-negative"}` });
 
     parent.createEl("p", {
       text: `Cash basis. All amounts in ${this.viewCurrency}. Future months shown for reference.`,

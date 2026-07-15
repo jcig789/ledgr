@@ -34,7 +34,7 @@ export class RemittanceModal extends Modal {
     this.contentEl.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.save(); }
     });
-    setTimeout(() => this.amtInput?.focus(), 50);
+    window.setTimeout(() => this.amtInput?.focus(), 50);
   }
 
   recalcTo() {
@@ -132,7 +132,7 @@ export class RemittanceModal extends Modal {
     const dateSetting = new Setting(contentEl).setName("Date");
     (await import("./DatePicker")).createDateInput(dateSetting.controlEl, this.date, (v) => (this.date = v));
 
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-remit", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-remit ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
@@ -146,17 +146,17 @@ export class RemittanceModal extends Modal {
 
   async save() {
     const errEl = this.contentEl.querySelector<HTMLElement>(".ledgr-error-remit");
-    if (errEl) { errEl.style.display = "none"; errEl.textContent = ""; }
+    if (errEl) { errEl.addClass("ledgr-hidden"); errEl.textContent = ""; }
 
     const amt = parseFloat(this.amountFrom);
     if (!amt || isNaN(amt) || amt <= 0) {
-      if (errEl) { errEl.textContent = "Please enter a valid amount."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Please enter a valid amount."; errEl.removeClass("ledgr-hidden"); }
       this.amtInput?.focus();
       return;
     }
 
     if (!window.moment(this.date, "YYYY-MM-DD", true).isValid()) {
-      if (errEl) { errEl.textContent = "Date must be YYYY-MM-DD."; errEl.style.display = "block"; }
+      if (errEl) { errEl.textContent = "Date must be YYYY-MM-DD."; errEl.removeClass("ledgr-hidden"); }
       return;
     }
 

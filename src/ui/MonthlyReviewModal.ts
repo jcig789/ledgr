@@ -1,6 +1,6 @@
 import { App, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import LedgrPlugin from "../main";
-import { readMonthTransactions, readAllTransactions, summarize, convertToBase } from "../data/reader";
+import { readMonthTransactions, summarize, convertToBase } from "../data/reader";
 import { loadBudgets } from "../data/budgets";
 import { loadRemittances } from "../data/remittances";
 import { loadGoals } from "../data/goals";
@@ -27,8 +27,7 @@ export class MonthlyReviewModal extends Modal {
     contentEl.createEl("h2", { text: "Generate Monthly Review" });
 
     // Month selector
-    const monthRow = contentEl.createDiv("ledgr-month-row");
-    monthRow.style.marginBottom = "16px";
+    const monthRow = contentEl.createDiv("ledgr-month-row ledgr-row-spaced");
     const prevBtn = monthRow.createEl("button", { text: "←" });
     prevBtn.onclick = () => {
       this.selectedMonth = window.moment(this.selectedMonth).subtract(1, "month").format("YYYY-MM");
@@ -57,7 +56,7 @@ export class MonthlyReviewModal extends Modal {
       overwriteBtn.onclick = async () => { await this.generate(true); };
     }
 
-    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-review", text: "" }).style.display = "none";
+    contentEl.createEl("p", { cls: "ledgr-error ledgr-error-review ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
       btn.setButtonText("Generate").setCta().onClick(() => this.generate(false))
