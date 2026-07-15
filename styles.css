@@ -2272,10 +2272,10 @@ button.ledgr-del-confirm,
 /* ─── Utility classes (used instead of inline styles) ─────────────────── */
 
 /* Hide/show elements — replaces element.style.display = "none/block".
-   !important is required here: a utility class must beat any component-level
-   display rule, which is the standard pattern for visibility toggling. */
-.ledgr-hidden {
-  display: none !important; /* intentional: utility override requires !important */
+   Double-class specificity beats any single-class component display rule
+   without needing !important. */
+.ledgr-hidden.ledgr-hidden {
+  display: none;
 }
 
 /* Disabled button state — replaces opacity + cursor inline styles */

@@ -1,8 +1,9 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions, summarize, convertToBase } from "../data/reader";
-import { loadNetWorth } from "../data/networth";
-import { loadBudgets } from "../data/budgets";
+import { loadNetWorth, NetWorthData, Account, Brokerage } from "../data/networth";
+import { loadBudgets, BudgetConfig } from "../data/budgets";
+import { Transaction } from "../data/transactions";
 import { renderNavBar } from "./NavBar";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
 
@@ -118,7 +119,7 @@ export class StatementsView extends ItemView {
     }
   }
 
-  async renderPL(parent: HTMLElement, transactions: any[], budgetConfig: any, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
+  async renderPL(parent: HTMLElement, transactions: Transaction[], budgetConfig: BudgetConfig, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     const summary = summarize(transactions, this.viewCurrency, this.plugin.settings.exchangeRates);
 
     this.stmtDocHeader(parent, "Income Statement", this.selectedYear);
@@ -296,7 +297,7 @@ export class StatementsView extends ItemView {
     });
   }
 
-  renderBalanceSheet(parent: HTMLElement, netWorthData: any, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
+  renderBalanceSheet(parent: HTMLElement, netWorthData: NetWorthData, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     const asOf = netWorthData.updatedAt
       ? `As of ${new Date(netWorthData.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
       : "As of today";
@@ -311,10 +312,10 @@ export class StatementsView extends ItemView {
     this.stmtSectionLabel(assetsSection, "Assets");
 
     let bankTotal = 0;
-    const bankAccounts = netWorthData.accounts?.filter((a: any) => !a.isLiability) ?? [];
+    const bankAccounts = netWorthData.accounts?.filter((a: Account) => !a.isLiability) ?? [];
     if (bankAccounts.length > 0) {
       assetsSection.createEl("div", { text: "Bank & Cash Accounts", cls: "ledgr-stmt-group-label" });
-      bankAccounts.forEach((a: any) => {
+      bankAccounts.forEach((a: Account) => {
         const amt = toBase(a.balance, a.currency);
         bankTotal += amt;
         this.stmtLine(assetsSection, a.name, fmt(amt), true);
@@ -325,7 +326,7 @@ export class StatementsView extends ItemView {
     let investTotal = 0;
     if (netWorthData.brokerages?.length > 0) {
       assetsSection.createEl("div", { text: "Investment Accounts", cls: "ledgr-stmt-group-label" });
-      netWorthData.brokerages.forEach((b: any) => {
+      netWorthData.brokerages.forEach((b: Brokerage) => {
         const amt = toBase(b.value, b.currency);
         investTotal += amt;
         this.stmtLine(assetsSection, b.name, fmt(amt), true);
@@ -343,9 +344,9 @@ export class StatementsView extends ItemView {
     this.stmtSectionLabel(liabSection, "Liabilities");
 
     let totalLiab = 0;
-    const liabilities = netWorthData.accounts?.filter((a: any) => a.isLiability) ?? [];
+    const liabilities = netWorthData.accounts?.filter((a: Account) => a.isLiability) ?? [];
     if (liabilities.length > 0) {
-      liabilities.forEach((a: any) => {
+      liabilities.forEach((a: Account) => {
         const amt = toBase(a.balance, a.currency);
         totalLiab += amt;
         this.stmtLine(liabSection, a.name, fmtSigned(-amt), true);

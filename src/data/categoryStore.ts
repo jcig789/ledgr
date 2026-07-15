@@ -17,7 +17,7 @@ export async function loadCategories(app: App, settings: LedgrSettings): Promise
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return structuredClone(DEFAULTS);
   try {
-    const data = JSON.parse(await app.vault.read(file));
+    const data = JSON.parse(await app.vault.read(file)) as CategoryStore;
     // Ensure both keys exist
     if (!data.expense) data.expense = structuredClone(DEFAULTS.expense);
     if (!data.income) data.income = structuredClone(DEFAULTS.income);

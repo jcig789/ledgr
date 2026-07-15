@@ -2,7 +2,7 @@ import { App, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import LedgrPlugin from "../main";
 import { readAllTransactions, summarize, convertToBase } from "../data/reader";
 import { loadRemittances } from "../data/remittances";
-import { loadNetWorth } from "../data/networth";
+import { loadNetWorth, Account } from "../data/networth";
 import { loadGoals } from "../data/goals";
 
 export class WrappedModal extends Modal {
@@ -65,7 +65,7 @@ export class WrappedModal extends Modal {
       this.overwriteWarning = true; this.render(); return;
     }
     if (!this.app.vault.getAbstractFileByPath(normalizePath(outputFolder))) {
-      await this.app.vault.createFolder(normalizePath(outputFolder));
+      await this.app.vault.adapter.mkdir(normalizePath(outputFolder));
     }
 
     const allTxs = await readAllTransactions(this.app, this.plugin.settings, this.selectedYear);
@@ -193,8 +193,8 @@ export class WrappedModal extends Modal {
     // Goals
     if (goalsStore.goals.length > 0) {
       lines.push(`## Savings Goals`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
-      const bankTotal = (netWorthData.accounts ?? []).filter((a: any) => !a.isLiability)
-        .reduce((s: number, a: any) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+      const bankTotal = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
+        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
         const pct = Math.min(100, Math.round((bankTotal / g.targetAmount) * 100));
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);

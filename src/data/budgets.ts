@@ -14,10 +14,10 @@ export async function loadBudgets(app: App, settings: LedgrSettings): Promise<Bu
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return { ...EMPTY, currency: settings.baseCurrency };
   try {
-    const data = JSON.parse(await app.vault.read(file));
+    const data = JSON.parse(await app.vault.read(file)) as BudgetConfig;
     // Migrate old flat format: { "Food & Drink": 30000 } → new format
     if (!data.limits) {
-      return { currency: settings.baseCurrency, limits: data };
+      return { currency: settings.baseCurrency, limits: data as unknown as Record<string, number> };
     }
     return data;
   } catch {

@@ -37,7 +37,8 @@ export async function loadRemittances(app: App, settings: LedgrSettings): Promis
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return EMPTY;
   try {
-    return JSON.parse(await app.vault.read(file));
+    const data = JSON.parse(await app.vault.read(file)) as RemittanceStore;
+    return data;
   } catch {
     return EMPTY;
   }

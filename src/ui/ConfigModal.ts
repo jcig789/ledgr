@@ -118,7 +118,7 @@ export class ConfigModal extends Modal {
       btn.setButtonText("Save").setCta().onClick(async () => {
         this.plugin.settings.exchangeRates.updatedAt = new Date().toISOString();
         await this.plugin.saveSettings();
-        this.app.workspace.trigger("ledgr:transaction-saved" as any);
+        this.app.workspace.trigger("ledgr:transaction-saved");
         new Notice("Settings saved");
         this.render();
       })
@@ -133,7 +133,7 @@ export class ConfigModal extends Modal {
         t.setValue(settings.enableTransferTracker).onChange(async (v) => {
           this.plugin.settings.enableTransferTracker = v;
           await this.plugin.saveSettings();
-          this.app.workspace.trigger("ledgr:transaction-saved" as any);
+          this.app.workspace.trigger("ledgr:transaction-saved");
         })
       );
   }
@@ -161,7 +161,7 @@ export class ConfigModal extends Modal {
         .setCta()
         .onClick(async () => {
           await saveCategories(this.app, this.plugin.settings, this.categories!);
-          this.app.workspace.trigger("ledgr:categories-updated" as any);
+          this.app.workspace.trigger("ledgr:categories-updated");
           new Notice("Categories saved");
           this.close();
         })

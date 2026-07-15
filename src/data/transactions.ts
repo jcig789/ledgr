@@ -17,7 +17,7 @@ export async function saveTransaction(app: App, settings: LedgrSettings, tx: Tra
   const filePath = normalizePath(`${folder}/${month}.md`);
 
   if (!app.vault.getAbstractFileByPath(folder)) {
-    await app.vault.createFolder(folder);
+    await app.vault.adapter.mkdir(folder);
   }
 
   // Table row (human-readable, used by Ledgr's own reader)

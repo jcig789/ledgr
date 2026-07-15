@@ -34,7 +34,7 @@ export async function loadNetWorth(app: App, settings: LedgrSettings): Promise<N
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return EMPTY;
   try {
-    const data = JSON.parse(await app.vault.read(file));
+    const data = JSON.parse(await app.vault.read(file)) as NetWorthData & { holdings?: unknown };
     // Migrate old holdings format
     if (!data.brokerages) data.brokerages = [];
     if (data.holdings) delete data.holdings;

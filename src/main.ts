@@ -1,4 +1,10 @@
-import { Plugin, Platform } from "obsidian";
+import { App, Events, Plugin, Platform } from "obsidian";
+
+interface DailyNotesPluginInstance {
+  internalPlugins?: {
+    getPluginById: (id: string) => { instance?: { options?: { folder?: string; format?: string } } } | null;
+  };
+}
 import { LedgrSettings, DEFAULT_SETTINGS } from "./settings";
 import { LedgrSettingTab } from "./ui/SettingTab";
 import { QuickCaptureModal } from "./ui/QuickCaptureModal";
@@ -32,7 +38,7 @@ export default class LedgrPlugin extends Plugin {
 
     // Auto-append to daily note when enabled
     this.registerEvent(
-      this.app.workspace.on("ledgr:transaction-saved" as any, async () => {
+      (this.app.workspace as Events).on("ledgr:transaction-saved", async () => {
         if (this.settings.appendToDailyNote) {
           await this.appendToDailyNote();
         }
@@ -106,7 +112,8 @@ export default class LedgrPlugin extends Plugin {
     const month = window.moment().format("YYYY-MM");
 
     // Find daily note — try Obsidian's built-in daily notes config first
-    const dailyNotesPlugin = (this.app as any).internalPlugins?.getPluginById("daily-notes");
+    const dailyPlugin = (this.app as App & DailyNotesPluginInstance).internalPlugins;
+    const dailyNotesPlugin = dailyPlugin?.getPluginById("daily-notes");
     const folder = this.settings.dailyNotePath ||
       dailyNotesPlugin?.instance?.options?.folder || "";
     const format = dailyNotesPlugin?.instance?.options?.format || "YYYY-MM-DD";

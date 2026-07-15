@@ -629,9 +629,9 @@ export function renderBudgetScale(
   const colors = ["var(--ledgr-green)", "var(--ledgr-cat-9)", "var(--ledgr-cat-8)", "var(--ledgr-red)"];
   colors.forEach((c, i) => {
     const seg = track.createDiv("ledgr-scale-seg");
-    seg.style.backgroundColor = c; // dynamic value — cannot use static CSS class
-    if (i === 0) seg.style.borderRadius = "2px 0 0 2px"; // dynamic value — cannot use static CSS class
-    if (i === colors.length - 1) seg.style.borderRadius = "0 2px 2px 0"; // dynamic value — cannot use static CSS class
+    seg.setCssStyles({ backgroundColor: c });
+    if (i === 0) seg.setCssStyles({ borderRadius: "2px 0 0 2px" });
+    if (i === colors.length - 1) seg.setCssStyles({ borderRadius: "0 2px 2px 0" });
   });
 
   const indicator = wrap.createDiv("ledgr-scale-indicator");

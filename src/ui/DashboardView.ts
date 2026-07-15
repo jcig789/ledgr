@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, normalizePath, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, normalizePath, Notice, Events } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions, summarize } from "../data/reader";
 import { Currency } from "../settings";
@@ -9,7 +9,8 @@ import { RemittanceModal } from "./RemittanceModal";
 import { renderNavBar } from "./NavBar";
 import { loadBudgets } from "../data/budgets";
 import { convertToBase } from "../data/reader";
-import { loadRemittances, getRemittanceSummary } from "../data/remittances";
+import { loadRemittances, getRemittanceSummary, RemittanceStore, Remittance } from "../data/remittances";
+import { BudgetConfig } from "../data/budgets";
 import { getCategoryType } from "../constants/categories";
 import { renderDonutChart, buildSpendingSegments, renderGauge, renderTrendLine, categoryColor } from "./charts";
 import { EditTransactionModal } from "./EditTransactionModal";
@@ -37,7 +38,7 @@ export class DashboardView extends ItemView {
   async onOpen() {
     await this.render();
     this.registerEvent(
-      this.app.workspace.on("ledgr:transaction-saved" as any, async () => {
+      (this.app.workspace as Events).on("ledgr:transaction-saved", async () => {
         await this.render();
       })
     );
@@ -218,7 +219,7 @@ export class DashboardView extends ItemView {
     }
   }
 
-  renderRemittanceWidget(parent: HTMLElement, remitSummary: ReturnType<typeof getRemittanceSummary>, store: any) {
+  renderRemittanceWidget(parent: HTMLElement, remitSummary: ReturnType<typeof getRemittanceSummary>, store: RemittanceStore) {
     const base = this.plugin.settings.baseCurrency;
     const sec = this.plugin.settings.secondaryCurrencies[0] ?? "";
     const widget = parent.createDiv("ledgr-remit-widget");
@@ -254,7 +255,7 @@ export class DashboardView extends ItemView {
     };
   }
 
-  renderTransferHistory(parent: HTMLElement, remittances: any[]) {
+  renderTransferHistory(parent: HTMLElement, remittances: Remittance[]) {
     parent.empty();
     const base = this.plugin.settings.baseCurrency;
     const sec = this.plugin.settings.secondaryCurrencies[0] ?? "";
@@ -328,7 +329,7 @@ export class DashboardView extends ItemView {
         cls: `ledgr-opex-tab ${period === key ? "active" : ""}`,
       });
       btn.onclick = () => {
-        period = key as any;
+        period = key as "month" | "year" | "all";
         tabRow.querySelectorAll(".ledgr-opex-tab").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         renderTable();
@@ -338,12 +339,12 @@ export class DashboardView extends ItemView {
     renderTable();
   }
 
-  renderCountdownBanner(parent: HTMLElement, budgetConfig: any, summary: ReturnType<typeof summarize>) {
+  renderCountdownBanner(parent: HTMLElement, budgetConfig: BudgetConfig, summary: ReturnType<typeof summarize>) {
     if (!this.isLiveMonth) return;
     if (Object.keys(budgetConfig.limits).length === 0) return;
 
     const totalBudget = Object.entries(budgetConfig.limits).reduce((sum, [, val]) => {
-      return sum + convertToBase(val as number, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return sum + convertToBase(val, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
     }, 0);
     if (totalBudget === 0) return;
 
@@ -387,7 +388,7 @@ export class DashboardView extends ItemView {
     if (php) stat.createEl("div", { text: php, cls: "ledgr-remit-stat-php" });
   }
 
-  renderOpexCapex(parent: HTMLElement, summary: ReturnType<typeof summarize>, budgetConfig: any) {
+  renderOpexCapex(parent: HTMLElement, summary: ReturnType<typeof summarize>, budgetConfig: BudgetConfig) {
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Spending by Category" });
 
@@ -515,7 +516,7 @@ export class DashboardView extends ItemView {
     lines.splice(targetIdx, deleteCount);
     await this.app.vault.modify(file, lines.join("\n"));
     new Notice("Transaction deleted");
-    this.app.workspace.trigger("ledgr:transaction-saved" as any);
+    this.app.workspace.trigger("ledgr:transaction-saved");
   }
 
   renderFirstRun(parent: HTMLElement) {

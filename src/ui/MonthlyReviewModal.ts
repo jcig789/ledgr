@@ -4,7 +4,7 @@ import { readMonthTransactions, summarize, convertToBase } from "../data/reader"
 import { loadBudgets } from "../data/budgets";
 import { loadRemittances } from "../data/remittances";
 import { loadGoals } from "../data/goals";
-import { loadNetWorth } from "../data/networth";
+import { loadNetWorth, Account } from "../data/networth";
 
 export class MonthlyReviewModal extends Modal {
   plugin: LedgrPlugin;
@@ -80,7 +80,7 @@ export class MonthlyReviewModal extends Modal {
 
     // Ensure folder
     if (!this.app.vault.getAbstractFileByPath(normalizePath(this.outputFolder))) {
-      await this.app.vault.createFolder(normalizePath(this.outputFolder));
+      await this.app.vault.adapter.mkdir(normalizePath(this.outputFolder));
     }
 
     const prevMonth = window.moment(this.selectedMonth).subtract(1, "month").format("YYYY-MM");
@@ -173,8 +173,8 @@ export class MonthlyReviewModal extends Modal {
     // Goals
     if (goalsStore.goals.length > 0) {
       lines.push(`## Goals Progress`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
-      const bankTotal = (netWorth.accounts ?? []).filter((a: any) => !a.isLiability)
-        .reduce((s: number, a: any) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+      const bankTotal = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
+        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
         const current = bankTotal;
         const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));

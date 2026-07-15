@@ -54,7 +54,7 @@ export class BudgetModal extends Modal {
         .setCta()
         .onClick(async () => {
           await saveBudgets(this.app, this.plugin.settings, this.budgets);
-          this.app.workspace.trigger("ledgr:transaction-saved" as any);
+          this.app.workspace.trigger("ledgr:transaction-saved");
           new Notice("Budgets saved");
           this.close();
         })

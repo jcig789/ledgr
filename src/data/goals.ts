@@ -21,7 +21,7 @@ export async function loadGoals(app: App, settings: LedgrSettings): Promise<Goal
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return EMPTY;
   try {
-    const data = JSON.parse(await app.vault.read(file));
+    const data = JSON.parse(await app.vault.read(file)) as GoalStore;
     if (!data.goals) data.goals = [];
     return data;
   } catch {

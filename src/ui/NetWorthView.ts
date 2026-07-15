@@ -167,8 +167,9 @@ export class NetWorthView extends ItemView {
     }
 
     // ── Account balance bars ─────────────────────────────────────────
-    const allAccounts = [
-      ...this.data.accounts.filter((a) => !a.isLiability),
+    type BarEntry = { id: string; name: string; currency: string; balance: number; type: string; isBrokerage: boolean };
+    const allAccounts: BarEntry[] = [
+      ...this.data.accounts.filter((a) => !a.isLiability).map((a) => ({ ...a, isBrokerage: false })),
       ...this.data.brokerages.map((b) => ({
         id: b.id, name: b.name, currency: b.currency,
         balance: b.value, type: "investment", isBrokerage: true,
@@ -178,12 +179,12 @@ export class NetWorthView extends ItemView {
     if (allAccounts.length === 0) return;
 
     const barsWrap = section.createDiv("ledgr-nw-bars");
-    const maxBalance = Math.max(...allAccounts.map((a: any) =>
-      this.toBase(a.balance ?? a.value ?? 0, a.currency)
+    const maxBalance = Math.max(...allAccounts.map((a) =>
+      this.toBase(a.balance, a.currency)
     ));
 
-    allAccounts.forEach((a: any, idx) => {
-      const balance = this.toBase(a.balance ?? a.value ?? 0, a.currency);
+    allAccounts.forEach((a, idx) => {
+      const balance = this.toBase(a.balance, a.currency);
       const pct = maxBalance > 0 ? (balance / maxBalance) * 100 : 0;
       const color = categoryColor(a.type === "investment" || a.isBrokerage ? "Transport" : "Housing", idx);
 
@@ -297,7 +298,7 @@ export class NetWorthView extends ItemView {
         this.addNumberCell(tr, acc.balance, (v) => (acc.balance = v));
         this.addRemoveBtn(tr, () => {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
-          this.render();
+          void this.render();
         });
       } else {
         tr.createEl("td", { text: acc.name });
@@ -466,8 +467,8 @@ export class NetWorthView extends ItemView {
       const barRow = card.createDiv("ledgr-goal-bar-row");
       const barWrap = barRow.createDiv("ledgr-goal-bar-wrap");
       const bar = barWrap.createDiv(`ledgr-goal-bar${reached ? " ledgr-goal-complete" : ""}`);
-      bar.style.width = "0%"; // dynamic value — cannot use static CSS class
-      window.requestAnimationFrame(() => { bar.style.width = `${pct}%`; }); // dynamic value — cannot use static CSS class
+      bar.setCssStyles({ width: "0%" });
+      window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${pct}%` }); });
       barRow.createEl("span", { text: `${pct}%`, cls: "ledgr-goal-pct" });
 
       // Meta row
