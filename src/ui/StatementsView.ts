@@ -118,7 +118,7 @@ export class StatementsView extends ItemView {
     }
   }
 
-  async renderPL(parent: HTMLElement, transactions: any[], budgetConfig: any, fmt: Function, fmtSigned: Function) {
+  async renderPL(parent: HTMLElement, transactions: any[], budgetConfig: any, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     const summary = summarize(transactions, this.viewCurrency, this.plugin.settings.exchangeRates);
 
     this.stmtDocHeader(parent, "Income Statement", this.selectedYear);
@@ -140,7 +140,7 @@ export class StatementsView extends ItemView {
       this.stmtLine(incSection, "No income recorded", "—");
     } else {
       Object.entries(incomeBySubcat).sort((a, b) => b[1] - a[1]).forEach(([label, amt]) => {
-        this.stmtLine(incSection, label, fmt(amt as number));
+        this.stmtLine(incSection, label, fmt(amt));
       });
     }
     this.stmtSubtotal(incSection, "Total Revenue", fmt(summary.totalIncome));
@@ -167,14 +167,14 @@ export class StatementsView extends ItemView {
         const budget = budgetRaw
           ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
           : undefined;
-        const actual = amt as number;
+        const actual = amt;
 
         grid.createEl("span", { text: cat, cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-name" });
-        grid.createEl("span", { text: fmt(actual) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt" });
+        grid.createEl("span", { text: fmt(actual), cls: "ledgr-stmt-budget-cell ledgr-stmt-amt" });
 
         if (budget !== undefined) {
           const variance = budget - actual;
-          grid.createEl("span", { text: fmt(budget) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-text-faint" });
+          grid.createEl("span", { text: fmt(budget), cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-text-faint" });
           grid.createEl("span", {
             text: variance >= 0 ? `+${fmt(variance)}` : `(${fmt(Math.abs(variance))})`,
             cls: `ledgr-stmt-budget-cell ledgr-stmt-amt ${variance >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
@@ -187,12 +187,12 @@ export class StatementsView extends ItemView {
 
       // Total row inside the same grid
       grid.createEl("span", { text: "Total Expenses", cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-total" });
-      grid.createEl("span", { text: fmt(summary.totalExpenses) as string, cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-stmt-budget-total" });
+      grid.createEl("span", { text: fmt(summary.totalExpenses), cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-stmt-budget-total" });
       grid.createEl("span", { cls: "ledgr-stmt-budget-cell" });
       grid.createEl("span", { cls: "ledgr-stmt-budget-cell" });
     } else {
       Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
-        this.stmtLine(expSection, cat, fmt(amt as number) as string);
+        this.stmtLine(expSection, cat, fmt(amt));
       });
     }
 
@@ -201,7 +201,7 @@ export class StatementsView extends ItemView {
     const totalEl = parent.createDiv("ledgr-stmt-total");
     totalEl.createEl("span", { text: "Net Savings" });
     totalEl.createEl("span", {
-      text: fmt(summary.net) as string,
+      text: fmt(summary.net),
       cls: `ledgr-stmt-amt ${summary.net >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
     });
 
@@ -219,7 +219,7 @@ export class StatementsView extends ItemView {
     });
   }
 
-  async renderCashFlow(parent: HTMLElement, fmt: Function, fmtSigned: Function) {
+  async renderCashFlow(parent: HTMLElement, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     this.stmtDocHeader(parent, "Statement of Cash Flows", this.selectedYear);
 
     const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
@@ -257,16 +257,16 @@ export class StatementsView extends ItemView {
 
       const inTd = tr.createEl("td");
       inTd.addClass("ledgr-text-right");
-      inTd.textContent = s.totalIncome > 0 ? fmt(s.totalIncome) as string : "—";
+      inTd.textContent = s.totalIncome > 0 ? fmt(s.totalIncome) : "—";
 
       const outTd = tr.createEl("td");
       outTd.addClass("ledgr-text-right");
-      outTd.textContent = s.totalExpenses > 0 ? fmtSigned(-s.totalExpenses) as string : "—";
+      outTd.textContent = s.totalExpenses > 0 ? fmtSigned(-s.totalExpenses) : "—";
 
       const netTd = tr.createEl("td");
       netTd.addClass("ledgr-text-right");
       if (s.totalIncome > 0 || s.totalExpenses > 0) {
-        netTd.textContent = fmtSigned(s.net) as string;
+        netTd.textContent = fmtSigned(s.net);
         netTd.addClass(s.net >= 0 ? "ledgr-positive" : "ledgr-negative");
       } else {
         netTd.textContent = "—";
@@ -285,10 +285,10 @@ export class StatementsView extends ItemView {
     const tfoot = table.createEl("tfoot");
     const footRow = tfoot.createEl("tr", { cls: "ledgr-stmt-cf-total" });
     footRow.createEl("td", { text: "Year Total" });
-    const ftIn = footRow.createEl("td", { text: fmt(totalIn) as string, cls: "ledgr-positive ledgr-text-right" });
-    const ftOut = footRow.createEl("td", { text: fmtSigned(-totalOut) as string, cls: "ledgr-text-right" });
+    footRow.createEl("td", { text: fmt(totalIn), cls: "ledgr-positive ledgr-text-right" });
+    footRow.createEl("td", { text: fmtSigned(-totalOut), cls: "ledgr-text-right" });
     const net = totalIn - totalOut;
-    footRow.createEl("td", { text: fmtSigned(net) as string, cls: `ledgr-text-right ${net >= 0 ? "ledgr-positive" : "ledgr-negative"}` });
+    footRow.createEl("td", { text: fmtSigned(net), cls: `ledgr-text-right ${net >= 0 ? "ledgr-positive" : "ledgr-negative"}` });
 
     parent.createEl("p", {
       text: `Cash basis. All amounts in ${this.viewCurrency}. Future months shown for reference.`,
@@ -296,7 +296,7 @@ export class StatementsView extends ItemView {
     });
   }
 
-  renderBalanceSheet(parent: HTMLElement, netWorthData: any, fmt: Function, fmtSigned: Function) {
+  renderBalanceSheet(parent: HTMLElement, netWorthData: any, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     const asOf = netWorthData.updatedAt
       ? `As of ${new Date(netWorthData.updatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
       : "As of today";
@@ -317,9 +317,9 @@ export class StatementsView extends ItemView {
       bankAccounts.forEach((a: any) => {
         const amt = toBase(a.balance, a.currency);
         bankTotal += amt;
-        this.stmtLine(assetsSection, a.name, fmt(amt) as string, true);
+        this.stmtLine(assetsSection, a.name, fmt(amt), true);
       });
-      this.stmtSubtotal(assetsSection, "Total Bank & Cash", fmt(bankTotal) as string);
+      this.stmtSubtotal(assetsSection, "Total Bank & Cash", fmt(bankTotal));
     }
 
     let investTotal = 0;
@@ -328,13 +328,13 @@ export class StatementsView extends ItemView {
       netWorthData.brokerages.forEach((b: any) => {
         const amt = toBase(b.value, b.currency);
         investTotal += amt;
-        this.stmtLine(assetsSection, b.name, fmt(amt) as string, true);
+        this.stmtLine(assetsSection, b.name, fmt(amt), true);
       });
-      this.stmtSubtotal(assetsSection, "Total Investments", fmt(investTotal) as string);
+      this.stmtSubtotal(assetsSection, "Total Investments", fmt(investTotal));
     }
 
     const totalAssets = bankTotal + investTotal;
-    this.stmtGrandTotal(assetsSection, "Total Assets", fmt(totalAssets) as string);
+    this.stmtGrandTotal(assetsSection, "Total Assets", fmt(totalAssets));
 
     parent.createEl("div", { cls: "ledgr-stmt-spacer" });
 
@@ -348,12 +348,12 @@ export class StatementsView extends ItemView {
       liabilities.forEach((a: any) => {
         const amt = toBase(a.balance, a.currency);
         totalLiab += amt;
-        this.stmtLine(liabSection, a.name, fmtSigned(-amt) as string, true);
+        this.stmtLine(liabSection, a.name, fmtSigned(-amt), true);
       });
     } else {
       liabSection.createEl("p", { text: "No liabilities recorded.", cls: "ledgr-empty-state" });
     }
-    this.stmtGrandTotal(liabSection, "Total Liabilities", totalLiab === 0 ? fmt(0) as string : fmt(totalLiab) as string);
+    this.stmtGrandTotal(liabSection, "Total Liabilities", totalLiab === 0 ? fmt(0) : fmt(totalLiab));
 
     parent.createEl("div", { cls: "ledgr-stmt-spacer" });
 
@@ -362,14 +362,14 @@ export class StatementsView extends ItemView {
     const totalEl = parent.createDiv("ledgr-stmt-total");
     totalEl.createEl("span", { text: "Net Worth" });
     totalEl.createEl("span", {
-      text: fmt(netWorth) as string,
+      text: fmt(netWorth),
       cls: `ledgr-stmt-amt ${netWorth >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
     });
 
     // Composition bar
     if (totalAssets > 0 || totalLiab > 0) {
       const barWrap = parent.createDiv("ledgr-stmt-comp-bar");
-      const segs = buildNetWorthSegments(bankTotal, investTotal, totalLiab, fmt as any);
+      const segs = buildNetWorthSegments(bankTotal, investTotal, totalLiab, fmt);
       renderCompositionBar(barWrap, segs);
     }
 

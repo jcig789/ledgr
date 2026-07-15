@@ -204,7 +204,7 @@ export class DashboardView extends ItemView {
         editBtn.title = "Edit transaction";
         editBtn.onclick = () => new EditTransactionModal(
           this.app, this.plugin, tx, this.currentMonth, actualIndex,
-          async () => await this.render()
+          () => { void this.render(); }
         ).open();
         const delBtn = actionTd.createEl("button", { text: "✕", cls: "ledgr-del-btn" });
         delBtn.title = "Delete transaction";
@@ -493,9 +493,9 @@ export class DashboardView extends ItemView {
 
     this.pendingDelete = { month, lineIndex, timer };
 
-    btn.onclick = async () => {
+    btn.onclick = () => {
       if (this.pendingDelete) { window.clearTimeout(this.pendingDelete.timer); this.pendingDelete = null; }
-      await this.deleteTransaction(month, lineIndex);
+      void this.deleteTransaction(month, lineIndex);
     };
   }
 

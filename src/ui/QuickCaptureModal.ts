@@ -35,7 +35,7 @@ export class QuickCaptureModal extends Modal {
     }
     this.render();
     this.contentEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.save(); }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
     // Auto-focus amount field
     window.setTimeout(() => this.amtInput?.focus(), 50);
@@ -66,7 +66,7 @@ export class QuickCaptureModal extends Modal {
       );
 
     // Amount + currency
-    const amtSetting = new Setting(contentEl)
+    new Setting(contentEl)
       .setName("Amount")
       .addText((t) => {
         t.setPlaceholder("0").setValue(this.amount).onChange((v) => (this.amount = v));
@@ -87,7 +87,7 @@ export class QuickCaptureModal extends Modal {
     const catMap = this.type === "income" ? this.catStore.income : this.catStore.expense;
     const catNames = Object.keys(catMap);
 
-    const catSetting = new Setting(contentEl)
+    new Setting(contentEl)
       .setName("Category")
       .addDropdown((d) => {
         catNames.forEach((c) => d.addOption(c, c));
@@ -134,13 +134,12 @@ export class QuickCaptureModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-date ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
+      btn.setButtonText("Save (Enter)").setCta().onClick(() => void this.save())
     );
   }
 
   // Targeted update: only swap category dropdown options
   updateCategoryDropdowns() {
-    const catMap = this.type === "income" ? this.catStore.income : this.catStore.expense;
     // Re-render just category + subcategory by full render (focus is not in these fields)
     this.render();
     window.setTimeout(() => this.amtInput?.focus(), 50);

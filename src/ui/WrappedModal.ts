@@ -142,11 +142,11 @@ export class WrappedModal extends Modal {
     if (topCats.length > 0) {
       lines.push(`## Where Your Money Went`, ``, `| Category | Total | % of Spending |`, `|---|---:|---:|`);
       topCats.forEach(([cat, amt]) => {
-        const pct = Math.round(((amt as number) / yearSummary.totalExpenses) * 100);
-        lines.push(`| ${cat} | ${fmt(amt as number)} | ${pct}% |`);
+        const pct = Math.round((amt / yearSummary.totalExpenses) * 100);
+        lines.push(`| ${cat} | ${fmt(amt)} | ${pct}% |`);
       });
       if (topCats.length >= 2) {
-        const top2pct = Math.round(((topCats[0][1] as number + topCats[1][1] as number) / yearSummary.totalExpenses) * 100);
+        const top2pct = Math.round(((topCats[0][1] + topCats[1][1]) / yearSummary.totalExpenses) * 100);
         lines.push(``, `> **${topCats[0][0]} and ${topCats[1][0]}** made up ${top2pct}% of all spending.`);
       }
       lines.push(``, `---`, ``);
@@ -220,7 +220,7 @@ export class WrappedModal extends Modal {
 
     new Notice(`Wrapped generated: ${this.selectedYear}-wrapped.md`);
     this.close();
-    this.app.workspace.openLinkText(filePath, "", false);
+    void this.app.workspace.openLinkText(filePath, "", false);
   }
 
   onClose() { this.contentEl.empty(); }

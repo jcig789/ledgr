@@ -10,7 +10,7 @@ export function createDateInput(
   onChange: (v: string) => void
 ): HTMLInputElement {
   const wrapper = parent.createDiv("ledgr-date-wrapper");
-  const input = wrapper.createEl("input") as HTMLInputElement;
+  const input = wrapper.createEl("input");
   input.type = "date";
   input.value = value;
   input.className = "ledgr-date-input";

@@ -187,7 +187,7 @@ export class ConfigModal extends Modal {
       const subList = catBlock.createDiv("ledgr-sub-list");
       subs.forEach((sub, idx) => {
         const subRow = subList.createDiv("ledgr-sub-row");
-        const input = subRow.createEl("input") as HTMLInputElement;
+        const input = subRow.createEl("input");
         input.type = "text";
         input.value = sub;
         input.className = "ledgr-inline-input";
@@ -202,7 +202,7 @@ export class ConfigModal extends Modal {
 
       // Add subcategory input
       const addSubRow = catBlock.createDiv("ledgr-sub-row");
-      const subInput = addSubRow.createEl("input") as HTMLInputElement;
+      const subInput = addSubRow.createEl("input");
       subInput.type = "text";
       subInput.placeholder = "New subcategory...";
       subInput.className = "ledgr-inline-input";
@@ -223,7 +223,7 @@ export class ConfigModal extends Modal {
     // Add new category
     if (type === "expense") {
       const addCatRow = parent.createDiv("ledgr-sub-row ledgr-row-spaced");
-      const catInput = addCatRow.createEl("input") as HTMLInputElement;
+      const catInput = addCatRow.createEl("input");
       catInput.type = "text";
       catInput.placeholder = "New category name...";
       catInput.className = "ledgr-inline-input";

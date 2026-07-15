@@ -32,7 +32,7 @@ export class RemittanceModal extends Modal {
   onOpen() {
     this.render().catch(console.error);
     this.contentEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.save(); }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
     window.setTimeout(() => this.amtInput?.focus(), 50);
   }
@@ -135,7 +135,7 @@ export class RemittanceModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-remit ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
+      btn.setButtonText("Save (Enter)").setCta().onClick(() => void this.save())
     );
   }
 

@@ -32,7 +32,7 @@ export class NetWorthView extends ItemView {
   async onOpen() {
     this.data = await loadNetWorth(this.app, this.plugin.settings);
     this.goalsStore = await loadGoals(this.app, this.plugin.settings);
-    this.render();
+    void this.render();
   }
 
   toBase(amount: number, currency: string) {
@@ -65,7 +65,7 @@ export class NetWorthView extends ItemView {
         cls: `ledgr-currency-btn ${c === this.viewCurrency ? "active" : ""}`,
       });
       btn.setAttribute("aria-label", `View in ${c}`);
-      btn.onclick = () => { this.viewCurrency = c; this.render(); };
+      btn.onclick = () => { this.viewCurrency = c; void this.render(); };
     });
 
     const btnRow = controlRow.createDiv("ledgr-btn-row");
@@ -81,7 +81,7 @@ export class NetWorthView extends ItemView {
         new Notice("Net worth saved");
       }
       this.editMode = !this.editMode;
-      this.render();
+      void this.render();
     };
 
     if (this.editMode) {
@@ -90,7 +90,7 @@ export class NetWorthView extends ItemView {
         this.data = await loadNetWorth(this.app, this.plugin.settings);
         this.editMode = false;
         this.isDirty = false;
-        this.render();
+        void this.render();
       };
     }
 
@@ -179,7 +179,7 @@ export class NetWorthView extends ItemView {
 
     const barsWrap = section.createDiv("ledgr-nw-bars");
     const maxBalance = Math.max(...allAccounts.map((a: any) =>
-      this.toBase((a as any).balance ?? (a as any).value ?? 0, (a as any).currency)
+      this.toBase(a.balance ?? a.value ?? 0, a.currency)
     ));
 
     allAccounts.forEach((a: any, idx) => {
@@ -226,7 +226,7 @@ export class NetWorthView extends ItemView {
         this.addNumberCell(tr, acc.balance, (v) => (acc.balance = v));
         this.addRemoveBtn(tr, () => {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
-          this.render();
+          void this.render();
         });
       } else {
         tr.createEl("td", { text: acc.name });
@@ -260,7 +260,7 @@ export class NetWorthView extends ItemView {
         this.addNumberCell(tr, b.value, (v) => (b.value = v));
         this.addRemoveBtn(tr, () => {
           this.data.brokerages = this.data.brokerages.filter((bb) => bb !== b);
-          this.render();
+          void this.render();
         });
       } else {
         tr.createEl("td", { text: b.name });
@@ -324,7 +324,7 @@ export class NetWorthView extends ItemView {
           country,
           isLiability: false,
         });
-        this.render();
+        void this.render();
       };
     };
 
@@ -337,7 +337,7 @@ export class NetWorthView extends ItemView {
     const addBrokerageBtn = btnRow.createEl("button", { text: "+ Investment Account", cls: "ledgr-budget-btn" });
     addBrokerageBtn.onclick = () => {
       this.data.brokerages.push({ id: `brk_${Date.now()}`, name: "New Investment Account", currency: base, value: 0, country: "JP" });
-      this.render();
+      void this.render();
     };
 
     const addLiabilityBtn = btnRow.createEl("button", { text: "+ Liability", cls: "ledgr-budget-btn" });
@@ -351,13 +351,13 @@ export class NetWorthView extends ItemView {
         country: "PH",
         isLiability: true,
       });
-      this.render();
+      void this.render();
     };
   }
 
   addEditCell(tr: HTMLElement, value: string, onChange: (v: string) => void) {
     const td = tr.createEl("td");
-    const input = td.createEl("input") as HTMLInputElement;
+    const input = td.createEl("input");
     input.type = "text";
     input.value = value;
     input.className = "ledgr-inline-input";
@@ -366,7 +366,7 @@ export class NetWorthView extends ItemView {
 
   addNumberCell(tr: HTMLElement, value: number, onChange: (v: number) => void) {
     const td = tr.createEl("td");
-    const input = td.createEl("input") as HTMLInputElement;
+    const input = td.createEl("input");
     input.type = "number";
     input.value = String(value);
     input.className = "ledgr-inline-input";
@@ -391,9 +391,8 @@ export class NetWorthView extends ItemView {
     const hdr = section.createDiv("ledgr-section-header");
     hdr.createEl("h3", { text: "Savings Goals" });
     const addBtn = hdr.createEl("button", { text: "+ Add Goal", cls: "ledgr-budget-btn ledgr-goal-add-btn" });
-    addBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, async () => {
-      this.goalsStore = await loadGoals(this.app, this.plugin.settings);
-      this.render();
+    addBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, () => {
+      void loadGoals(this.app, this.plugin.settings).then((gs) => { this.goalsStore = gs; void this.render(); });
     }).open();
 
     if (this.goalsStore.goals.length === 0) {
@@ -446,15 +445,14 @@ export class NetWorthView extends ItemView {
       goalHdr.createEl("span", { text: goal.name, cls: "ledgr-goal-name" });
       const goalActions = goalHdr.createDiv("ledgr-goal-actions");
       const editBtn = goalActions.createEl("button", { text: "✎", cls: "ledgr-edit-btn" });
-      editBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, async () => {
-        this.goalsStore = await loadGoals(this.app, this.plugin.settings);
-        this.render();
+      editBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, () => {
+        void loadGoals(this.app, this.plugin.settings).then((gs) => { this.goalsStore = gs; void this.render(); });
       }, goal).open();
       const delBtn = goalActions.createEl("button", { text: "✕", cls: "ledgr-del-btn" });
       delBtn.onclick = async () => {
         this.goalsStore.goals = this.goalsStore.goals.filter((g) => g.id !== goal.id);
         await saveGoals(this.app, this.plugin.settings, this.goalsStore);
-        this.render();
+        void this.render();
       };
 
       // Progress label

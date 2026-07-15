@@ -40,7 +40,7 @@ export class EditTransactionModal extends Modal {
     this.catStore = await loadCategories(this.app, this.plugin.settings);
     this.render().catch(console.error);
     this.contentEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); this.save(); }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
     });
   }
 
@@ -96,7 +96,7 @@ export class EditTransactionModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-edit ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Save (Enter)").setCta().onClick(() => this.save())
+      btn.setButtonText("Save (Enter)").setCta().onClick(() => void this.save())
     );
   }
 

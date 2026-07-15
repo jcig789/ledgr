@@ -13,11 +13,7 @@ export class LedgrSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("Ledgr").setHeading();
-    containerEl.createEl("p", {
-      text: "Your money, both sides of the ocean.",
-      cls: "setting-item-description",
-    });
+    new Setting(containerEl).setName("Your money, both sides of the ocean.").setHeading();
 
     // Base currency
     new Setting(containerEl)

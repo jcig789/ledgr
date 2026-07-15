@@ -49,30 +49,32 @@
   --ledgr-surface-raised: var(--color-base-15);
 }
 
-/* Override Obsidian's .mod-cta (purple) inside all Ledgr surfaces */
+/* Override Obsidian's .mod-cta (purple) inside all Ledgr surfaces.
+   Higher specificity avoids !important — each selector adds an extra class
+   or element to beat Obsidian's default .mod-cta rule. */
 .ledgr-dashboard .mod-cta,
 .ledgr-networth .mod-cta,
 .ledgr-statements .mod-cta,
 .ledgr-quick-capture .mod-cta,
 .ledgr-config-modal .mod-cta,
 .modal .ledgr-quick-capture .mod-cta,
-.modal .mod-cta {
-  background-color: var(--ledgr-accent) !important;
-  color: #fff !important;
-  border-color: var(--ledgr-accent) !important;
-  border-radius: var(--ledgr-radius-md) !important;
-  box-shadow: none !important;
+.modal button.mod-cta {
+  background-color: var(--ledgr-accent);
+  color: #fff;
+  border-color: var(--ledgr-accent);
+  border-radius: var(--ledgr-radius-md);
+  box-shadow: none;
 }
 
 .theme-dark .ledgr-dashboard .mod-cta,
 .theme-dark .ledgr-networth .mod-cta,
-.theme-dark .modal .mod-cta {
-  color: #1a1a1a !important;
+.theme-dark .modal button.mod-cta {
+  color: #1a1a1a;
 }
 
-.modal .mod-cta:hover {
-  background-color: var(--ledgr-accent-muted) !important;
-  border-color: var(--ledgr-accent-muted) !important;
+.modal button.mod-cta:hover {
+  background-color: var(--ledgr-accent-muted);
+  border-color: var(--ledgr-accent-muted);
 }
 
 /* ─── Layout wrappers ────────────────────────────────────────────────── */
@@ -423,8 +425,9 @@
   transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.ledgr-bar-over {
-  background: var(--ledgr-red) !important;
+/* Higher specificity than .ledgr-bar to override the dynamic backgroundColor set inline */
+.ledgr-bar-wrap .ledgr-bar.ledgr-bar-over {
+  background: var(--ledgr-red);
 }
 
 .ledgr-cat-amt {
@@ -588,13 +591,15 @@
   color: var(--ledgr-red);
 }
 
-.ledgr-del-confirm {
-  opacity: 1 !important;
-  color: var(--ledgr-red) !important;
-  border: 1px solid var(--ledgr-red) !important;
-  border-radius: var(--ledgr-radius-md) !important;
-  font-size: 0.75em !important;
-  padding: 3px var(--ledgr-spacing-sm) !important;
+/* Higher specificity than base button styles to show confirmation state */
+button.ledgr-del-confirm,
+.ledgr-tx-actions button.ledgr-del-confirm {
+  opacity: 1;
+  color: var(--ledgr-red);
+  border: 1px solid var(--ledgr-red);
+  border-radius: var(--ledgr-radius-md);
+  font-size: 0.75em;
+  padding: 3px var(--ledgr-spacing-sm);
   font-variant: small-caps;
   letter-spacing: 0.04em;
 }
@@ -2266,9 +2271,11 @@
 
 /* ─── Utility classes (used instead of inline styles) ─────────────────── */
 
-/* Hide/show elements — replaces element.style.display = "none/block" */
+/* Hide/show elements — replaces element.style.display = "none/block".
+   !important is required here: a utility class must beat any component-level
+   display rule, which is the standard pattern for visibility toggling. */
 .ledgr-hidden {
-  display: none !important;
+  display: none !important; /* intentional: utility override requires !important */
 }
 
 /* Disabled button state — replaces opacity + cursor inline styles */

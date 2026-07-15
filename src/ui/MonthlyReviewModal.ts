@@ -135,7 +135,7 @@ export class MonthlyReviewModal extends Modal {
           ? convertToBase(budgets.limits[cat], budgets.currency, base, rates)
           : null;
         const status = budget ? (amt > budget ? "**over**" : "on track") : "—";
-        lines.push(`| ${cat} | ${fmt(amt as number)} | ${budget ? fmt(budget) : "—"} | ${status} |`);
+        lines.push(`| ${cat} | ${fmt(amt)} | ${budget ? fmt(budget) : "—"} | ${status} |`);
       });
     }
 
@@ -207,7 +207,7 @@ export class MonthlyReviewModal extends Modal {
     new Notice(`Monthly review generated: ${this.selectedMonth}-review.md`);
     this.close();
     const file = this.app.vault.getAbstractFileByPath(filePath);
-    if (file) this.app.workspace.openLinkText(filePath, "", false);
+    if (file) void this.app.workspace.openLinkText(filePath, "", false);
   }
 
   onClose() { this.contentEl.empty(); }

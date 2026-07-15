@@ -163,7 +163,7 @@ export default class LedgrPlugin extends Plugin {
   }
 
   async openDashboard() {
-    this.openView(DASHBOARD_VIEW_TYPE);
+    await this.openView(DASHBOARD_VIEW_TYPE);
   }
 
   async openView(viewType: string) {

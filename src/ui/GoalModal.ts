@@ -77,7 +77,7 @@ export class GoalModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-goal ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText(this.editGoal ? "Save Changes" : "Add Goal").setCta().onClick(() => this.save())
+      btn.setButtonText(this.editGoal ? "Save Changes" : "Add Goal").setCta().onClick(() => void this.save())
     );
   }
 
