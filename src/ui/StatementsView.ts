@@ -31,6 +31,12 @@ export class StatementsView extends ItemView {
   async onOpen() { await this.render(); }
 
   async render() {
+    // Validate viewCurrency against current settings — reset if no longer valid
+    const validCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
+    if (!validCurrencies.includes(this.viewCurrency)) {
+      this.viewCurrency = this.plugin.settings.baseCurrency;
+    }
+
     const { contentEl } = this;
     contentEl.empty();
     contentEl.addClass("ledgr-statements");
