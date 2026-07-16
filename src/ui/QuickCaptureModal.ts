@@ -1,4 +1,4 @@
-import { App, Modal, Setting } from "obsidian";
+import { App, Modal, Setting, Platform } from "obsidian";
 import { LedgrSettings, Currency } from "../settings";
 import { saveTransaction } from "../data/transactions";
 import { CATEGORIES, INCOME_CATEGORIES } from "../constants/categories";
@@ -41,9 +41,19 @@ export class QuickCaptureModal extends Modal {
       this.subcategory = this.catStore.expense[firstCat]?.[0] ?? "Other";
     }
     void this.render();
-    this.contentEl.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void this.save(); }
-    });
+    // Enter-to-save: desktop only, and only when not inside a text input
+    // On mobile: iOS keyboard Enter key should not auto-save (user needs to tap Save)
+    if (!Platform.isMobile) {
+      this.contentEl.addEventListener("keydown", (e) => {
+        const target = e.target as HTMLElement;
+        const isTextInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+        // Only save on Enter if focus is NOT in a text field (e.g. on the modal itself)
+        if (e.key === "Enter" && !e.shiftKey && !isTextInput) {
+          e.preventDefault();
+          void this.save();
+        }
+      });
+    }
     // Auto-focus amount field
     window.setTimeout(() => this.amtInput?.focus(), 50);
   }
@@ -141,7 +151,7 @@ export class QuickCaptureModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-date ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Save (Enter)").setCta().onClick(() => void this.save())
+      btn.setButtonText(Platform.isMobile ? "Save" : "Save (Enter)").setCta().onClick(() => void this.save())
     );
   }
 

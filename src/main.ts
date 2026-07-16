@@ -45,6 +45,13 @@ export default class LedgrPlugin extends Plugin {
         }
       })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:networth-updated", async () => {
+        if (this.settings.appendToDailyNote) {
+          await this.appendToDailyNote();
+        }
+      })
+    );
 
     this.addSettingTab(new LedgrSettingTab(this.app, this));
 

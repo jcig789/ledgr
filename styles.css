@@ -21,8 +21,8 @@
   --ledgr-text:            var(--text-normal);
   --ledgr-text-secondary:  var(--text-muted);
   --ledgr-text-faint:      var(--text-faint);
-  --ledgr-green:           var(--color-green);
-  --ledgr-red:             var(--color-red);
+  --ledgr-green:           #4A7C59;
+  --ledgr-red:             #9B3A3A;
   --ledgr-radius-sm:       2px;
   --ledgr-radius:          3px;
   --ledgr-radius-md:       4px;
@@ -46,6 +46,8 @@
   --ledgr-accent:         #C8BFA8;
   --ledgr-accent-muted:   #8A8070;
   --ledgr-rule:           var(--color-base-35);
+  --ledgr-green:          #6BA882;
+  --ledgr-red:            #C25A5A;
   --ledgr-surface-raised: var(--color-base-15);
 }
 
@@ -335,6 +337,11 @@
 .ledgr-trend-good { color: var(--ledgr-green); }
 .ledgr-trend-bad  { color: var(--ledgr-red); }
 
+/* Hero card — slightly larger value for the "Saved" conclusion card */
+.ledgr-card.ledgr-card-hero .ledgr-card-value {
+  font-size: clamp(1.1em, 4vw, 1.7em);
+}
+
 .ledgr-card.ledgr-income .ledgr-card-value   { color: var(--ledgr-green); }
 .ledgr-card.ledgr-expense .ledgr-card-value  { color: var(--ledgr-red); }
 .ledgr-card.ledgr-positive .ledgr-card-value { color: var(--ledgr-green); }
@@ -558,13 +565,21 @@
   border: none;
   color: var(--ledgr-text-faint);
   cursor: pointer;
-  font-size: var(--ledgr-font-sm);
   padding: 4px var(--ledgr-spacing-sm);
   border-radius: var(--ledgr-radius-md);
   min-height: 28px;
   min-width: 28px;
   opacity: 0.4;
   transition: opacity 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ledgr-edit-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5px;
 }
 
 .ledgr-edit-btn:hover {
@@ -2709,3 +2724,59 @@ button.ledgr-del-confirm,
 .ledgr-row-spaced {
   margin-bottom: 16px;
 }
+
+/* ─── Liability tracker ───────────────────────────────────────────────── */
+
+/* Upcoming payments banner */
+.ledgr-upcoming-payments {
+  border: 1px solid var(--ledgr-rule);
+  border-left: 2px solid var(--ledgr-accent);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+.ledgr-upcoming-payments-title {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-secondary);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-payment-due-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  gap: var(--ledgr-spacing-sm);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-payment-due-row:last-child { border-bottom: none; }
+.ledgr-payment-due-row.ledgr-payment-due-urgent { border-left: 2px solid var(--ledgr-red); padding-left: 6px; }
+.ledgr-payment-due-name { flex: 1; font-weight: 500; }
+.ledgr-payment-due-meta { font-size: var(--ledgr-font-sm); color: var(--ledgr-text-faint); }
+.ledgr-payment-due-amount { font-variant-numeric: tabular-nums; color: var(--ledgr-red); }
+.ledgr-liability-due { font-size: var(--ledgr-font-sm); color: var(--ledgr-text-faint); margin-top: 2px; }
+.ledgr-liability-monthly { font-size: var(--ledgr-font-sm); color: var(--ledgr-text-secondary); }
+.ledgr-liability-schedule-col { white-space: nowrap; }
+.ledgr-text-red { color: var(--ledgr-red); }
+
+/* Payment modal balance preview */
+.ledgr-lpay-preview {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--ledgr-font-body);
+  margin-bottom: var(--ledgr-spacing-sm);
+  padding: var(--ledgr-spacing-xs) var(--ledgr-spacing-sm);
+  background: var(--color-base-10, var(--ledgr-rule));
+  border-radius: var(--ledgr-radius-sm);
+}
+.ledgr-lpay-balance { color: var(--ledgr-text-secondary); }
+.ledgr-lpay-arrow { color: var(--ledgr-text-faint); }
+.ledgr-lpay-payment { color: var(--ledgr-red); font-weight: 500; }
+.ledgr-lpay-remaining { color: var(--ledgr-green); font-weight: 500; }

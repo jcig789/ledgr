@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Notice, Events } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, Events, setIcon } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadNetWorth, saveNetWorth, NetWorthData, AccountType } from "../data/networth";
 import { convertToBase } from "../data/reader";
@@ -9,6 +9,8 @@ import { renderBottomNav } from "./BottomNav";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
+import { LIABILITY_TYPES } from "../data/liabilities";
+import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 
 export const NETWORTH_VIEW_TYPE = "ledgr-networth";
 
@@ -37,6 +39,12 @@ export class NetWorthView extends ItemView {
     void this.render();
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:settings-changed", () => {
+        void this.render();
+      })
+    );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:networth-updated", async () => {
+        this.data = await loadNetWorth(this.app, this.plugin.settings);
         void this.render();
       })
     );
@@ -357,6 +365,40 @@ export class NetWorthView extends ItemView {
         balInput.placeholder = "Balance";
         balInput.oninput = (e) => { this.isDirty = true; acc.balance = parseFloat((e.target as HTMLInputElement).value) || 0; };
 
+        if (acc.liabilityDetails) {
+          const ld = acc.liabilityDetails;
+
+          const row3 = card.createDiv("ledgr-edit-card-row");
+          row3.createEl("span", { text: "Monthly", cls: "ledgr-meta" });
+          const monthlyInput = row3.createEl("input");
+          monthlyInput.type = "number"; monthlyInput.value = String(ld.monthlyPayment);
+          monthlyInput.className = "ledgr-inline-input";
+          monthlyInput.placeholder = "0";
+          monthlyInput.oninput = (e) => { this.isDirty = true; ld.monthlyPayment = parseFloat((e.target as HTMLInputElement).value) || 0; };
+
+          const row4 = card.createDiv("ledgr-edit-card-row");
+          row4.createEl("span", { text: "Due day", cls: "ledgr-meta" });
+          const dueDayInput = row4.createEl("input");
+          dueDayInput.type = "number"; dueDayInput.value = String(ld.paymentDueDay);
+          dueDayInput.min = "1"; dueDayInput.max = "28";
+          dueDayInput.className = "ledgr-inline-input";
+          dueDayInput.oninput = (e) => { this.isDirty = true; ld.paymentDueDay = Math.min(28, Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1)); };
+
+          const row5 = card.createDiv("ledgr-edit-card-row");
+          row5.createEl("span", { text: "Reminder days", cls: "ledgr-meta" });
+          const reminderInput = row5.createEl("input");
+          reminderInput.type = "number"; reminderInput.value = String(ld.reminderDaysAhead);
+          reminderInput.min = "0"; reminderInput.max = "14";
+          reminderInput.className = "ledgr-inline-input";
+          reminderInput.oninput = (e) => { this.isDirty = true; ld.reminderDaysAhead = Math.min(14, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 3)); };
+
+          const row6 = card.createDiv("ledgr-edit-card-row");
+          row6.createEl("span", { text: "Reminder", cls: "ledgr-meta" });
+          const reminderCheck = row6.createEl("input");
+          reminderCheck.type = "checkbox"; reminderCheck.checked = ld.reminderEnabled;
+          reminderCheck.onchange = () => { this.isDirty = true; ld.reminderEnabled = reminderCheck.checked; };
+        }
+
         const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
         removeBtn.onclick = () => {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
@@ -366,13 +408,36 @@ export class NetWorthView extends ItemView {
     } else {
       const table = section.createEl("table", { cls: "ledgr-tx-table" });
       const hrow = table.createEl("thead").createEl("tr");
-      ["Name", "Type", "Balance"].forEach((h) => hrow.createEl("th", { text: h }));
+      ["Name", "Type", "Balance", "Schedule", ""].forEach((h) => hrow.createEl("th", { text: h }));
       const tbody = table.createEl("tbody");
       liabilities.forEach((acc) => {
         const tr = tbody.createEl("tr");
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
-        tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
+        const balCell = tr.createEl("td", { cls: "ledgr-text-right" });
+        balCell.createEl("div", { text: this.fmt(this.toBase(acc.balance, acc.currency)) });
+        const schedCell = tr.createEl("td", { cls: "ledgr-liability-schedule-col" });
+        if (acc.liabilityDetails) {
+          const ld = acc.liabilityDetails;
+          const today = window.moment().format("YYYY-MM-DD");
+          const m = window.moment(today);
+          const dueDay = Math.min(ld.paymentDueDay, m.daysInMonth());
+          const dueDate = m.clone().date(dueDay).format("MMM D");
+          schedCell.createEl("div", { text: `Due ${dueDate}`, cls: "ledgr-liability-due" });
+          if (ld.monthlyPayment > 0) {
+            schedCell.createEl("div", {
+              text: formatCurrency(ld.monthlyPayment, acc.currency) + " / mo",
+              cls: "ledgr-liability-monthly",
+            });
+          }
+        }
+        const actionTd = tr.createEl("td");
+        if (acc.liabilityDetails && acc.balance > 0) {
+          const payBtn = actionTd.createEl("button", { text: "Pay", cls: "ledgr-budget-btn" });
+          payBtn.onclick = () => new LiabilityPaymentModal(
+            this.app, this.plugin, acc, () => { void this.render(); }
+          ).open();
+        }
       });
     }
   }
@@ -449,16 +514,69 @@ export class NetWorthView extends ItemView {
         void this.render();
       };
     } else {
+      // Liability type dropdown
+      const liabTypeRow = form.createDiv("ledgr-edit-card-row");
+      liabTypeRow.createEl("span", { text: "Type", cls: "ledgr-meta" });
+      const liabTypeSelect = liabTypeRow.createEl("select", { cls: "ledgr-inline-input" });
+      LIABILITY_TYPES.forEach(({ key, label }) => {
+        const opt = liabTypeSelect.createEl("option");
+        opt.value = key; opt.textContent = label;
+      });
+
+      // Original amount
+      const origRow = form.createDiv("ledgr-edit-card-row");
+      origRow.createEl("span", { text: "Original amount", cls: "ledgr-meta" });
+      const origInput = origRow.createEl("input");
+      origInput.type = "number"; origInput.placeholder = "0";
+      origInput.className = "ledgr-inline-input";
+
+      // Monthly payment
+      const monthlyRow = form.createDiv("ledgr-edit-card-row");
+      monthlyRow.createEl("span", { text: "Monthly payment", cls: "ledgr-meta" });
+      const monthlyInput = monthlyRow.createEl("input");
+      monthlyInput.type = "number"; monthlyInput.placeholder = "0";
+      monthlyInput.className = "ledgr-inline-input";
+
+      // Due day
+      const dueDayRow = form.createDiv("ledgr-edit-card-row");
+      dueDayRow.createEl("span", { text: "Due day (1–28)", cls: "ledgr-meta" });
+      const dueDayInput = dueDayRow.createEl("input");
+      dueDayInput.type = "number"; dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "28";
+      dueDayInput.className = "ledgr-inline-input";
+
+      // Reminder days ahead
+      const reminderDaysRow = form.createDiv("ledgr-edit-card-row");
+      reminderDaysRow.createEl("span", { text: "Remind N days before", cls: "ledgr-meta" });
+      const reminderDaysInput = reminderDaysRow.createEl("input");
+      reminderDaysInput.type = "number"; reminderDaysInput.placeholder = "3"; reminderDaysInput.value = "3";
+      reminderDaysInput.min = "0"; reminderDaysInput.max = "14";
+      reminderDaysInput.className = "ledgr-inline-input";
+
+      // Reminder toggle
+      const reminderRow = form.createDiv("ledgr-edit-card-row");
+      reminderRow.createEl("span", { text: "Reminder", cls: "ledgr-meta" });
+      const reminderCheck = reminderRow.createEl("input");
+      reminderCheck.type = "checkbox"; reminderCheck.checked = true;
+
       const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
       addBtn.onclick = () => {
+        const originalAmount = parseFloat(origInput.value) || 0;
         this.data.accounts.push({
           id: `lia_${Date.now()}`,
           name: nameInput.value.trim() || "New Liability",
-          type: "loan",
+          type: liabTypeSelect.value as AccountType,
           currency: currSelect.value,
-          balance: 0,
-          country: "PH",
+          balance: originalAmount,
+          country: currSelect.value === "JPY" ? "JP" : currSelect.value === "PHP" ? "PH" : "JP",
           isLiability: true,
+          liabilityDetails: {
+            originalAmount,
+            monthlyPayment: parseFloat(monthlyInput.value) || 0,
+            paymentDueDay: Math.min(28, Math.max(1, parseInt(dueDayInput.value) || 1)),
+            reminderEnabled: reminderCheck.checked,
+            reminderDaysAhead: Math.min(14, Math.max(0, parseInt(reminderDaysInput.value) || 3)),
+            payments: [],
+          },
         });
         this.isDirty = true;
         void this.render();
@@ -560,7 +678,8 @@ export class NetWorthView extends ItemView {
       const goalHdr = card.createDiv("ledgr-goal-header");
       goalHdr.createEl("span", { text: goal.name, cls: "ledgr-goal-name" });
       const goalActions = goalHdr.createDiv("ledgr-goal-actions");
-      const editBtn = goalActions.createEl("button", { text: "✎", cls: "ledgr-edit-btn" });
+      const editBtn = goalActions.createEl("button", { cls: "ledgr-edit-btn" });
+      setIcon(editBtn, "pencil");
       editBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, () => {
         void loadGoals(this.app, this.plugin.settings).then((gs) => { this.goalsStore = gs; void this.render(); });
       }, goal).open();

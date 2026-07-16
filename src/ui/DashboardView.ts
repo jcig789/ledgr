@@ -15,6 +15,9 @@ import { formatCurrency } from "../constants/currencies";
 import { renderBottomNav } from "./BottomNav";
 import { renderDonutChart, buildSpendingSegments, renderGauge, renderTrendLine, categoryColor } from "./charts";
 import { EditTransactionModal } from "./EditTransactionModal";
+import { loadNetWorth } from "../data/networth";
+import { getUpcomingPayments, getDaysUntilDue } from "../data/liabilities";
+import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 
 export const DASHBOARD_VIEW_TYPE = "ledgr-dashboard";
 
@@ -47,6 +50,11 @@ export class DashboardView extends ItemView {
     );
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:settings-changed", async () => {
+        await this.render();
+      })
+    );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:networth-updated", async () => {
         await this.render();
       })
     );
@@ -128,8 +136,8 @@ export class DashboardView extends ItemView {
     setIcon(configBtn, "settings");
     configBtn.onclick = () => new ConfigModal(this.app, this.plugin).open();
 
-    // Row 2: month navigation (full width, centered)
-    const monthRow = header.createDiv("ledgr-month-row");
+    // Month navigation — OUTSIDE sticky zone, renders in normal content flow
+    const monthRow = contentEl.createDiv("ledgr-month-row");
     const prevBtn = monthRow.createEl("button", { text: "←" });
     prevBtn.setAttribute("aria-label", "Previous month");
     prevBtn.onclick = async () => {
@@ -155,7 +163,7 @@ export class DashboardView extends ItemView {
       };
     }
 
-    // Row 4: exchange rate staleness banner (conditional)
+    // Exchange rate staleness banner (conditional)
     const rates = this.plugin.settings.exchangeRates;
     if (!rates.updatedAt || window.moment().diff(window.moment(rates.updatedAt), "days") > 7) {
       const banner = header.createDiv("ledgr-rate-banner");
@@ -180,6 +188,9 @@ export class DashboardView extends ItemView {
     const summaryRow = contentEl.createDiv("ledgr-summary-row");
 
     const cards = summaryRow.createDiv(`ledgr-cards${hasRemittances ? " ledgr-cards-4" : ""}`);
+    // Saved first — it's the conclusion, Income/Expenses are inputs
+    this.createCard(cards, "Saved", fmt(summary.net), summary.net >= 0 ? "ledgr-positive ledgr-card-hero" : "ledgr-negative ledgr-card-hero",
+      prevSummary.net !== 0 ? this.trend(summary.net, prevSummary.net) : null);
     this.createCard(cards, "Income", fmt(summary.totalIncome), "ledgr-income",
       prevSummary.totalIncome > 0 ? this.trend(summary.totalIncome, prevSummary.totalIncome) : null);
     this.createCard(cards, "Expenses", fmt(summary.totalExpenses), "ledgr-expense",
@@ -187,8 +198,6 @@ export class DashboardView extends ItemView {
     if (hasRemittances) {
       this.createCard(cards, "Transferred", fmt(summary.totalRemittances), "ledgr-sent");
     }
-    this.createCard(cards, "Saved", fmt(summary.net), summary.net >= 0 ? "ledgr-positive" : "ledgr-negative",
-      prevSummary.net !== 0 ? this.trend(summary.net, prevSummary.net) : null);
 
     // Gauge sits to the right of cards when income exists
     if (summary.totalIncome > 0) {
@@ -196,8 +205,30 @@ export class DashboardView extends ItemView {
       renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10 });
     }
 
+    // Payments Due card — sum of monthly obligations across active liabilities
+    try {
+      const nwData = await loadNetWorth(this.app, this.plugin.settings);
+      const liabilities = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails);
+      if (liabilities.length > 0) {
+        const totalMonthly = liabilities.reduce((sum, a) => {
+          return sum + convertToBase(
+            a.liabilityDetails!.monthlyPayment,
+            a.currency,
+            this.viewCurrency,
+            this.plugin.settings.exchangeRates
+          );
+        }, 0);
+        if (totalMonthly > 0) {
+          this.createCard(cards, "Payments Due", fmt(totalMonthly), "ledgr-expense");
+        }
+      }
+    } catch { /* no networth data */ }
+
     // Daily countdown banner
     this.renderCountdownBanner(contentEl, budgetConfig, summary);
+
+    // Upcoming liability payments banner
+    await this.renderUpcomingPaymentsBanner(contentEl);
 
     // Opex / Capex breakdown
     this.renderOpexCapex(contentEl, summary, budgetConfig);
@@ -234,7 +265,8 @@ export class DashboardView extends ItemView {
         });
         amtCell.addClass("ledgr-text-right");
         const actionTd = tr.createEl("td", { cls: "ledgr-tx-actions" });
-        const editBtn = actionTd.createEl("button", { text: "✎", cls: "ledgr-edit-btn" });
+        const editBtn = actionTd.createEl("button", { cls: "ledgr-edit-btn" });
+        setIcon(editBtn, "pencil");
         editBtn.title = "Edit transaction";
         editBtn.onclick = () => new EditTransactionModal(
           this.app, this.plugin, tx, this.currentMonth, actualIndex,
@@ -373,6 +405,40 @@ export class DashboardView extends ItemView {
     });
 
     renderTable();
+  }
+
+  async renderUpcomingPaymentsBanner(parent: HTMLElement) {
+    if (!this.isLiveMonth) return;
+    try {
+      const nwData = await loadNetWorth(this.app, this.plugin.settings);
+      const today = window.moment().format("YYYY-MM-DD");
+      const month = window.moment().format("YYYY-MM");
+      const upcoming = getUpcomingPayments(nwData.accounts, today, month);
+      if (upcoming.length === 0) return;
+
+      const banner = parent.createDiv("ledgr-upcoming-payments");
+      banner.createEl("div", { text: "Upcoming Payments", cls: "ledgr-upcoming-payments-title" });
+
+      upcoming.forEach((acc) => {
+        const ld = acc.liabilityDetails!;
+        const daysLeft = getDaysUntilDue(acc, today);
+        const isOverdue = daysLeft < 0;
+        const isDueToday = daysLeft === 0;
+        const row = banner.createDiv(`ledgr-payment-due-row${isDueToday || isOverdue ? " ledgr-payment-due-urgent" : ""}`);
+        row.createEl("span", { text: acc.name, cls: "ledgr-payment-due-name" });
+        const meta = row.createDiv("ledgr-payment-due-meta");
+        const dueLabel = isOverdue ? `${Math.abs(daysLeft)}d overdue` : isDueToday ? "Due today" : `Due in ${daysLeft}d`;
+        meta.createEl("span", { text: dueLabel, cls: isOverdue ? "ledgr-text-red" : isDueToday ? "ledgr-text-red" : "" });
+        row.createEl("span", {
+          text: formatCurrency(ld.monthlyPayment, acc.currency),
+          cls: "ledgr-payment-due-amount",
+        });
+        const payBtn = row.createEl("button", { text: "Pay", cls: "ledgr-budget-btn" });
+        payBtn.onclick = () => new LiabilityPaymentModal(
+          this.app, this.plugin, acc, () => { void this.render(); }
+        ).open();
+      });
+    } catch { /* no networth data */ }
   }
 
   renderCountdownBanner(parent: HTMLElement, budgetConfig: BudgetConfig, summary: ReturnType<typeof summarize>) {

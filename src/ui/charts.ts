@@ -532,18 +532,29 @@ export function renderTrendLine(
     text.textContent = val >= 1000 ? `${Math.round(val / 1000)}k` : String(Math.round(val));
   }
 
-  // Series
+  // Series — smooth bezier curves instead of angular polylines
   series.forEach((s, si) => {
     if (!s.values.length) return;
     const color = s.color ?? defaultColors[si % defaultColors.length];
-    const pts = s.values.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(" ");
 
-    const polylineAttrs: Record<string, string> = {
-      points: pts,
-      stroke: color,
-    };
-    if (s.dashed) polylineAttrs["stroke-dasharray"] = "4 3";
-    svg.createSvg("polyline", { attr: polylineAttrs, cls: "ledgr-trend-line" });
+    // Build SVG cubic bezier path for smooth curves
+    const points = s.values.map((v, i) => ({ x: xScale(i), y: yScale(v) }));
+    let d = `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let i = 1; i < points.length; i++) {
+      const prev = points[i - 1];
+      const curr = points[i];
+      const dx = (curr.x - prev.x) / 3;
+      // Control points offset horizontally for natural flow
+      const cp1x = (prev.x + dx).toFixed(1);
+      const cp1y = prev.y.toFixed(1);
+      const cp2x = (curr.x - dx).toFixed(1);
+      const cp2y = curr.y.toFixed(1);
+      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+    }
+
+    const pathAttrs: Record<string, string> = { d, stroke: color };
+    if (s.dashed) pathAttrs["stroke-dasharray"] = "4 3";
+    svg.createSvg("path", { attr: pathAttrs, cls: "ledgr-trend-line" });
 
     svg.createSvg("circle", {
       attr: {

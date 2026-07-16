@@ -1,7 +1,25 @@
 import { App, TFile, normalizePath } from "obsidian";
 import { LedgrSettings } from "../settings";
 
-export type AccountType = "bank" | "ewallet" | "cash" | "credit" | "investment" | "property" | "loan" | "other";
+export type AccountType = "bank" | "ewallet" | "cash" | "credit" | "investment" | "property" | "loan" | "other" | "mortgage" | "car_loan" | "credit_card" | "personal_loan" | "student_loan" | "installment";
+
+export interface LiabilityPayment {
+  id: string;
+  date: string; // YYYY-MM-DD
+  amount: number;
+  currency: string;
+  note?: string;
+  balanceAfter: number;
+}
+
+export interface LiabilityDetails {
+  originalAmount: number;      // Total loan value at origination
+  monthlyPayment: number;      // Fixed monthly payment
+  paymentDueDay: number;       // Day of month 1-28
+  reminderEnabled: boolean;    // Default true
+  reminderDaysAhead: number;   // Default 3
+  payments: LiabilityPayment[];
+}
 
 export interface Account {
   id: string;
@@ -11,6 +29,7 @@ export interface Account {
   balance: number;
   country: "JP" | "PH" | "US" | "OTHER";
   isLiability: boolean;
+  liabilityDetails?: LiabilityDetails;
 }
 
 export interface Brokerage {
@@ -38,6 +57,10 @@ export async function loadNetWorth(app: App, settings: LedgrSettings): Promise<N
     // Migrate old holdings format
     if (!data.brokerages) data.brokerages = [];
     if (data.holdings) delete data.holdings;
+    // Migrate old loan type to personal_loan
+    for (const acc of data.accounts ?? []) {
+      if ((acc.type as string) === "loan") acc.type = "personal_loan";
+    }
     return data;
   } catch {
     return EMPTY;

@@ -80,35 +80,7 @@ export class StatementsView extends ItemView {
       btn.onclick = async () => { this.viewCurrency = c; await this.render(); };
     });
 
-    // Year navigation
-    const yearRow = header.createDiv("ledgr-month-row");
-    const prevBtn = yearRow.createEl("button", { text: "←" });
-    prevBtn.onclick = async () => {
-      this.selectedYear = String(parseInt(this.selectedYear) - 1);
-      await this.render();
-    };
-    yearRow.createEl("span", { text: this.selectedYear, cls: "ledgr-month-label" });
-    const nextBtn = yearRow.createEl("button", { text: "→" });
-    if (this.selectedYear >= window.moment().format("YYYY")) {
-      nextBtn.setAttribute("disabled", "true");
-      nextBtn.addClass("ledgr-btn-disabled");
-    } else {
-      nextBtn.onclick = async () => {
-        this.selectedYear = String(parseInt(this.selectedYear) + 1);
-        await this.render();
-      };
-    }
-
-    // Refresh button
-    const refreshBtn = yearRow.createEl("button", { text: "↻", cls: "ledgr-stmt-refresh-btn" });
-    refreshBtn.title = "Refresh data";
-    refreshBtn.setAttribute("aria-label", "Refresh statements");
-    refreshBtn.onclick = async () => {
-      refreshBtn.addClass("ledgr-btn-disabled");
-      await this.render();
-    };
-
-    // Statement type tabs — inside sticky zone
+    // Statement type tabs — inside sticky zone (must stay visible while scrolling)
     const tabRow = stickyZone.createDiv("ledgr-stmt-tabs");
     const tabs: { key: StmtTab; label: string }[] = [
       { key: "pl", label: "Income Statement" },
@@ -158,6 +130,32 @@ export class StatementsView extends ItemView {
     };
     const fmt = (n: number) => fmtStmt(Math.abs(n));
     const fmtSigned = (n: number) => n < 0 ? `(${fmtStmt(Math.abs(n))})` : fmtStmt(n);
+
+    // Year navigation — outside sticky zone, scrolls with content
+    const yearRow = contentEl.createDiv("ledgr-month-row ledgr-stmt-year-row");
+    const prevBtn = yearRow.createEl("button", { text: "←" });
+    prevBtn.onclick = async () => {
+      this.selectedYear = String(parseInt(this.selectedYear) - 1);
+      await this.render();
+    };
+    yearRow.createEl("span", { text: this.selectedYear, cls: "ledgr-month-label" });
+    const nextBtn = yearRow.createEl("button", { text: "→" });
+    if (this.selectedYear >= window.moment().format("YYYY")) {
+      nextBtn.setAttribute("disabled", "true");
+      nextBtn.addClass("ledgr-btn-disabled");
+    } else {
+      nextBtn.onclick = async () => {
+        this.selectedYear = String(parseInt(this.selectedYear) + 1);
+        await this.render();
+      };
+    }
+    const refreshBtn = yearRow.createEl("button", { text: "↻", cls: "ledgr-stmt-refresh-btn" });
+    refreshBtn.title = "Refresh data";
+    refreshBtn.setAttribute("aria-label", "Refresh statements");
+    refreshBtn.onclick = async () => {
+      refreshBtn.addClass("ledgr-btn-disabled");
+      await this.render();
+    };
 
     const stmtWrap = contentEl.createDiv("ledgr-stmt");
 
