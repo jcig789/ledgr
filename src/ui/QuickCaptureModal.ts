@@ -19,11 +19,18 @@ export class QuickCaptureModal extends Modal {
   catStore: CategoryStore = { expense: CATEGORIES, income: INCOME_CATEGORIES };
   private amtInput: HTMLInputElement | null = null;
 
-  constructor(app: App, settings: LedgrSettings) {
+  constructor(app: App, settings: LedgrSettings, contextMonth?: string) {
     super(app);
     this.settings = settings;
     this.currency = settings.baseCurrency;
-    this.date = window.moment().format("YYYY-MM-DD");
+    // If viewing a historical month, default date to last day of that month
+    // If viewing current or future month, default to today
+    const today = window.moment().format("YYYY-MM");
+    if (contextMonth && contextMonth < today) {
+      this.date = window.moment(contextMonth).endOf("month").format("YYYY-MM-DD");
+    } else {
+      this.date = window.moment().format("YYYY-MM-DD");
+    }
   }
 
   async onOpen() {

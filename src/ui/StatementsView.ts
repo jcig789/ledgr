@@ -176,13 +176,17 @@ export class StatementsView extends ItemView {
       // Header row
       grid.createEl("span", { text: "", cls: "ledgr-stmt-budget-cell" });
       grid.createEl("span", { text: "Actual", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
-      grid.createEl("span", { text: "Budget", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
+      grid.createEl("span", { text: "Budget (Annual)", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
       grid.createEl("span", { text: "Variance", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
 
       Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
         const budgetRaw = budgetConfig.limits[cat];
+        // Annualize: monthly budget × months in selected year
+        // For current year (partial), count months with data; for past years, use 12
+        const monthsInYear = parseInt(this.selectedYear) < parseInt(window.moment().format("YYYY")) ? 12
+          : window.moment().month() + 1; // months elapsed in current year
         const budget = budgetRaw
-          ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
+          ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates) * monthsInYear
           : undefined;
         const actual = amt;
 

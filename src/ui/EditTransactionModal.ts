@@ -140,7 +140,6 @@ export class EditTransactionModal extends Modal {
     await this.app.vault.modify(file, lines.join("\n"));
     new Notice("Transaction updated");
     this.app.workspace.trigger("ledgr:transaction-saved");
-    this.onSaved();
     this.close();
   }
 

@@ -24,6 +24,7 @@ export class DashboardView extends ItemView {
   viewCurrency: Currency;
   private pendingDelete: { month: string; lineIndex: number; timer: number } | null = null;
   private isLiveMonth = true;
+  private isRendering = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -52,6 +53,9 @@ export class DashboardView extends ItemView {
   }
 
   async render() {
+    if (this.isRendering) return;
+    this.isRendering = true;
+    try {
     if (this.isLiveMonth) {
       this.currentMonth = window.moment().format("YYYY-MM");
     }
@@ -93,7 +97,7 @@ export class DashboardView extends ItemView {
     // Action buttons — right side
     const btnRow = row1.createDiv("ledgr-btn-row");
     const logBtn = btnRow.createEl("button", { text: "+ Add", cls: "ledgr-log-btn mod-cta" });
-    logBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
+    logBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings, this.currentMonth).open();
     if (this.plugin.settings.enableTransferTracker) {
       const remitBtn = btnRow.createEl("button", { text: "Transfer", cls: "ledgr-budget-btn" });
       remitBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
@@ -156,7 +160,7 @@ export class DashboardView extends ItemView {
     }
 
     // Summary row: cards + gauge side by side
-    const hasRemittances = summary.totalRemittances > 0;
+    const hasRemittances = summary.totalRemittances > 0 && this.plugin.settings.enableTransferTracker;
     const summaryRow = contentEl.createDiv("ledgr-summary-row");
 
     const cards = summaryRow.createDiv(`ledgr-cards${hasRemittances ? " ledgr-cards-4" : ""}`);
@@ -229,6 +233,9 @@ export class DashboardView extends ItemView {
     // Transfer widget — below transactions
     if (this.plugin.settings.enableTransferTracker && remittanceStore.remittances.length > 0) {
       this.renderRemittanceWidget(contentEl, remitSummary, remittanceStore);
+    }
+    } finally {
+      this.isRendering = false;
     }
   }
 
@@ -416,7 +423,7 @@ export class DashboardView extends ItemView {
     // Donut chart
     const chartWrap = section.createDiv("ledgr-chart-wrap");
     const segments = buildSpendingSegments(summary.byCategory, fmt);
-    renderDonutChart(chartWrap, segments, "expenses");
+    renderDonutChart(chartWrap, segments, "expenses", fmt(summary.totalExpenses));
 
     const breakdown = section.createDiv("ledgr-breakdown");
     sorted.forEach(([cat, amt], idx) => {
@@ -550,7 +557,7 @@ export class DashboardView extends ItemView {
     });
 
     const cta = state.createEl("button", { text: "+ Add your first transaction", cls: "ledgr-log-btn mod-cta ledgr-first-run-cta" });
-    cta.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
+    cta.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings, this.currentMonth).open();
 
     const remitCta = state.createEl("button", { text: "Log a transfer", cls: "ledgr-budget-btn ledgr-first-run-remit" });
     remitCta.onclick = () => new RemittanceModal(this.app, this.plugin).open();

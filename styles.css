@@ -1633,7 +1633,9 @@ button.ledgr-del-confirm,
   justify-content: center;
   background: var(--background-primary);
   border-top: 1px solid var(--ledgr-rule);
-  height: 56px;
+  /* Account for iPhone home indicator */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
 }
 
 /* Inner wrapper — constrains to 480px on wide screens */
@@ -1750,11 +1752,11 @@ button.ledgr-del-confirm,
   transform: scale(0.94);
 }
 
-/* Content needs padding-bottom so it doesn't hide under the nav */
+/* Content needs padding-bottom so it doesn't hide under the nav + safe area */
 .ledgr-dashboard,
 .ledgr-networth,
 .ledgr-statements {
-  padding-bottom: 72px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 /* ─── Sticky header zone ────────────────────────────────────────────── */
@@ -2066,6 +2068,13 @@ button.ledgr-del-confirm,
   gap: 4px;
   margin-bottom: var(--ledgr-spacing-lg);
   border-bottom: 1px solid var(--ledgr-rule);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* hide scrollbar — still scrollable */
+}
+
+.ledgr-stmt-tabs::-webkit-scrollbar {
+  display: none;
 }
 .ledgr-stmt-tab {
   background: transparent;
@@ -2079,6 +2088,7 @@ button.ledgr-del-confirm,
   font-variant: small-caps;
   letter-spacing: 0.05em;
   border-radius: 0;
+  flex-shrink: 0; /* prevent tabs from compressing */
   white-space: nowrap;
   transition: color 0.15s, border-color 0.15s;
 }
@@ -2368,10 +2378,14 @@ button.ledgr-del-confirm,
     padding: var(--ledgr-spacing-md);
   }
 
-  /* Cards: 2 per row on mobile so they use full width */
+  /* Cards: always 3-col for 3 cards, 2+2 for 4 cards */
   .ledgr-cards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--ledgr-spacing-xs);
+  }
+
+  .ledgr-cards.ledgr-cards-4 {
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--ledgr-spacing-sm);
   }
 
   /* Controls row: currency left, actions right — maintain on mobile */
@@ -2475,6 +2489,12 @@ button.ledgr-del-confirm,
 
   .ledgr-summary-row {
     flex-direction: column;
+  }
+
+  /* Cards fill full width when stacked under summary-row */
+  .ledgr-summary-row .ledgr-cards {
+    width: 100%;
+    flex: none;
   }
 
   .ledgr-gauge-aside {
