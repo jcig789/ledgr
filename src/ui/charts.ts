@@ -59,14 +59,6 @@ export interface ChartSegment {
   displayValue?: string;
 }
 
-// ─── SVG namespace helper ─────────────────────────────────────────────────────
-
-const SVG_NS = "http://www.w3.org/2000/svg";
-
-function svgEl<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
-  return window.activeDocument.createElementNS(SVG_NS, tag) as SVGElementTagNameMap[K];
-}
-
 // ─── renderDonutChart ─────────────────────────────────────────────────────────
 /**
  * Renders a donut/ring chart into `parent`.
@@ -114,18 +106,16 @@ export function renderDonutChart(
   const frame = row.createDiv("ledgr-donut-frame");
 
   // SVG element
-  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
-  svg.setAttribute("viewBox", "0 0 100 100");
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("ledgr-donut-svg");
+  const svg = frame.createSvg("svg", {
+    attr: { viewBox: "0 0 100 100", "aria-hidden": "true" },
+    cls: "ledgr-donut-svg",
+  });
 
   // Track ring (background circle)
-  const track = svgEl("circle");
-  track.setAttribute("cx", "50");
-  track.setAttribute("cy", "50");
-  track.setAttribute("r", String(R));
-  track.classList.add("ledgr-donut-track");
-  svg.appendChild(track);
+  svg.createSvg("circle", {
+    attr: { cx: "50", cy: "50", r: String(R) },
+    cls: "ledgr-donut-track",
+  });
 
   // Segments — rendered as stroke-dasharray arcs
   // Each arc: dasharray = [arcLength, circumference - arcLength]
@@ -136,28 +126,27 @@ export function renderDonutChart(
     const arcLen = (seg.value / total) * C;
     const color = seg.color ?? categoryColor(seg.label, i);
 
-    const circle = svgEl("circle");
-    circle.setAttribute("cx", "50");
-    circle.setAttribute("cy", "50");
-    circle.setAttribute("r", String(R));
-    circle.classList.add("ledgr-donut-arc");
-    circle.setAttribute("stroke", color);
-    circle.setAttribute("stroke-dasharray", `${arcLen} ${C - arcLen}`);
-    // stroke-dashoffset shifts the starting point. We subtract from C because
-    // the SVG is rotated -90deg (via CSS class), so we run clockwise from top.
-    circle.setAttribute("stroke-dashoffset", String(-offset));
+    const circle = svg.createSvg("circle", {
+      attr: {
+        cx: "50",
+        cy: "50",
+        r: String(R),
+        stroke: color,
+        "stroke-dasharray": `${arcLen} ${C - arcLen}`,
+        // stroke-dashoffset shifts the starting point. We subtract from C because
+        // the SVG is rotated -90deg (via CSS class), so we run clockwise from top.
+        "stroke-dashoffset": String(-offset),
+      },
+      cls: "ledgr-donut-arc",
+    });
 
     // Tooltip via title element
-    const titleEl = svgEl("title");
     const pct = Math.round((seg.value / total) * 100);
+    const titleEl = circle.createSvg("title");
     titleEl.textContent = `${seg.label}: ${seg.displayValue ?? seg.value.toLocaleString()} (${pct}%)`;
-    circle.appendChild(titleEl);
 
-    svg.appendChild(circle);
     offset += arcLen;
   });
-
-  frame.appendChild(svg);
 
   // ── Center label overlay ──
   const center = frame.createDiv("ledgr-donut-center");
@@ -316,18 +305,14 @@ export function renderSparkline(parent: HTMLElement, values: number[]): void {
 
   const wrapper = parent.createDiv("ledgr-sparkline");
 
-  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("preserveAspectRatio", "none");
+  const svg = wrapper.createSvg("svg", {
+    attr: { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true", preserveAspectRatio: "none" },
+  });
 
-  const path = window.activeDocument.createElementNS(SVG_NS, "polyline") as SVGPolylineElement;
-  path.setAttribute("points", pts.join(" "));
-  path.classList.add("ledgr-sparkline-path");
-  if (trendClass) path.classList.add(trendClass);
-
-  svg.appendChild(path);
-  wrapper.appendChild(svg);
+  svg.createSvg("polyline", {
+    attr: { points: pts.join(" ") },
+    cls: `ledgr-sparkline-path${trendClass ? ` ${trendClass}` : ""}`,
+  });
 }
 
 // ─── Convenience: net worth composition segments ──────────────────────────────
@@ -447,30 +432,32 @@ export function renderGauge(
 
   const wrap = parent.createDiv("ledgr-gauge-wrap");
 
-  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
-  svg.setAttribute("viewBox", "0 0 80 80");
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("ledgr-gauge-svg");
+  const svg = wrap.createSvg("svg", {
+    attr: { viewBox: "0 0 80 80", "aria-hidden": "true" },
+    cls: "ledgr-gauge-svg",
+  });
 
   // Track ring
-  const track = svgEl("circle");
-  track.setAttribute("cx", "40"); track.setAttribute("cy", "40"); track.setAttribute("r", String(R));
-  track.classList.add("ledgr-gauge-track");
-  svg.appendChild(track);
+  svg.createSvg("circle", {
+    attr: { cx: "40", cy: "40", r: String(R) },
+    cls: "ledgr-gauge-track",
+  });
 
   // Fill ring — stroke-dasharray controls how much is filled
   // rotate -90 so fill starts at the top
   if (clamped > 0) {
-    const fill = svgEl("circle");
-    fill.setAttribute("cx", "40"); fill.setAttribute("cy", "40"); fill.setAttribute("r", String(R));
-    fill.classList.add("ledgr-gauge-fill");
-    fill.setAttribute("stroke", color);
-    fill.setAttribute("stroke-dasharray", `${arcLen} ${C - arcLen}`);
-    fill.setAttribute("transform", "rotate(-90 40 40)");
-    svg.appendChild(fill);
+    svg.createSvg("circle", {
+      attr: {
+        cx: "40",
+        cy: "40",
+        r: String(R),
+        stroke: color,
+        "stroke-dasharray": `${arcLen} ${C - arcLen}`,
+        transform: "rotate(-90 40 40)",
+      },
+      cls: "ledgr-gauge-fill",
+    });
   }
-
-  wrap.appendChild(svg);
 
   const center = wrap.createDiv("ledgr-gauge-center");
   center.createEl("span", { text: `${Math.round(clamped)}%`, cls: "ledgr-gauge-value" });
@@ -521,28 +508,28 @@ export function renderTrendLine(
   ];
 
   const wrap = parent.createDiv("ledgr-trend-wrap");
-  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("aria-hidden", "true");
-  svg.classList.add("ledgr-trend-svg");
+  const svg = wrap.createSvg("svg", {
+    attr: { viewBox: `0 0 ${W} ${H}`, "aria-hidden": "true" },
+    cls: "ledgr-trend-svg",
+  });
 
   // Grid lines
   for (let i = 0; i <= 2; i++) {
     const y = PAD.top + (i / 2) * chartH;
-    const line = svgEl("line");
-    line.setAttribute("x1", String(PAD.left)); line.setAttribute("y1", String(y));
-    line.setAttribute("x2", String(PAD.left + chartW)); line.setAttribute("y2", String(y));
-    line.classList.add("ledgr-trend-grid");
-    svg.appendChild(line);
+    svg.createSvg("line", {
+      attr: {
+        x1: String(PAD.left), y1: String(y),
+        x2: String(PAD.left + chartW), y2: String(y),
+      },
+      cls: "ledgr-trend-grid",
+    });
 
     const val = maxV - (i / 2) * (maxV - minV);
-    const text = svgEl("text");
-    text.setAttribute("x", String(PAD.left - 4));
-    text.setAttribute("y", String(y + 4));
-    text.setAttribute("text-anchor", "end");
-    text.classList.add("ledgr-trend-axis-label");
+    const text = svg.createSvg("text", {
+      attr: { x: String(PAD.left - 4), y: String(y + 4), "text-anchor": "end" },
+      cls: "ledgr-trend-axis-label",
+    });
     text.textContent = val >= 1000 ? `${Math.round(val / 1000)}k` : String(Math.round(val));
-    svg.appendChild(text);
   }
 
   // Series
@@ -551,36 +538,34 @@ export function renderTrendLine(
     const color = s.color ?? defaultColors[si % defaultColors.length];
     const pts = s.values.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(" ");
 
-    const polyline = window.activeDocument.createElementNS(SVG_NS, "polyline") as SVGPolylineElement;
-    polyline.setAttribute("points", pts);
-    polyline.classList.add("ledgr-trend-line");
-    polyline.setAttribute("stroke", color);
-    if (s.dashed) polyline.setAttribute("stroke-dasharray", "4 3");
-    svg.appendChild(polyline);
+    const polylineAttrs: Record<string, string> = {
+      points: pts,
+      stroke: color,
+    };
+    if (s.dashed) polylineAttrs["stroke-dasharray"] = "4 3";
+    svg.createSvg("polyline", { attr: polylineAttrs, cls: "ledgr-trend-line" });
 
-    const dot = window.activeDocument.createElementNS(SVG_NS, "circle") as SVGCircleElement;
-    dot.setAttribute("cx", String(xScale(s.values.length - 1)));
-    dot.setAttribute("cy", String(yScale(s.values[s.values.length - 1])));
-    dot.setAttribute("r", "2");
-    dot.setAttribute("fill", color);
-    dot.setAttribute("stroke", "none");
-    dot.setAttribute("opacity", "0.85");
-    svg.appendChild(dot);
+    svg.createSvg("circle", {
+      attr: {
+        cx: String(xScale(s.values.length - 1)),
+        cy: String(yScale(s.values[s.values.length - 1])),
+        r: "2",
+        fill: color,
+        stroke: "none",
+        opacity: "0.85",
+      },
+    });
   });
 
   if (labels) {
     labels.forEach((lbl, i) => {
-      const text = svgEl("text");
-      text.setAttribute("x", String(xScale(i)));
-      text.setAttribute("y", String(H - 4));
-      text.setAttribute("text-anchor", "middle");
-      text.classList.add("ledgr-trend-axis-label");
+      const text = svg.createSvg("text", {
+        attr: { x: String(xScale(i)), y: String(H - 4), "text-anchor": "middle" },
+        cls: "ledgr-trend-axis-label",
+      });
       text.textContent = lbl;
-      svg.appendChild(text);
     });
   }
-
-  wrap.appendChild(svg);
 
   if (series.length > 1) {
     const legend = wrap.createDiv("ledgr-trend-legend");
