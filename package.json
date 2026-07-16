@@ -1,6 +1,6 @@
 {
   "name": "ledgr",
-  "version": "0.1.0",
+  "version": "0.2.4",
   "description": "Multi-currency personal finance for Obsidian. Track spending, budgets, net worth, and international transfers — all in your vault.",
   "main": "main.js",
   "scripts": {
