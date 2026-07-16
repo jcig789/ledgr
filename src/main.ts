@@ -1,4 +1,5 @@
 import { App, Events, Plugin, Platform } from "obsidian";
+import { formatCurrency } from "./constants/currencies";
 
 interface DailyNotesPluginInstance {
   internalPlugins?: {
@@ -126,7 +127,7 @@ export default class LedgrPlugin extends Plugin {
     const summary = summarize(transactions, this.settings.baseCurrency, this.settings.exchangeRates);
 
     const base = this.settings.baseCurrency;
-    const fmt = (n: number) => `${base} ${Math.round(n).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(n, base);
 
     const lines = [
       "",

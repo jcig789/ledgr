@@ -1,10 +1,12 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { ItemView, WorkspaceLeaf, Notice, Events } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadNetWorth, saveNetWorth, NetWorthData } from "../data/networth";
 import { convertToBase } from "../data/reader";
 import { Currency } from "../settings";
 import { renderNavBar } from "./NavBar";
 import { renderDonutChart, categoryColor } from "./charts";
+import { formatCurrency } from "../constants/currencies";
+import { renderBottomNav } from "./BottomNav";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
@@ -33,6 +35,11 @@ export class NetWorthView extends ItemView {
     this.data = await loadNetWorth(this.app, this.plugin.settings);
     this.goalsStore = await loadGoals(this.app, this.plugin.settings);
     void this.render();
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:settings-changed", () => {
+        void this.render();
+      })
+    );
   }
 
   toBase(amount: number, currency: string) {
@@ -40,7 +47,7 @@ export class NetWorthView extends ItemView {
   }
 
   fmt(n: number) {
-    return `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
+    return formatCurrency(n, this.viewCurrency);
   }
 
   async render() {
@@ -54,8 +61,8 @@ export class NetWorthView extends ItemView {
     contentEl.empty();
     contentEl.addClass("ledgr-networth");
 
-    // ── Nav bar (always first, same position as Dashboard) ──
-    renderNavBar(contentEl, this.app, this.plugin, "networth");
+    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
+    renderBottomNav(this.containerEl, this.plugin, "networth");
 
     // ── Controls bar ──
     const header = contentEl.createDiv("ledgr-header");
@@ -217,30 +224,46 @@ export class NetWorthView extends ItemView {
       return;
     }
 
-    const table = section.createEl("table", { cls: "ledgr-tx-table" });
-    const thead = table.createEl("thead");
-    const hrow = thead.createEl("tr");
-    (this.editMode ? ["Account", "Type", "Currency", "Balance", ""] : ["Account", "Type", "Balance"])
-      .forEach((h) => hrow.createEl("th", { text: h }));
-    const tbody = table.createEl("tbody");
+    if (this.editMode) {
+      // Card layout in edit mode — works on all screen widths
+      accounts.forEach((acc) => {
+        const card = section.createDiv("ledgr-edit-card");
+        const row1 = card.createDiv("ledgr-edit-card-row");
+        const nameInput = row1.createEl("input") as HTMLInputElement;
+        nameInput.type = "text";
+        nameInput.value = acc.name;
+        nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
+        nameInput.placeholder = "Account name";
+        nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
-    accounts.forEach((acc) => {
-      const tr = tbody.createEl("tr");
-      if (this.editMode) {
-        this.addEditCell(tr, acc.name, (v) => (acc.name = v));
-        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
-        tr.createEl("td", { text: acc.currency, cls: "ledgr-empty" });
-        this.addNumberCell(tr, acc.balance, (v) => (acc.balance = v));
-        this.addRemoveBtn(tr, () => {
+        const row2 = card.createDiv("ledgr-edit-card-row");
+        row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        const balInput = row2.createEl("input") as HTMLInputElement;
+        balInput.type = "number";
+        balInput.value = String(acc.balance);
+        balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
+        balInput.placeholder = "Balance";
+        balInput.oninput = (e) => { this.isDirty = true; acc.balance = parseFloat((e.target as HTMLInputElement).value) || 0; };
+
+        const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
+        removeBtn.onclick = () => {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
           void this.render();
-        });
-      } else {
+        };
+      });
+    } else {
+      const table = section.createEl("table", { cls: "ledgr-tx-table" });
+      const thead = table.createEl("thead");
+      const hrow = thead.createEl("tr");
+      ["Account", "Type", "Balance"].forEach((h) => hrow.createEl("th", { text: h }));
+      const tbody = table.createEl("tbody");
+      accounts.forEach((acc) => {
+        const tr = tbody.createEl("tr");
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
         tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
-      }
-    });
+      });
+    }
   }
 
   renderBrokerages(parent: HTMLElement) {
@@ -252,28 +275,42 @@ export class NetWorthView extends ItemView {
       return;
     }
 
-    const table = section.createEl("table", { cls: "ledgr-tx-table" });
-    const thead = table.createEl("thead");
-    const hrow = thead.createEl("tr");
-    (this.editMode ? ["Investment Account", "Currency", "Total Value", ""] : ["Investment Account", "Total Value"])
-      .forEach((h) => hrow.createEl("th", { text: h }));
-    const tbody = table.createEl("tbody");
+    if (this.editMode) {
+      this.data.brokerages.forEach((b) => {
+        const card = section.createDiv("ledgr-edit-card");
+        const row1 = card.createDiv("ledgr-edit-card-row");
+        const nameInput = row1.createEl("input") as HTMLInputElement;
+        nameInput.type = "text"; nameInput.value = b.name;
+        nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
+        nameInput.placeholder = "Account name";
+        nameInput.oninput = (e) => { this.isDirty = true; b.name = (e.target as HTMLInputElement).value; };
 
-    this.data.brokerages.forEach((b) => {
-      const tr = tbody.createEl("tr");
-      if (this.editMode) {
-        this.addEditCell(tr, b.name, (v) => (b.name = v));
-        tr.createEl("td", { text: b.currency, cls: "ledgr-empty" });
-        this.addNumberCell(tr, b.value, (v) => (b.value = v));
-        this.addRemoveBtn(tr, () => {
+        const row2 = card.createDiv("ledgr-edit-card-row");
+        row2.createEl("span", { text: `investment · ${b.currency}`, cls: "ledgr-meta" });
+        const valInput = row2.createEl("input") as HTMLInputElement;
+        valInput.type = "number"; valInput.value = String(b.value);
+        valInput.className = "ledgr-inline-input ledgr-edit-card-balance";
+        valInput.placeholder = "Value";
+        valInput.oninput = (e) => { this.isDirty = true; b.value = parseFloat((e.target as HTMLInputElement).value) || 0; };
+
+        const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
+        removeBtn.onclick = () => {
           this.data.brokerages = this.data.brokerages.filter((bb) => bb !== b);
           void this.render();
-        });
-      } else {
+        };
+      });
+    } else {
+      const table = section.createEl("table", { cls: "ledgr-tx-table" });
+      const thead = table.createEl("thead");
+      const hrow = thead.createEl("tr");
+      ["Investment Account", "Total Value"].forEach((h) => hrow.createEl("th", { text: h }));
+      const tbody = table.createEl("tbody");
+      this.data.brokerages.forEach((b) => {
+        const tr = tbody.createEl("tr");
         tr.createEl("td", { text: b.name });
         tr.createEl("td", { text: this.fmt(this.toBase(b.value, b.currency)), cls: "ledgr-text-right" });
-      }
-    });
+      });
+    }
   }
 
   renderLiabilities(parent: HTMLElement) {
@@ -288,78 +325,136 @@ export class NetWorthView extends ItemView {
       return;
     }
 
-    const table = section.createEl("table", { cls: "ledgr-tx-table" });
-    const thead = table.createEl("thead");
-    const hrow = thead.createEl("tr");
-    (this.editMode ? ["Name", "Type", "Currency", "Balance", ""] : ["Name", "Type", "Balance"])
-      .forEach((h) => hrow.createEl("th", { text: h }));
-    const tbody = table.createEl("tbody");
+    if (this.editMode) {
+      liabilities.forEach((acc) => {
+        const card = section.createDiv("ledgr-edit-card");
+        const row1 = card.createDiv("ledgr-edit-card-row");
+        const nameInput = row1.createEl("input") as HTMLInputElement;
+        nameInput.type = "text"; nameInput.value = acc.name;
+        nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
+        nameInput.placeholder = "Name";
+        nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
-    liabilities.forEach((acc) => {
-      const tr = tbody.createEl("tr");
-      if (this.editMode) {
-        this.addEditCell(tr, acc.name, (v) => (acc.name = v));
-        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
-        tr.createEl("td", { text: acc.currency, cls: "ledgr-empty" });
-        this.addNumberCell(tr, acc.balance, (v) => (acc.balance = v));
-        this.addRemoveBtn(tr, () => {
+        const row2 = card.createDiv("ledgr-edit-card-row");
+        row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        const balInput = row2.createEl("input") as HTMLInputElement;
+        balInput.type = "number"; balInput.value = String(acc.balance);
+        balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
+        balInput.placeholder = "Balance";
+        balInput.oninput = (e) => { this.isDirty = true; acc.balance = parseFloat((e.target as HTMLInputElement).value) || 0; };
+
+        const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
+        removeBtn.onclick = () => {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
           void this.render();
-        });
-      } else {
+        };
+      });
+    } else {
+      const table = section.createEl("table", { cls: "ledgr-tx-table" });
+      const hrow = table.createEl("thead").createEl("tr");
+      ["Name", "Type", "Balance"].forEach((h) => hrow.createEl("th", { text: h }));
+      const tbody = table.createEl("tbody");
+      liabilities.forEach((acc) => {
+        const tr = tbody.createEl("tr");
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
         tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
-      }
-    });
+      });
+    }
   }
 
   renderAddButtons(parent: HTMLElement) {
     const section = parent.createDiv("ledgr-section");
     section.createEl("h3", { text: "Add" });
     const btnRow = section.createDiv("ledgr-btn-row");
+    const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
 
-    const addAccBtn = (label: string, country: "JP" | "PH", currency: string) => {
-      const btn = btnRow.createEl("button", { text: label, cls: "ledgr-budget-btn" });
-      btn.onclick = () => {
-        this.data.accounts.push({
-          id: `acc_${Date.now()}`,
-          name: "New Account",
-          type: "bank",
-          currency,
-          balance: 0,
-          country,
-          isLiability: false,
-        });
-        void this.render();
-      };
-    };
+    // Single "+ Add Account" button — opens inline form with currency + type selector
+    const addAccBtn = btnRow.createEl("button", { text: "+ Account", cls: "ledgr-budget-btn" });
+    addAccBtn.onclick = () => this.showAddAccountForm(section, false);
 
-    const base = this.plugin.settings.baseCurrency;
-    const sec = this.plugin.settings.secondaryCurrencies[0] ?? base;
-
-    addAccBtn(`+ Account (${base})`, "JP", base);
-    addAccBtn(`+ Account (${sec})`, "PH", sec);
-
-    const addBrokerageBtn = btnRow.createEl("button", { text: "+ Investment Account", cls: "ledgr-budget-btn" });
+    const addBrokerageBtn = btnRow.createEl("button", { text: "+ Investment", cls: "ledgr-budget-btn" });
     addBrokerageBtn.onclick = () => {
-      this.data.brokerages.push({ id: `brk_${Date.now()}`, name: "New Investment Account", currency: base, value: 0, country: "JP" });
+      this.data.brokerages.push({
+        id: `brk_${Date.now()}`,
+        name: "New Investment Account",
+        currency: allCurrencies[0],
+        value: 0,
+        country: "JP",
+      });
       void this.render();
     };
 
     const addLiabilityBtn = btnRow.createEl("button", { text: "+ Liability", cls: "ledgr-budget-btn" });
-    addLiabilityBtn.onclick = () => {
-      this.data.accounts.push({
-        id: `lia_${Date.now()}`,
-        name: "New Liability",
-        type: "loan",
-        currency: sec,
-        balance: 0,
-        country: "PH",
-        isLiability: true,
+    addLiabilityBtn.onclick = () => this.showAddAccountForm(section, true);
+  }
+
+  showAddAccountForm(parent: HTMLElement, isLiability: boolean) {
+    // Remove existing form if open
+    parent.querySelector(".ledgr-add-account-form")?.remove();
+
+    const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
+    const form = parent.createDiv("ledgr-add-account-form ledgr-edit-card");
+
+    form.createEl("div", { text: isLiability ? "New Liability" : "New Account", cls: "ledgr-goal-name" });
+
+    // Name
+    const nameRow = form.createDiv("ledgr-edit-card-row");
+    const nameInput = nameRow.createEl("input") as HTMLInputElement;
+    nameInput.type = "text"; nameInput.placeholder = "Account name";
+    nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
+
+    // Currency + Type row
+    const row2 = form.createDiv("ledgr-edit-card-row");
+
+    const currSelect = row2.createEl("select", { cls: "ledgr-inline-input" }) as HTMLSelectElement;
+    allCurrencies.forEach((c) => {
+      const opt = currSelect.createEl("option");
+      opt.value = c; opt.textContent = c;
+    });
+
+    if (!isLiability) {
+      const typeSelect = row2.createEl("select", { cls: "ledgr-inline-input" }) as HTMLSelectElement;
+      ["bank", "ewallet", "cash", "credit"].forEach((t) => {
+        const opt = typeSelect.createEl("option");
+        opt.value = t; opt.textContent = t;
       });
-      void this.render();
-    };
+
+      const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
+      addBtn.onclick = () => {
+        this.data.accounts.push({
+          id: `acc_${Date.now()}`,
+          name: nameInput.value.trim() || "New Account",
+          type: typeSelect.value,
+          currency: currSelect.value,
+          balance: 0,
+          country: "JP",
+          isLiability: false,
+        });
+        this.isDirty = true;
+        void this.render();
+      };
+    } else {
+      const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
+      addBtn.onclick = () => {
+        this.data.accounts.push({
+          id: `lia_${Date.now()}`,
+          name: nameInput.value.trim() || "New Liability",
+          type: "loan",
+          currency: currSelect.value,
+          balance: 0,
+          country: "PH",
+          isLiability: true,
+        });
+        this.isDirty = true;
+        void this.render();
+      };
+    }
+
+    const cancelBtn = form.createEl("button", { text: "Cancel", cls: "ledgr-budget-btn" });
+    cancelBtn.onclick = () => form.remove();
+
+    nameInput.focus();
   }
 
   addEditCell(tr: HTMLElement, value: string, onChange: (v: string) => void) {
@@ -463,7 +558,7 @@ export class NetWorthView extends ItemView {
       };
 
       // Progress label
-      const fmt = (n: number) => `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
+      const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
       const progLabel = card.createDiv("ledgr-goal-progress-label");
       progLabel.createEl("span", { text: fmt(current) });
       progLabel.createEl("span", { text: ` / `, cls: "ledgr-goal-target" });

@@ -32,6 +32,6 @@ export function renderNavBar(
 
   // Log button — right-aligned
   const logBtn = nav.createDiv("ledgr-nav-btn ledgr-nav-log");
-  logBtn.createEl("span", { text: "+ Log", cls: "ledgr-nav-label" });
+  logBtn.createEl("span", { text: "+ Add", cls: "ledgr-nav-label" });
   logBtn.onclick = () => new QuickCaptureModal(app, plugin.settings).open();
 }

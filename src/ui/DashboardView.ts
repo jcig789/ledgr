@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, normalizePath, Notice, Events } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, normalizePath, Notice, Events, setIcon } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions, summarize } from "../data/reader";
 import { Currency } from "../settings";
@@ -12,6 +12,8 @@ import { convertToBase } from "../data/reader";
 import { loadRemittances, getRemittanceSummary, RemittanceStore, Remittance } from "../data/remittances";
 import { BudgetConfig } from "../data/budgets";
 import { getCategoryType } from "../constants/categories";
+import { formatCurrency } from "../constants/currencies";
+import { renderBottomNav } from "./BottomNav";
 import { renderDonutChart, buildSpendingSegments, renderGauge, renderTrendLine, categoryColor } from "./charts";
 import { EditTransactionModal } from "./EditTransactionModal";
 
@@ -42,6 +44,11 @@ export class DashboardView extends ItemView {
         await this.render();
       })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:settings-changed", async () => {
+        await this.render();
+      })
+    );
   }
 
   async render() {
@@ -62,13 +69,13 @@ export class DashboardView extends ItemView {
     const remittanceStore = await loadRemittances(this.app, this.plugin.settings);
     const remitSummary = getRemittanceSummary(remittanceStore, this.currentMonth);
 
-    const fmt = (n: number) => `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
     const isCurrentMonth = this.currentMonth >= window.moment().format("YYYY-MM");
 
-    // ── Nav bar (always first, same position across all views) ──
-    renderNavBar(contentEl, this.app, this.plugin, "dashboard");
+    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
+    renderBottomNav(this.containerEl, this.plugin, "dashboard");
 
-    // ── Controls bar: Row 1 — currency left, actions right ──
+    // ── Controls bar: currency left, actions right ──
     const header = contentEl.createDiv("ledgr-header");
 
     const row1 = header.createDiv("ledgr-controls-row");
@@ -85,16 +92,20 @@ export class DashboardView extends ItemView {
 
     // Action buttons — right side
     const btnRow = row1.createDiv("ledgr-btn-row");
-    const logBtn = btnRow.createEl("button", { text: "+ Log", cls: "ledgr-log-btn mod-cta" });
+    const logBtn = btnRow.createEl("button", { text: "+ Add", cls: "ledgr-log-btn mod-cta" });
     logBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
     if (this.plugin.settings.enableTransferTracker) {
-      const remitBtn = btnRow.createEl("button", { text: "Log Transfer", cls: "ledgr-budget-btn" });
+      const remitBtn = btnRow.createEl("button", { text: "Transfer", cls: "ledgr-budget-btn" });
       remitBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
     }
+    // Budgets button — kept as text for discoverability
     const budgetBtn = btnRow.createEl("button", { text: "Budgets", cls: "ledgr-budget-btn" });
     budgetBtn.onclick = () => new BudgetModal(this.app, this.plugin).open();
-    const configBtn = btnRow.createEl("button", { text: "Settings", cls: "ledgr-budget-btn ledgr-config-btn" });
+    // Settings — icon only to save space (Option A)
+    const configBtn = btnRow.createEl("button", { cls: "ledgr-budget-btn ledgr-icon-btn" });
     configBtn.setAttribute("aria-label", "Settings");
+    configBtn.title = "Settings";
+    setIcon(configBtn, "settings");
     configBtn.onclick = () => new ConfigModal(this.app, this.plugin).open();
 
     // Row 2: month navigation (full width, centered)
@@ -136,8 +147,10 @@ export class DashboardView extends ItemView {
       updateLink.onclick = () => new ConfigModal(this.app, this.plugin).open();
     }
 
-    // First-run / empty state
+    // First-run / empty state — also remove rate banner if no data yet
     if (transactions.length === 0 && prevTransactions.length === 0 && remittanceStore.remittances.length === 0) {
+      // Remove rate banner on first run — user will set rates via onboarding
+      stickyZone.querySelector(".ledgr-rate-banner")?.remove();
       this.renderFirstRun(contentEl);
       return;
     }
@@ -196,7 +209,7 @@ export class DashboardView extends ItemView {
         tr.createEl("td", { text: tx.category });
         tr.createEl("td", { text: tx.note || "-", cls: "ledgr-note-col" });
         const amtCell = tr.createEl("td", {
-          text: `${tx.currency} ${tx.amount.toLocaleString()}`,
+          text: formatCurrency(tx.amount, tx.currency),
           cls: tx.type === "income" ? "ledgr-income" : "ledgr-expense",
         });
         amtCell.addClass("ledgr-text-right");
@@ -352,7 +365,7 @@ export class DashboardView extends ItemView {
     const daysLeft = Math.max(0, window.moment().endOf("month").diff(window.moment(), "days") + 1);
     const dailyAllowance = daysLeft > 0 ? remaining / daysLeft : 0;
     const pctLeft = remaining / totalBudget;
-    const fmt = (n: number) => `${this.viewCurrency} ${Math.round(Math.abs(n)).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(Math.abs(n), this.viewCurrency);
 
     const banner = parent.createDiv("ledgr-countdown");
 
@@ -393,7 +406,7 @@ export class DashboardView extends ItemView {
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Spending by Category" });
 
     const sorted = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]);
-    const fmt = (n: number) => `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
 
     if (sorted.length === 0) {
       section.createEl("p", { text: "No expenses this month.", cls: "ledgr-empty-state" });
@@ -536,7 +549,7 @@ export class DashboardView extends ItemView {
       step.createEl("span", { text: label });
     });
 
-    const cta = state.createEl("button", { text: "+ Log your first transaction", cls: "ledgr-log-btn mod-cta ledgr-first-run-cta" });
+    const cta = state.createEl("button", { text: "+ Add your first transaction", cls: "ledgr-log-btn mod-cta ledgr-first-run-cta" });
     cta.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings).open();
 
     const remitCta = state.createEl("button", { text: "Log a transfer", cls: "ledgr-budget-btn ledgr-first-run-remit" });

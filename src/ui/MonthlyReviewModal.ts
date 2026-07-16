@@ -5,6 +5,7 @@ import { loadBudgets } from "../data/budgets";
 import { loadRemittances } from "../data/remittances";
 import { loadGoals } from "../data/goals";
 import { loadNetWorth, Account } from "../data/networth";
+import { formatCurrency } from "../constants/currencies";
 
 export class MonthlyReviewModal extends Modal {
   plugin: LedgrPlugin;
@@ -66,8 +67,8 @@ export class MonthlyReviewModal extends Modal {
   async generate(force: boolean) {
     const base = this.plugin.settings.baseCurrency;
     const rates = this.plugin.settings.exchangeRates;
-    const fmt = (n: number) => `${base} ${Math.round(n).toLocaleString()}`;
-    const fmtParens = (n: number) => n < 0 ? `(${base} ${Math.round(Math.abs(n)).toLocaleString()})` : fmt(n);
+    const fmt = (n: number) => formatCurrency(n, base);
+    const fmtParens = (n: number) => n < 0 ? `(${formatCurrency(Math.abs(n), base)})` : fmt(n);
 
     const filePath = normalizePath(`${this.outputFolder}/${this.selectedMonth}-review.md`);
 

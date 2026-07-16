@@ -22,8 +22,8 @@ export interface LedgrSettings {
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
-  baseCurrency: "JPY",
-  secondaryCurrencies: ["PHP", "USD"],
+  baseCurrency: "USD",
+  secondaryCurrencies: [],
   exchangeRates: {
     rates: {
       JPY_PHP: 0.38,

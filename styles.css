@@ -77,14 +77,20 @@
   border-color: var(--ledgr-accent-muted);
 }
 
+/* Container must be relative for absolute bottom nav */
+.view-content:has(.ledgr-dashboard),
+.view-content:has(.ledgr-networth),
+.view-content:has(.ledgr-statements) {
+  position: relative;
+}
+
 /* ─── Layout wrappers ────────────────────────────────────────────────── */
 .ledgr-dashboard,
 .ledgr-networth {
-  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md);
+  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-lg);
   max-width: 860px;
   margin: 0 auto;
   box-sizing: border-box;
-  overflow-x: hidden;
 }
 
 /* ─── Navigation bar ─────────────────────────────────────────────────── */
@@ -190,7 +196,7 @@
   flex-direction: column;
   gap: var(--ledgr-spacing-sm);
   margin-bottom: var(--ledgr-spacing-lg);
-  min-height: 72px; /* uniform height across Dashboard, Net Worth, Statements */
+  /* min-height removed — sticky zone handles uniform spacing */
 }
 
 /* Month navigation — private bank statement header */
@@ -298,12 +304,13 @@
 }
 
 .ledgr-card-value {
-  font-size: 1.45em;
+  font-size: clamp(0.95em, 3.5vw, 1.45em);
   font-weight: 500;
   margin-bottom: var(--ledgr-spacing-xs);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
   color: var(--ledgr-text);
+  white-space: nowrap;
 }
 
 .ledgr-card-subtitle {
@@ -1446,7 +1453,7 @@ button.ledgr-del-confirm,
 
 .ledgr-gauge-svg {
   width: 100%;
-  max-width: 140px;
+  max-width: 120px;
   height: auto;
   overflow: visible;
 }
@@ -1454,25 +1461,26 @@ button.ledgr-del-confirm,
 .ledgr-gauge-track {
   fill: none;
   stroke: var(--ledgr-rule);
-  stroke-width: 6;
+  stroke-width: 7;
   stroke-linecap: butt;
 }
 
 .ledgr-gauge-fill {
   fill: none;
-  stroke-width: 6;
+  stroke-width: 7;
   stroke-linecap: round;
 }
 
 .ledgr-gauge-center {
   position: absolute;
-  bottom: 0;
+  top: 50%;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  pointer-events: none;
 }
 
 .ledgr-gauge-value {
@@ -1606,6 +1614,166 @@ button.ledgr-del-confirm,
   letter-spacing: 0.04em;
 }
 
+/* Icon-only button (Settings gear) */
+.ledgr-icon-btn {
+  padding: 6px 10px !important;
+  min-width: 36px;
+  font-size: 1em !important;
+  line-height: 1;
+}
+
+/* ─── Bottom navigation bar ─────────────────────────────────────────── */
+#ledgr-bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  justify-content: center;
+  background: var(--background-primary);
+  border-top: 1px solid var(--ledgr-rule);
+  height: 56px;
+}
+
+/* Inner wrapper — constrains to 480px on wide screens */
+.ledgr-bottom-inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) 56px;
+  width: 100%;
+  max-width: 480px;
+  align-items: stretch;
+}
+
+/* Nav tabs */
+.ledgr-bottom-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  /* Reserve top border space always to prevent reflow */
+  border-top: 1.5px solid transparent;
+  padding: 4px 0 6px;
+  color: var(--ledgr-text-secondary);
+  opacity: 0.55;
+  transition: color 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+  min-height: 44px;
+}
+
+.ledgr-bottom-btn:hover {
+  opacity: 0.8;
+  color: var(--ledgr-text);
+}
+
+/* Active state: top border + weight + full opacity */
+.ledgr-bottom-btn.active {
+  color: var(--ledgr-accent);
+  opacity: 1;
+  cursor: default;
+  border-top-color: var(--ledgr-accent);
+  /* Subtle background wash — 6% tint */
+  background-color: rgba(44, 44, 44, 0.06);
+}
+
+.theme-dark .ledgr-bottom-btn.active {
+  background-color: rgba(200, 191, 168, 0.06);
+}
+
+.ledgr-bottom-btn.active .ledgr-bottom-label {
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+.ledgr-bottom-btn.active .ledgr-bottom-icon svg {
+  stroke-width: 2px;
+}
+
+.ledgr-bottom-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ledgr-bottom-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.5px;
+}
+
+.ledgr-bottom-label {
+  font-size: 0.6em;
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+/* + Add button — bordered square, categorically different from nav tabs */
+.ledgr-bottom-add-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-top: 1.5px solid transparent;
+}
+
+.ledgr-bottom-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--ledgr-radius-md);
+  border: 1.5px solid var(--ledgr-accent);
+  color: var(--ledgr-accent);
+  background: transparent;
+  transition: background-color 120ms ease, color 120ms ease, transform 80ms ease;
+}
+
+.ledgr-bottom-add-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2px;
+}
+
+.ledgr-bottom-add-wrap:hover .ledgr-bottom-add-btn {
+  background-color: var(--ledgr-accent);
+  color: var(--background-primary);
+}
+
+.ledgr-bottom-add-wrap:active .ledgr-bottom-add-btn {
+  transform: scale(0.94);
+}
+
+/* Content needs padding-bottom so it doesn't hide under the nav */
+.ledgr-dashboard,
+.ledgr-networth,
+.ledgr-statements {
+  padding-bottom: 72px;
+}
+
+/* ─── Sticky header zone ────────────────────────────────────────────── */
+/*
+ * Obsidian's scroll container is .view-content, not window.
+ * position: sticky is correct — position: fixed breaks on mobile Obsidian.
+ */
+.ledgr-sticky-zone {
+  padding-top: var(--ledgr-spacing-sm);
+  padding-bottom: var(--ledgr-spacing-sm);
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+/* First element after sticky zone gets top spacing */
+.ledgr-sticky-zone + * {
+  margin-top: var(--ledgr-spacing-md);
+}
+
 /* ─── Controls row: currency left, actions right ────────────────────── */
 .ledgr-controls-row {
   display: flex;
@@ -1615,6 +1783,33 @@ button.ledgr-del-confirm,
   flex-wrap: wrap;
 }
 
+
+/* ─── Net Worth edit cards ───────────────────────────────────────────── */
+.ledgr-edit-card {
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-xs);
+}
+
+.ledgr-edit-card-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+}
+
+.ledgr-edit-card-name {
+  flex: 1;
+}
+
+.ledgr-edit-card-balance {
+  width: 120px;
+  flex-shrink: 0;
+  text-align: right;
+}
 
 /* ─── Net Worth Visuals ──────────────────────────────────────────────── */
 .ledgr-nw-visuals {
@@ -1780,7 +1975,7 @@ button.ledgr-del-confirm,
   margin-left: 4px;
 }
 .ledgr-countdown-sep { color: var(--ledgr-text-faint); padding: 0 var(--ledgr-spacing-sm); }
-.ledgr-countdown-budget { font-size: var(--ledgr-font-body); font-variant-numeric: tabular-nums; color: var(--ledgr-text); }
+.ledgr-countdown-budget { font-size: var(--ledgr-font-body); font-variant-numeric: tabular-nums; color: var(--ledgr-text); white-space: nowrap; }
 .ledgr-countdown-budget.ledgr-countdown-over { color: var(--ledgr-red); }
 .ledgr-countdown-suffix { font-size: var(--ledgr-font-sm); color: var(--ledgr-text-faint); margin-left: 3px; }
 
@@ -1854,11 +2049,10 @@ button.ledgr-del-confirm,
 
 /* ─── Financial Statements — CPA/CFA presentation ───────────────────── */
 .ledgr-statements {
-  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md);
+  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-lg);
   max-width: 860px;
   margin: 0 auto;
   box-sizing: border-box;
-  overflow-x: hidden;
 }
 
 /* Document container — full available width */
@@ -1952,6 +2146,19 @@ button.ledgr-del-confirm,
   padding: 5px 0;
   font-size: var(--ledgr-font-body);
   color: var(--ledgr-text);
+}
+
+.ledgr-stmt-line span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+  padding-right: var(--ledgr-spacing-xs);
+}
+
+.ledgr-stmt-amt {
+  flex-shrink: 0;
 }
 .ledgr-stmt-line:not(:last-child) {
   border-bottom: 1px solid var(--color-base-15);
@@ -2161,9 +2368,25 @@ button.ledgr-del-confirm,
     padding: var(--ledgr-spacing-md);
   }
 
+  /* Cards: 2 per row on mobile so they use full width */
   .ledgr-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--ledgr-spacing-sm);
+  }
+
+  /* Controls row: currency left, actions right — maintain on mobile */
+  .ledgr-controls-row {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--ledgr-spacing-xs);
+  }
+
+  .ledgr-controls-row .ledgr-btn-row {
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .ledgr-breakdown-row {
@@ -2222,14 +2445,32 @@ button.ledgr-del-confirm,
     grid-template-columns: repeat(2, 1fr);
   }
 
+  /* Consolidated controls-row for mobile — keep row layout, never stack */
   .ledgr-controls-row {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--ledgr-spacing-xs);
+  }
+
+  .ledgr-controls-row .ledgr-currency-row {
+    flex-shrink: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    gap: 2px;
+  }
+
+  .ledgr-controls-row .ledgr-currency-btn {
+    padding: 8px 8px;
+    min-width: 36px;
+    font-size: 0.75em;
   }
 
   .ledgr-controls-row .ledgr-btn-row {
-    width: 100%;
-    flex-wrap: wrap;
+    flex-shrink: 0;
+    margin-left: auto;
+    flex-wrap: nowrap;
   }
 
   .ledgr-summary-row {
@@ -2262,11 +2503,56 @@ button.ledgr-del-confirm,
     display: none;
   }
 
-  /* Cash flow table on mobile — hide outflows, show only inflows + net */
+  /* First-run welcome — reduce top padding on mobile */
+  .ledgr-first-run {
+    padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-md);
+  }
+
+  /* Statement amounts — reduce min-width on mobile */
+  .ledgr-stmt-amt {
+    min-width: 80px;
+  }
+
+
+  /* Cash flow table on mobile — show all columns, compressed */
   .ledgr-stmt-cf-table th:nth-child(3),
   .ledgr-stmt-cf-table td:nth-child(3) {
-    display: none;
+    display: table-cell;
   }
+
+  .ledgr-stmt-cf-table {
+    table-layout: fixed;
+    font-size: 0.78em;
+  }
+
+  .ledgr-stmt-cf-table th:nth-child(1),
+  .ledgr-stmt-cf-table td:nth-child(1) { width: 30%; }
+
+  .ledgr-stmt-cf-table th:nth-child(2),
+  .ledgr-stmt-cf-table td:nth-child(2),
+  .ledgr-stmt-cf-table th:nth-child(3),
+  .ledgr-stmt-cf-table td:nth-child(3),
+  .ledgr-stmt-cf-table th:nth-child(4),
+  .ledgr-stmt-cf-table td:nth-child(4) { width: 23.33%; }
+
+  /* Abbreviated headers via ::after — collapse real text, substitute short label */
+  .ledgr-stmt-cf-table thead th {
+    font-size: 0;
+    letter-spacing: 0;
+  }
+
+  .ledgr-stmt-cf-table thead th::after {
+    font-size: var(--ledgr-font-label);
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    font-weight: 500;
+    color: var(--ledgr-text-secondary);
+  }
+
+  .ledgr-stmt-cf-table thead th:nth-child(1)::after { content: "Month"; }
+  .ledgr-stmt-cf-table thead th:nth-child(2)::after { content: "In"; }
+  .ledgr-stmt-cf-table thead th:nth-child(3)::after { content: "Out"; }
+  .ledgr-stmt-cf-table thead th:nth-child(4)::after { content: "Net"; }
 }
 
 /* ─── Utility classes (used instead of inline styles) ─────────────────── */

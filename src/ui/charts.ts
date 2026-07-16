@@ -419,8 +419,8 @@ export function buildSpendingSegments(
 
 // ─── renderGauge ──────────────────────────────────────────────────────────────
 /**
- * Semicircle gauge — like the 82% confidence ring.
- * Half-ring filled proportionally, value in center.
+ * Circular progress ring for savings rate.
+ * Uses stroke-dasharray (same reliable technique as the spending donut).
  */
 export function renderGauge(
   parent: HTMLElement,
@@ -434,54 +434,39 @@ export function renderGauge(
   const good = opts?.good ?? 20;
   const warn = opts?.warn ?? 10;
 
-  const R = 38;
-  const cx = 50;
-  const cy = 52;
-
-  const startAngle = Math.PI;
-  const endAngle = Math.PI - (clamped / 100) * Math.PI;
-
-  const x1 = cx + R * Math.cos(startAngle);
-  const y1 = cy + R * Math.sin(startAngle);
-  const x2 = cx + R * Math.cos(endAngle);
-  const y2 = cy + R * Math.sin(endAngle);
-  const largeArc = clamped > 50 ? 1 : 0;
-
-  // Use design tokens: accent for good, muted amber for warn, red for bad
   const color = clamped >= good
-    ? "var(--ledgr-accent)"
+    ? "var(--ledgr-green)"
     : clamped >= warn
     ? "var(--ledgr-cat-8)"
     : "var(--ledgr-red)";
 
+  const R = 30;
+  const C = 2 * Math.PI * R;
+  const arcLen = (clamped / 100) * C;
+
   const wrap = parent.createDiv("ledgr-gauge-wrap");
 
   const svg = window.document.createElementNS(SVG_NS, "svg");
-  svg.setAttribute("viewBox", "0 0 100 60");
+  svg.setAttribute("viewBox", "0 0 80 80");
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-gauge-svg");
 
-  // Track (full semicircle background)
-  const trackPath = svgEl("path");
-  trackPath.setAttribute("d", `M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`);
-  trackPath.classList.add("ledgr-gauge-track");
-  svg.appendChild(trackPath);
+  // Track ring
+  const track = svgEl("circle");
+  track.setAttribute("cx", "40"); track.setAttribute("cy", "40"); track.setAttribute("r", String(R));
+  track.classList.add("ledgr-gauge-track");
+  svg.appendChild(track);
 
-  // Fill arc
+  // Fill ring — stroke-dasharray controls how much is filled
+  // rotate -90 so fill starts at the top
   if (clamped > 0) {
-    const fillPath = svgEl("path");
-    fillPath.setAttribute("d", `M ${x1} ${y1} A ${R} ${R} 0 ${largeArc} 1 ${x2} ${y2}`);
-    fillPath.classList.add("ledgr-gauge-fill");
-    fillPath.setAttribute("stroke", color);
-    svg.appendChild(fillPath);
-
-    const dot = svgEl("circle");
-    dot.setAttribute("cx", String(x2));
-    dot.setAttribute("cy", String(y2));
-    dot.setAttribute("r", "3");
-    dot.setAttribute("fill", color);
-    dot.setAttribute("stroke", "none");
-    svg.appendChild(dot);
+    const fill = svgEl("circle");
+    fill.setAttribute("cx", "40"); fill.setAttribute("cy", "40"); fill.setAttribute("r", String(R));
+    fill.classList.add("ledgr-gauge-fill");
+    fill.setAttribute("stroke", color);
+    fill.setAttribute("stroke-dasharray", `${arcLen} ${C - arcLen}`);
+    fill.setAttribute("transform", "rotate(-90 40 40)");
+    svg.appendChild(fill);
   }
 
   wrap.appendChild(svg);

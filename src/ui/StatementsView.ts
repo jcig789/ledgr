@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ItemView, WorkspaceLeaf, Events } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions, summarize, convertToBase } from "../data/reader";
 import { loadNetWorth, NetWorthData, Account, Brokerage } from "../data/networth";
@@ -6,6 +6,8 @@ import { loadBudgets, BudgetConfig } from "../data/budgets";
 import { Transaction } from "../data/transactions";
 import { renderNavBar } from "./NavBar";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
+import { formatCurrency } from "../constants/currencies";
+import { renderBottomNav } from "./BottomNav";
 
 export const STATEMENTS_VIEW_TYPE = "ledgr-statements";
 
@@ -28,7 +30,14 @@ export class StatementsView extends ItemView {
   getDisplayText() { return "Statements"; }
   getIcon() { return "book-open"; }
 
-  async onOpen() { await this.render(); }
+  async onOpen() {
+    await this.render();
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:settings-changed", async () => {
+        await this.render();
+      })
+    );
+  }
 
   async render() {
     // Validate viewCurrency against current settings — reset if no longer valid
@@ -41,7 +50,8 @@ export class StatementsView extends ItemView {
     contentEl.empty();
     contentEl.addClass("ledgr-statements");
 
-    renderNavBar(contentEl, this.app, this.plugin, "statements");
+    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
+    renderBottomNav(this.containerEl, this.plugin, "statements");
 
     // Header
     const header = contentEl.createDiv("ledgr-header");
@@ -101,10 +111,10 @@ export class StatementsView extends ItemView {
 
     const budgetConfig = await loadBudgets(this.app, this.plugin.settings);
     const netWorthData = await loadNetWorth(this.app, this.plugin.settings);
-    const fmt = (n: number) => `${this.viewCurrency} ${Math.round(Math.abs(n)).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(Math.abs(n), this.viewCurrency);
     const fmtSigned = (n: number) => n < 0
-      ? `(${this.viewCurrency} ${Math.round(Math.abs(n)).toLocaleString()})`
-      : `${this.viewCurrency} ${Math.round(n).toLocaleString()}`;
+      ? `(${formatCurrency(Math.abs(n), this.viewCurrency)})`
+      : formatCurrency(n, this.viewCurrency);
 
     const stmtWrap = contentEl.createDiv("ledgr-stmt");
 

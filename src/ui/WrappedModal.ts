@@ -4,6 +4,7 @@ import { readAllTransactions, summarize, convertToBase } from "../data/reader";
 import { loadRemittances } from "../data/remittances";
 import { loadNetWorth, Account } from "../data/networth";
 import { loadGoals } from "../data/goals";
+import { formatCurrency } from "../constants/currencies";
 
 export class WrappedModal extends Modal {
   plugin: LedgrPlugin;
@@ -56,7 +57,7 @@ export class WrappedModal extends Modal {
   async generate(force: boolean) {
     const base = this.plugin.settings.baseCurrency;
     const rates = this.plugin.settings.exchangeRates;
-    const fmt = (n: number) => `${base} ${Math.round(n).toLocaleString()}`;
+    const fmt = (n: number) => formatCurrency(n, base);
     const today = window.moment().format("YYYY-MM-DD");
     const outputFolder = `${this.plugin.settings.financeFolder}/reviews`;
     const filePath = normalizePath(`${outputFolder}/${this.selectedYear}-wrapped.md`);

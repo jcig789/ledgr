@@ -26,6 +26,7 @@ export class LedgrSettingTab extends PluginSettingTab {
           .onChange(async (v) => {
             this.plugin.settings.baseCurrency = v.toUpperCase().trim();
             await this.plugin.saveSettings();
+            this.plugin.app.workspace.trigger("ledgr:settings-changed");
           })
       );
 
@@ -41,6 +42,7 @@ export class LedgrSettingTab extends PluginSettingTab {
             this.plugin.settings.secondaryCurrencies = v
               .split(",").map((c) => c.trim().toUpperCase()).filter(Boolean);
             await this.plugin.saveSettings();
+            this.plugin.app.workspace.trigger("ledgr:settings-changed");
           })
       );
 
