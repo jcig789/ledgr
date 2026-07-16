@@ -77,7 +77,7 @@ export class QuickCaptureModal extends Modal {
         const currencies = [this.settings.baseCurrency, ...this.settings.secondaryCurrencies];
         currencies.forEach((c) => d.addOption(c, c));
         d.setValue(this.currency).onChange((v) => (this.currency = v));
-        return d;
+
       });
 
     // Amount error placeholder
@@ -105,7 +105,7 @@ export class QuickCaptureModal extends Modal {
             subDrop.value = this.subcategory;
           }
         });
-        return d;
+
       });
 
     // Subcategory
@@ -116,7 +116,7 @@ export class QuickCaptureModal extends Modal {
         subs.forEach((s) => d.addOption(s, s));
         d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
         d.selectEl.addClass("ledgr-sub-dropdown");
-        return d;
+
       });
 
     // Note

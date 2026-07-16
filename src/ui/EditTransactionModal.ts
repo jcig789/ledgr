@@ -60,7 +60,7 @@ export class EditTransactionModal extends Modal {
         const currencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
         currencies.forEach((c) => d.addOption(c, c));
         d.setValue(this.currency).onChange((v) => (this.currency = v));
-        return d;
+
       });
 
     new Setting(contentEl)
@@ -72,7 +72,7 @@ export class EditTransactionModal extends Modal {
           this.subcategory = catMap[v]?.[0] ?? "Other";
           void this.render().catch(console.error);
         });
-        return d;
+
       });
 
     const subs = catMap[this.category] ?? ["Other"];
@@ -81,7 +81,7 @@ export class EditTransactionModal extends Modal {
       .addDropdown((d) => {
         subs.forEach((s) => d.addOption(s, s));
         d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
-        return d;
+
       });
 
     new Setting(contentEl)

@@ -83,7 +83,7 @@ export class RemittanceModal extends Modal {
           this.recalcTo();
           void this.render().catch(console.error);
         });
-        return d;
+
       });
 
     // Fee
