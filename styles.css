@@ -78,9 +78,7 @@
 }
 
 /* Container must be relative for absolute bottom nav */
-.view-content:has(.ledgr-dashboard),
-.view-content:has(.ledgr-networth),
-.view-content:has(.ledgr-statements) {
+.view-content.ledgr-view-active {
   position: relative;
 }
 
@@ -1615,10 +1613,12 @@ button.ledgr-del-confirm,
 }
 
 /* Icon-only button (Settings gear) */
-.ledgr-icon-btn {
-  padding: 6px 10px !important;
+.ledgr-dashboard .ledgr-icon-btn,
+.ledgr-networth .ledgr-icon-btn,
+.ledgr-statements .ledgr-icon-btn {
+  padding: 6px 10px;
   min-width: 36px;
-  font-size: 1em !important;
+  font-size: 1em;
   line-height: 1;
 }
 

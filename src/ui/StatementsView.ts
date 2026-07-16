@@ -4,7 +4,6 @@ import { readMonthTransactions, summarize, convertToBase } from "../data/reader"
 import { loadNetWorth, NetWorthData, Account, Brokerage } from "../data/networth";
 import { loadBudgets, BudgetConfig } from "../data/budgets";
 import { Transaction } from "../data/transactions";
-import { renderNavBar } from "./NavBar";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
 import { formatCurrency } from "../constants/currencies";
 import { renderBottomNav } from "./BottomNav";
@@ -31,6 +30,7 @@ export class StatementsView extends ItemView {
   getIcon() { return "book-open"; }
 
   async onOpen() {
+    this.containerEl.addClass("ledgr-view-active");
     await this.render();
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:settings-changed", async () => {
@@ -433,5 +433,5 @@ export class StatementsView extends ItemView {
     row.createEl("span", { text: amount, cls: "ledgr-stmt-amt" });
   }
 
-  async onClose() { this.contentEl.empty(); }
+  async onClose() { this.containerEl.removeClass("ledgr-view-active"); this.contentEl.empty(); }
 }

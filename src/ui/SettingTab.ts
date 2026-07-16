@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import LedgrPlugin from "../main";
 
 export class LedgrSettingTab extends PluginSettingTab {
@@ -7,6 +7,10 @@ export class LedgrSettingTab extends PluginSettingTab {
   constructor(app: App, plugin: LedgrPlugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [];
   }
 
   display(): void {

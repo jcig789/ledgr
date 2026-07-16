@@ -104,7 +104,6 @@ export default class LedgrPlugin extends Plugin {
       callback: () => { new WrappedModal(this.app, this).open(); },
     });
 
-    console.log("Ledgr loaded");
   }
 
   async appendToDailyNote() {
@@ -189,7 +188,6 @@ export default class LedgrPlugin extends Plugin {
   }
 
   onunload() {
-    console.log("Ledgr unloaded");
   }
 
   async loadSettings() {

@@ -11,6 +11,7 @@
  *   CATEGORY_COLORS  — ordered palette token names for 11 categories
  */
 
+
 // ─── Category color palette ───────────────────────────────────────────────────
 // Maps category names (as used in CATEGORIES constant) to their CSS token.
 // Falls back to cycling through tokens for unknown categories.
@@ -63,7 +64,7 @@ export interface ChartSegment {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 function svgEl<K extends keyof SVGElementTagNameMap>(tag: K): SVGElementTagNameMap[K] {
-  return window.document.createElementNS(SVG_NS, tag);
+  return window.activeDocument.createElementNS(SVG_NS, tag) as SVGElementTagNameMap[K];
 }
 
 // ─── renderDonutChart ─────────────────────────────────────────────────────────
@@ -113,7 +114,7 @@ export function renderDonutChart(
   const frame = row.createDiv("ledgr-donut-frame");
 
   // SVG element
-  const svg = window.document.createElementNS(SVG_NS, "svg");
+  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
   svg.setAttribute("viewBox", "0 0 100 100");
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-donut-svg");
@@ -315,12 +316,12 @@ export function renderSparkline(parent: HTMLElement, values: number[]): void {
 
   const wrapper = parent.createDiv("ledgr-sparkline");
 
-  const svg = window.document.createElementNS(SVG_NS, "svg");
+  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("aria-hidden", "true");
   svg.setAttribute("preserveAspectRatio", "none");
 
-  const path = window.document.createElementNS(SVG_NS, "polyline");
+  const path = window.activeDocument.createElementNS(SVG_NS, "polyline") as SVGPolylineElement;
   path.setAttribute("points", pts.join(" "));
   path.classList.add("ledgr-sparkline-path");
   if (trendClass) path.classList.add(trendClass);
@@ -446,7 +447,7 @@ export function renderGauge(
 
   const wrap = parent.createDiv("ledgr-gauge-wrap");
 
-  const svg = window.document.createElementNS(SVG_NS, "svg");
+  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
   svg.setAttribute("viewBox", "0 0 80 80");
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-gauge-svg");
@@ -520,7 +521,7 @@ export function renderTrendLine(
   ];
 
   const wrap = parent.createDiv("ledgr-trend-wrap");
-  const svg = window.document.createElementNS(SVG_NS, "svg");
+  const svg = window.activeDocument.createElementNS(SVG_NS, "svg") as SVGSVGElement;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("aria-hidden", "true");
   svg.classList.add("ledgr-trend-svg");
@@ -550,14 +551,14 @@ export function renderTrendLine(
     const color = s.color ?? defaultColors[si % defaultColors.length];
     const pts = s.values.map((v, i) => `${xScale(i).toFixed(1)},${yScale(v).toFixed(1)}`).join(" ");
 
-    const polyline = window.document.createElementNS(SVG_NS, "polyline");
+    const polyline = window.activeDocument.createElementNS(SVG_NS, "polyline") as SVGPolylineElement;
     polyline.setAttribute("points", pts);
     polyline.classList.add("ledgr-trend-line");
     polyline.setAttribute("stroke", color);
     if (s.dashed) polyline.setAttribute("stroke-dasharray", "4 3");
     svg.appendChild(polyline);
 
-    const dot = window.document.createElementNS(SVG_NS, "circle");
+    const dot = window.activeDocument.createElementNS(SVG_NS, "circle") as SVGCircleElement;
     dot.setAttribute("cx", String(xScale(s.values.length - 1)));
     dot.setAttribute("cy", String(yScale(s.values[s.values.length - 1])));
     dot.setAttribute("r", "2");

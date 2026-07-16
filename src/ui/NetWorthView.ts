@@ -1,9 +1,8 @@
 import { ItemView, WorkspaceLeaf, Notice, Events } from "obsidian";
 import LedgrPlugin from "../main";
-import { loadNetWorth, saveNetWorth, NetWorthData } from "../data/networth";
+import { loadNetWorth, saveNetWorth, NetWorthData, AccountType } from "../data/networth";
 import { convertToBase } from "../data/reader";
 import { Currency } from "../settings";
-import { renderNavBar } from "./NavBar";
 import { renderDonutChart, categoryColor } from "./charts";
 import { formatCurrency } from "../constants/currencies";
 import { renderBottomNav } from "./BottomNav";
@@ -32,6 +31,7 @@ export class NetWorthView extends ItemView {
   getIcon() { return "trending-up"; }
 
   async onOpen() {
+    this.containerEl.addClass("ledgr-view-active");
     this.data = await loadNetWorth(this.app, this.plugin.settings);
     this.goalsStore = await loadGoals(this.app, this.plugin.settings);
     void this.render();
@@ -229,7 +229,7 @@ export class NetWorthView extends ItemView {
       accounts.forEach((acc) => {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
-        const nameInput = row1.createEl("input") as HTMLInputElement;
+        const nameInput = row1.createEl("input");
         nameInput.type = "text";
         nameInput.value = acc.name;
         nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
@@ -238,7 +238,7 @@ export class NetWorthView extends ItemView {
 
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
-        const balInput = row2.createEl("input") as HTMLInputElement;
+        const balInput = row2.createEl("input");
         balInput.type = "number";
         balInput.value = String(acc.balance);
         balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
@@ -279,7 +279,7 @@ export class NetWorthView extends ItemView {
       this.data.brokerages.forEach((b) => {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
-        const nameInput = row1.createEl("input") as HTMLInputElement;
+        const nameInput = row1.createEl("input");
         nameInput.type = "text"; nameInput.value = b.name;
         nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
         nameInput.placeholder = "Account name";
@@ -287,7 +287,7 @@ export class NetWorthView extends ItemView {
 
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createEl("span", { text: `investment · ${b.currency}`, cls: "ledgr-meta" });
-        const valInput = row2.createEl("input") as HTMLInputElement;
+        const valInput = row2.createEl("input");
         valInput.type = "number"; valInput.value = String(b.value);
         valInput.className = "ledgr-inline-input ledgr-edit-card-balance";
         valInput.placeholder = "Value";
@@ -329,7 +329,7 @@ export class NetWorthView extends ItemView {
       liabilities.forEach((acc) => {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
-        const nameInput = row1.createEl("input") as HTMLInputElement;
+        const nameInput = row1.createEl("input");
         nameInput.type = "text"; nameInput.value = acc.name;
         nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
         nameInput.placeholder = "Name";
@@ -337,7 +337,7 @@ export class NetWorthView extends ItemView {
 
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
-        const balInput = row2.createEl("input") as HTMLInputElement;
+        const balInput = row2.createEl("input");
         balInput.type = "number"; balInput.value = String(acc.balance);
         balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
         balInput.placeholder = "Balance";
@@ -400,21 +400,21 @@ export class NetWorthView extends ItemView {
 
     // Name
     const nameRow = form.createDiv("ledgr-edit-card-row");
-    const nameInput = nameRow.createEl("input") as HTMLInputElement;
+    const nameInput = nameRow.createEl("input");
     nameInput.type = "text"; nameInput.placeholder = "Account name";
     nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
 
     // Currency + Type row
     const row2 = form.createDiv("ledgr-edit-card-row");
 
-    const currSelect = row2.createEl("select", { cls: "ledgr-inline-input" }) as HTMLSelectElement;
+    const currSelect = row2.createEl("select", { cls: "ledgr-inline-input" });
     allCurrencies.forEach((c) => {
       const opt = currSelect.createEl("option");
       opt.value = c; opt.textContent = c;
     });
 
     if (!isLiability) {
-      const typeSelect = row2.createEl("select", { cls: "ledgr-inline-input" }) as HTMLSelectElement;
+      const typeSelect = row2.createEl("select", { cls: "ledgr-inline-input" });
       ["bank", "ewallet", "cash", "credit"].forEach((t) => {
         const opt = typeSelect.createEl("option");
         opt.value = t; opt.textContent = t;
@@ -425,7 +425,7 @@ export class NetWorthView extends ItemView {
         this.data.accounts.push({
           id: `acc_${Date.now()}`,
           name: nameInput.value.trim() || "New Account",
-          type: typeSelect.value,
+          type: typeSelect.value as AccountType,
           currency: currSelect.value,
           balance: 0,
           country: "JP",
@@ -606,6 +606,7 @@ export class NetWorthView extends ItemView {
       await saveNetWorth(this.app, this.plugin.settings, this.data);
       new Notice("Net worth auto-saved");
     }
+    this.containerEl.removeClass("ledgr-view-active");
     this.contentEl.empty();
   }
 }

@@ -6,7 +6,6 @@ import { QuickCaptureModal } from "./QuickCaptureModal";
 import { BudgetModal } from "./BudgetModal";
 import { ConfigModal } from "./ConfigModal";
 import { RemittanceModal } from "./RemittanceModal";
-import { renderNavBar } from "./NavBar";
 import { loadBudgets } from "../data/budgets";
 import { convertToBase } from "../data/reader";
 import { loadRemittances, getRemittanceSummary, RemittanceStore, Remittance } from "../data/remittances";
@@ -38,6 +37,7 @@ export class DashboardView extends ItemView {
   getIcon() { return "wallet"; }
 
   async onOpen() {
+    this.containerEl.addClass("ledgr-view-active");
     await this.render();
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:transaction-saved", async () => {
@@ -150,7 +150,7 @@ export class DashboardView extends ItemView {
     // First-run / empty state — also remove rate banner if no data yet
     if (transactions.length === 0 && prevTransactions.length === 0 && remittanceStore.remittances.length === 0) {
       // Remove rate banner on first run — user will set rates via onboarding
-      stickyZone.querySelector(".ledgr-rate-banner")?.remove();
+      contentEl.querySelector(".ledgr-rate-banner")?.remove();
       this.renderFirstRun(contentEl);
       return;
     }
@@ -587,6 +587,7 @@ export class DashboardView extends ItemView {
 
   async onClose() {
     if (this.pendingDelete) window.clearTimeout(this.pendingDelete.timer);
+    this.containerEl.removeClass("ledgr-view-active");
     this.contentEl.empty();
   }
 }
