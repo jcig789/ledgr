@@ -50,11 +50,25 @@ export class StatementsView extends ItemView {
     contentEl.empty();
     contentEl.addClass("ledgr-statements");
 
-    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
-    renderBottomNav(this.containerEl, this.plugin, "statements");
+    // ── Sticky top zone: tabs + controls ──
+    const stickyZone = contentEl.createDiv("ledgr-sticky-zone");
+
+    const tabNav = stickyZone.createDiv("ledgr-top-tabs");
+    [
+      { key: "dashboard",  label: "Dashboard",  viewType: "ledgr-dashboard" },
+      { key: "networth",   label: "Net Worth",  viewType: "ledgr-networth" },
+      { key: "statements", label: "Statements", viewType: "ledgr-statements" },
+    ].forEach(({ key, label, viewType }) => {
+      const isActive = key === "statements";
+      const btn = tabNav.createEl("button", {
+        text: label,
+        cls: `ledgr-top-tab${isActive ? " active" : ""}`,
+      });
+      if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+    });
 
     // Header
-    const header = contentEl.createDiv("ledgr-header");
+    const header = stickyZone.createDiv("ledgr-header");
 
     // Currency toggle
     const currencyRow = header.createDiv("ledgr-currency-row");
@@ -94,8 +108,8 @@ export class StatementsView extends ItemView {
       await this.render();
     };
 
-    // Statement type tabs
-    const tabRow = contentEl.createDiv("ledgr-stmt-tabs");
+    // Statement type tabs — inside sticky zone
+    const tabRow = stickyZone.createDiv("ledgr-stmt-tabs");
     const tabs: { key: StmtTab; label: string }[] = [
       { key: "pl", label: "Income Statement" },
       { key: "cashflow", label: "Cash Flow" },
@@ -111,10 +125,39 @@ export class StatementsView extends ItemView {
 
     const budgetConfig = await loadBudgets(this.app, this.plugin.settings);
     const netWorthData = await loadNetWorth(this.app, this.plugin.settings);
-    const fmt = (n: number) => formatCurrency(Math.abs(n), this.viewCurrency);
-    const fmtSigned = (n: number) => n < 0
-      ? `(${formatCurrency(Math.abs(n), this.viewCurrency)})`
-      : formatCurrency(n, this.viewCurrency);
+    // Financial statement formatter — abbreviates to K/M/B like professional reports
+    // Zero-decimal currencies (no cents) never show decimal places
+    const ZERO_DECIMAL = new Set(["JPY", "KRW", "VND", "IDR", "CLP", "HUF", "ISK", "PYG", "TWD"]);
+    const fmtStmt = (n: number): string => {
+      const abs = Math.abs(n);
+      const code = this.viewCurrency.toUpperCase();
+      const isZeroDecimal = ZERO_DECIMAL.has(code);
+      const { symbol, prefix } = (() => {
+        const map: Record<string, { symbol: string; prefix: boolean }> = {
+          USD: { symbol: "$", prefix: true }, JPY: { symbol: "¥", prefix: true },
+          EUR: { symbol: "€", prefix: true }, GBP: { symbol: "£", prefix: true },
+          PHP: { symbol: "₱", prefix: true }, CAD: { symbol: "C$", prefix: true },
+          KRW: { symbol: "₩", prefix: true }, AUD: { symbol: "A$", prefix: true },
+          SGD: { symbol: "S$", prefix: true },
+        };
+        return map[code] ?? { symbol: code + " ", prefix: true };
+      })();
+      const abbr = (val: number, divisor: number, suffix: string): string => {
+        const divided = val / divisor;
+        if (isZeroDecimal) return `${Math.round(divided)}${suffix}`;
+        const fixed = divided.toFixed(1);
+        // Strip trailing .0 for clean display: 1.0M → 1M
+        return `${fixed.endsWith(".0") ? fixed.slice(0, -2) : fixed}${suffix}`;
+      };
+      let num: string;
+      if (abs >= 1_000_000_000) num = abbr(abs, 1_000_000_000, "B");
+      else if (abs >= 1_000_000) num = abbr(abs, 1_000_000, "M");
+      else if (abs >= 10_000) num = abbr(abs, 1_000, "K");
+      else num = Math.round(abs).toLocaleString();
+      return prefix ? `${symbol}${num}` : `${num} ${symbol}`;
+    };
+    const fmt = (n: number) => fmtStmt(Math.abs(n));
+    const fmtSigned = (n: number) => n < 0 ? `(${fmtStmt(Math.abs(n))})` : fmtStmt(n);
 
     const stmtWrap = contentEl.createDiv("ledgr-stmt");
 

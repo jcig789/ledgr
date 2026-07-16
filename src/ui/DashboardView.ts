@@ -76,11 +76,27 @@ export class DashboardView extends ItemView {
     const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
     const isCurrentMonth = this.currentMonth >= window.moment().format("YYYY-MM");
 
-    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
-    renderBottomNav(this.containerEl, this.plugin, "dashboard");
+    // ── Sticky top zone: tabs + controls ──
+    const stickyZone = contentEl.createDiv("ledgr-sticky-zone");
+
+    // Tab navigation
+    const tabNav = stickyZone.createDiv("ledgr-top-tabs");
+    const tabPages = [
+      { key: "dashboard", label: "Dashboard", viewType: "ledgr-dashboard" },
+      { key: "networth",  label: "Net Worth",  viewType: "ledgr-networth" },
+      { key: "statements",label: "Statements", viewType: "ledgr-statements" },
+    ];
+    tabPages.forEach(({ key, label, viewType }) => {
+      const isActive = key === "dashboard";
+      const btn = tabNav.createEl("button", {
+        text: label,
+        cls: `ledgr-top-tab${isActive ? " active" : ""}`,
+      });
+      if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+    });
 
     // ── Controls bar: currency left, actions right ──
-    const header = contentEl.createDiv("ledgr-header");
+    const header = stickyZone.createDiv("ledgr-header");
 
     const row1 = header.createDiv("ledgr-controls-row");
     const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];

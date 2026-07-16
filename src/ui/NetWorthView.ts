@@ -61,11 +61,25 @@ export class NetWorthView extends ItemView {
     contentEl.empty();
     contentEl.addClass("ledgr-networth");
 
-    // ── Bottom nav — rendered into containerEl (outside scroll area) ──
-    renderBottomNav(this.containerEl, this.plugin, "networth");
+    // ── Sticky top zone: tabs + controls ──
+    const stickyZone = contentEl.createDiv("ledgr-sticky-zone");
+
+    const tabNav = stickyZone.createDiv("ledgr-top-tabs");
+    [
+      { key: "dashboard",  label: "Dashboard",  viewType: "ledgr-dashboard" },
+      { key: "networth",   label: "Net Worth",  viewType: "ledgr-networth" },
+      { key: "statements", label: "Statements", viewType: "ledgr-statements" },
+    ].forEach(({ key, label, viewType }) => {
+      const isActive = key === "networth";
+      const btn = tabNav.createEl("button", {
+        text: label,
+        cls: `ledgr-top-tab${isActive ? " active" : ""}`,
+      });
+      if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+    });
 
     // ── Controls bar ──
-    const header = contentEl.createDiv("ledgr-header");
+    const header = stickyZone.createDiv("ledgr-header");
 
     // Single row: currencies left, actions right
     const controlRow = header.createDiv("ledgr-controls-row");

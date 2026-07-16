@@ -1622,20 +1622,9 @@ button.ledgr-del-confirm,
   line-height: 1;
 }
 
-/* ─── Bottom navigation bar ─────────────────────────────────────────── */
+/* ─── Bottom navigation bar — hidden (replaced by sticky top nav) ──── */
 #ledgr-bottom-nav {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
-  display: flex;
-  justify-content: center;
-  background: var(--background-primary);
-  border-top: 1px solid var(--ledgr-rule);
-  /* Account for iPhone home indicator */
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  display: none;
 }
 
 /* Inner wrapper — constrains to 480px on wide screens */
@@ -1752,11 +1741,12 @@ button.ledgr-del-confirm,
   transform: scale(0.94);
 }
 
-/* Content needs padding-bottom so it doesn't hide under the nav + safe area */
+/* Content padding — top nav no longer needs bottom clearance */
 .ledgr-dashboard,
 .ledgr-networth,
 .ledgr-statements {
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: var(--ledgr-spacing-xl);
+  padding-top: 0;
 }
 
 /* ─── Sticky header zone ────────────────────────────────────────────── */
@@ -1765,10 +1755,58 @@ button.ledgr-del-confirm,
  * position: sticky is correct — position: fixed breaks on mobile Obsidian.
  */
 .ledgr-sticky-zone {
-  padding-top: var(--ledgr-spacing-sm);
-  padding-bottom: var(--ledgr-spacing-sm);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--background-primary);
   border-bottom: 1px solid var(--ledgr-rule);
+  padding-bottom: var(--ledgr-spacing-xs);
   margin-bottom: var(--ledgr-spacing-md);
+}
+
+/* Top tab navigation bar */
+.ledgr-top-tabs {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: var(--ledgr-spacing-sm);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.ledgr-top-tabs::-webkit-scrollbar { display: none; }
+
+.ledgr-top-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+  padding: var(--ledgr-spacing-xs) var(--ledgr-spacing-md);
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+
+.ledgr-top-tab:hover {
+  color: var(--ledgr-text);
+  opacity: 0.85;
+}
+
+.ledgr-top-tab.active {
+  color: var(--ledgr-accent);
+  border-bottom-color: var(--ledgr-accent);
+  font-weight: 600;
+  opacity: 1;
+  cursor: default;
+  letter-spacing: 0.07em;
 }
 
 /* First element after sticky zone gets top spacing */
@@ -2376,6 +2414,73 @@ button.ledgr-del-confirm,
   .ledgr-dashboard,
   .ledgr-networth {
     padding: var(--ledgr-spacing-md);
+  }
+
+  /* Sticky zone — compact on mobile */
+  .ledgr-sticky-zone {
+    padding-bottom: 2px;
+  }
+
+  .ledgr-top-tabs {
+    margin-bottom: 4px;
+  }
+
+  .ledgr-top-tab {
+    padding: 3px 8px;
+    font-size: 0.72em;
+    letter-spacing: 0.04em;
+    font-variant: small-caps;
+  }
+
+  .ledgr-header {
+    gap: 3px;
+  }
+
+  .ledgr-currency-btn {
+    padding: 2px 5px !important;
+    font-size: 0.68em;
+    min-height: 22px !important;
+    min-width: 28px !important;
+  }
+
+  .ledgr-month-row button {
+    padding: 2px 5px !important;
+    min-height: 22px !important;
+    min-width: 22px !important;
+    font-size: 0.75em;
+  }
+
+  .ledgr-month-label {
+    font-size: 0.78em;
+  }
+
+  .ledgr-log-btn {
+    padding: 3px 8px !important;
+    font-size: 0.7em;
+    min-height: 22px !important;
+  }
+
+  .ledgr-budget-btn {
+    padding: 2px 6px !important;
+    font-size: 0.68em;
+    min-height: 22px !important;
+  }
+
+  .ledgr-icon-btn {
+    padding: 2px 5px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+  }
+
+  .ledgr-controls-row,
+  .ledgr-btn-row {
+    gap: 3px;
+  }
+
+  /* Income Statement 4-col: make it scrollable on mobile instead */
+  .ledgr-stmt-budget-grid {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* Cards: always 3-col for 3 cards, 2+2 for 4 cards */
