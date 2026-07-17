@@ -34,11 +34,11 @@ export class LiabilityPaymentModal extends Modal {
     const updatePreview = () => {
       previewEl.empty();
       const remaining = Math.max(0, this.account.balance - this.amount);
-      previewEl.createEl("span", { text: fmt(this.account.balance), cls: "ledgr-lpay-balance" });
-      previewEl.createEl("span", { text: " → ", cls: "ledgr-lpay-arrow" });
-      previewEl.createEl("span", { text: fmt(this.amount || 0), cls: "ledgr-lpay-payment" });
-      previewEl.createEl("span", { text: " → ", cls: "ledgr-lpay-arrow" });
-      previewEl.createEl("span", { text: fmt(remaining), cls: "ledgr-lpay-remaining" });
+      previewEl.createSpan({ text: fmt(this.account.balance), cls: "ledgr-lpay-balance" });
+      previewEl.createSpan({ text: " → ", cls: "ledgr-lpay-arrow" });
+      previewEl.createSpan({ text: fmt(this.amount || 0), cls: "ledgr-lpay-payment" });
+      previewEl.createSpan({ text: " → ", cls: "ledgr-lpay-arrow" });
+      previewEl.createSpan({ text: fmt(remaining), cls: "ledgr-lpay-remaining" });
     };
     updatePreview();
 

@@ -35,7 +35,7 @@ export function renderBottomNav(
     btn.setAttribute("role", "button");
     const iconEl = btn.createDiv("ledgr-bottom-icon");
     setIcon(iconEl, icon);
-    btn.createEl("span", { text: label, cls: "ledgr-bottom-label" });
+    btn.createSpan({ text: label, cls: "ledgr-bottom-label" });
     if (!isActive) {
       btn.onclick = () => void plugin.openView(viewType);
     }

@@ -224,13 +224,13 @@ export class NetWorthView extends ItemView {
       const color = categoryColor(a.type === "investment" || a.isBrokerage ? "Transport" : "Housing", idx);
 
       const row = barsWrap.createDiv("ledgr-nw-bar-row");
-      row.createEl("span", { text: a.name, cls: "ledgr-nw-bar-label" });
+      row.createSpan({ text: a.name, cls: "ledgr-nw-bar-label" });
       const barWrap = row.createDiv("ledgr-nw-bar-track");
       const bar = barWrap.createDiv("ledgr-nw-bar-fill");
       bar.setCssStyles({ backgroundColor: color });
       bar.setCssStyles({ width: "0%" });
       window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${Math.round(pct)}%` }); });
-      row.createEl("span", { text: this.fmt(balance), cls: "ledgr-nw-bar-amt" });
+      row.createSpan({ text: this.fmt(balance), cls: "ledgr-nw-bar-amt" });
     });
   }
 
@@ -259,7 +259,7 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
         const balInput = row2.createEl("input");
         balInput.type = "number";
         balInput.value = String(acc.balance);
@@ -308,7 +308,7 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; b.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createEl("span", { text: `investment · ${b.currency}`, cls: "ledgr-meta" });
+        row2.createSpan({ text: `investment · ${b.currency}`, cls: "ledgr-meta" });
         const valInput = row2.createEl("input");
         valInput.type = "number"; valInput.value = String(b.value);
         valInput.className = "ledgr-inline-input ledgr-edit-card-balance";
@@ -358,7 +358,7 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createEl("span", { text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
         const balInput = row2.createEl("input");
         balInput.type = "number"; balInput.value = String(acc.balance);
         balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
@@ -369,7 +369,7 @@ export class NetWorthView extends ItemView {
           const ld = acc.liabilityDetails;
 
           const row3 = card.createDiv("ledgr-edit-card-row");
-          row3.createEl("span", { text: "Monthly", cls: "ledgr-meta" });
+          row3.createSpan({ text: "Monthly", cls: "ledgr-meta" });
           const monthlyInput = row3.createEl("input");
           monthlyInput.type = "number"; monthlyInput.value = String(ld.monthlyPayment);
           monthlyInput.className = "ledgr-inline-input";
@@ -377,7 +377,7 @@ export class NetWorthView extends ItemView {
           monthlyInput.oninput = (e) => { this.isDirty = true; ld.monthlyPayment = parseFloat((e.target as HTMLInputElement).value) || 0; };
 
           const row4 = card.createDiv("ledgr-edit-card-row");
-          row4.createEl("span", { text: "Due day", cls: "ledgr-meta" });
+          row4.createSpan({ text: "Due day", cls: "ledgr-meta" });
           const dueDayInput = row4.createEl("input");
           dueDayInput.type = "number"; dueDayInput.value = String(ld.paymentDueDay);
           dueDayInput.min = "1"; dueDayInput.max = "28";
@@ -385,7 +385,7 @@ export class NetWorthView extends ItemView {
           dueDayInput.oninput = (e) => { this.isDirty = true; ld.paymentDueDay = Math.min(28, Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1)); };
 
           const row5 = card.createDiv("ledgr-edit-card-row");
-          row5.createEl("span", { text: "Reminder days", cls: "ledgr-meta" });
+          row5.createSpan({ text: "Reminder days", cls: "ledgr-meta" });
           const reminderInput = row5.createEl("input");
           reminderInput.type = "number"; reminderInput.value = String(ld.reminderDaysAhead);
           reminderInput.min = "0"; reminderInput.max = "14";
@@ -393,7 +393,7 @@ export class NetWorthView extends ItemView {
           reminderInput.oninput = (e) => { this.isDirty = true; ld.reminderDaysAhead = Math.min(14, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 3)); };
 
           const row6 = card.createDiv("ledgr-edit-card-row");
-          row6.createEl("span", { text: "Reminder", cls: "ledgr-meta" });
+          row6.createSpan({ text: "Reminder", cls: "ledgr-meta" });
           const reminderCheck = row6.createEl("input");
           reminderCheck.type = "checkbox"; reminderCheck.checked = ld.reminderEnabled;
           reminderCheck.onchange = () => { this.isDirty = true; ld.reminderEnabled = reminderCheck.checked; };
@@ -415,7 +415,7 @@ export class NetWorthView extends ItemView {
         tr.createEl("td", { text: acc.name });
         tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
         const balCell = tr.createEl("td", { cls: "ledgr-text-right" });
-        balCell.createEl("div", { text: this.fmt(this.toBase(acc.balance, acc.currency)) });
+        balCell.createDiv({ text: this.fmt(this.toBase(acc.balance, acc.currency)) });
         const schedCell = tr.createEl("td", { cls: "ledgr-liability-schedule-col" });
         if (acc.liabilityDetails) {
           const ld = acc.liabilityDetails;
@@ -423,9 +423,9 @@ export class NetWorthView extends ItemView {
           const m = window.moment(today);
           const dueDay = Math.min(ld.paymentDueDay, m.daysInMonth());
           const dueDate = m.clone().date(dueDay).format("MMM D");
-          schedCell.createEl("div", { text: `Due ${dueDate}`, cls: "ledgr-liability-due" });
+          schedCell.createDiv({ text: `Due ${dueDate}`, cls: "ledgr-liability-due" });
           if (ld.monthlyPayment > 0) {
-            schedCell.createEl("div", {
+            schedCell.createDiv({
               text: formatCurrency(ld.monthlyPayment, acc.currency) + " / mo",
               cls: "ledgr-liability-monthly",
             });
@@ -475,7 +475,7 @@ export class NetWorthView extends ItemView {
     const allCurrencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
     const form = parent.createDiv("ledgr-add-account-form ledgr-edit-card");
 
-    form.createEl("div", { text: isLiability ? "New Liability" : "New Account", cls: "ledgr-goal-name" });
+    form.createDiv({ text: isLiability ? "New Liability" : "New Account", cls: "ledgr-goal-name" });
 
     // Name
     const nameRow = form.createDiv("ledgr-edit-card-row");
@@ -516,7 +516,7 @@ export class NetWorthView extends ItemView {
     } else {
       // Liability type dropdown
       const liabTypeRow = form.createDiv("ledgr-edit-card-row");
-      liabTypeRow.createEl("span", { text: "Type", cls: "ledgr-meta" });
+      liabTypeRow.createSpan({ text: "Type", cls: "ledgr-meta" });
       const liabTypeSelect = liabTypeRow.createEl("select", { cls: "ledgr-inline-input" });
       LIABILITY_TYPES.forEach(({ key, label }) => {
         const opt = liabTypeSelect.createEl("option");
@@ -525,28 +525,28 @@ export class NetWorthView extends ItemView {
 
       // Original amount
       const origRow = form.createDiv("ledgr-edit-card-row");
-      origRow.createEl("span", { text: "Original amount", cls: "ledgr-meta" });
+      origRow.createSpan({ text: "Original amount", cls: "ledgr-meta" });
       const origInput = origRow.createEl("input");
       origInput.type = "number"; origInput.placeholder = "0";
       origInput.className = "ledgr-inline-input";
 
       // Monthly payment
       const monthlyRow = form.createDiv("ledgr-edit-card-row");
-      monthlyRow.createEl("span", { text: "Monthly payment", cls: "ledgr-meta" });
+      monthlyRow.createSpan({ text: "Monthly payment", cls: "ledgr-meta" });
       const monthlyInput = monthlyRow.createEl("input");
       monthlyInput.type = "number"; monthlyInput.placeholder = "0";
       monthlyInput.className = "ledgr-inline-input";
 
       // Due day
       const dueDayRow = form.createDiv("ledgr-edit-card-row");
-      dueDayRow.createEl("span", { text: "Due day (1–28)", cls: "ledgr-meta" });
+      dueDayRow.createSpan({ text: "Due day (1–28)", cls: "ledgr-meta" });
       const dueDayInput = dueDayRow.createEl("input");
       dueDayInput.type = "number"; dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "28";
       dueDayInput.className = "ledgr-inline-input";
 
       // Reminder days ahead
       const reminderDaysRow = form.createDiv("ledgr-edit-card-row");
-      reminderDaysRow.createEl("span", { text: "Remind N days before", cls: "ledgr-meta" });
+      reminderDaysRow.createSpan({ text: "Remind N days before", cls: "ledgr-meta" });
       const reminderDaysInput = reminderDaysRow.createEl("input");
       reminderDaysInput.type = "number"; reminderDaysInput.placeholder = "3"; reminderDaysInput.value = "3";
       reminderDaysInput.min = "0"; reminderDaysInput.max = "14";
@@ -554,7 +554,7 @@ export class NetWorthView extends ItemView {
 
       // Reminder toggle
       const reminderRow = form.createDiv("ledgr-edit-card-row");
-      reminderRow.createEl("span", { text: "Reminder", cls: "ledgr-meta" });
+      reminderRow.createSpan({ text: "Reminder", cls: "ledgr-meta" });
       const reminderCheck = reminderRow.createEl("input");
       reminderCheck.type = "checkbox"; reminderCheck.checked = true;
 
@@ -615,9 +615,9 @@ export class NetWorthView extends ItemView {
 
   createCard(parent: HTMLElement, label: string, value: string, cls: string, subtitle?: string) {
     const card = parent.createDiv(`ledgr-card ${cls}`);
-    card.createEl("div", { text: label, cls: "ledgr-card-label" });
-    card.createEl("div", { text: value, cls: "ledgr-card-value" });
-    if (subtitle) card.createEl("div", { text: subtitle, cls: "ledgr-card-subtitle" });
+    card.createDiv({ text: label, cls: "ledgr-card-label" });
+    card.createDiv({ text: value, cls: "ledgr-card-value" });
+    if (subtitle) card.createDiv({ text: subtitle, cls: "ledgr-card-subtitle" });
   }
 
   async renderGoals(parent: HTMLElement) {
@@ -676,7 +676,7 @@ export class NetWorthView extends ItemView {
 
       // Header row
       const goalHdr = card.createDiv("ledgr-goal-header");
-      goalHdr.createEl("span", { text: goal.name, cls: "ledgr-goal-name" });
+      goalHdr.createSpan({ text: goal.name, cls: "ledgr-goal-name" });
       const goalActions = goalHdr.createDiv("ledgr-goal-actions");
       const editBtn = goalActions.createEl("button", { cls: "ledgr-edit-btn" });
       setIcon(editBtn, "pencil");
@@ -693,9 +693,9 @@ export class NetWorthView extends ItemView {
       // Progress label
       const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
       const progLabel = card.createDiv("ledgr-goal-progress-label");
-      progLabel.createEl("span", { text: fmt(current) });
-      progLabel.createEl("span", { text: ` / `, cls: "ledgr-goal-target" });
-      progLabel.createEl("span", { text: `${goal.currency} ${goal.targetAmount.toLocaleString()}`, cls: "ledgr-goal-target" });
+      progLabel.createSpan({ text: fmt(current) });
+      progLabel.createSpan({ text: ` / `, cls: "ledgr-goal-target" });
+      progLabel.createSpan({ text: `${goal.currency} ${goal.targetAmount.toLocaleString()}`, cls: "ledgr-goal-target" });
 
       // Progress bar
       const barRow = card.createDiv("ledgr-goal-bar-row");
@@ -703,32 +703,32 @@ export class NetWorthView extends ItemView {
       const bar = barWrap.createDiv(`ledgr-goal-bar${reached ? " ledgr-goal-complete" : ""}`);
       bar.setCssStyles({ width: "0%" });
       window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${pct}%` }); });
-      barRow.createEl("span", { text: `${pct}%`, cls: "ledgr-goal-pct" });
+      barRow.createSpan({ text: `${pct}%`, cls: "ledgr-goal-pct" });
 
       // Meta row
       const meta = card.createDiv("ledgr-goal-meta");
       if (reached) {
-        meta.createEl("span", { text: "Goal reached", cls: "ledgr-goal-status-good" });
+        meta.createSpan({ text: "Goal reached", cls: "ledgr-goal-status-good" });
       } else if (avgMonthlySavings > 0) {
         const monthsNeeded = Math.ceil(remaining / avgMonthlySavings);
         const projDate = window.moment().add(monthsNeeded, "months").format("MMM YYYY");
-        meta.createEl("span", { text: `~${monthsNeeded} months`, cls: "ledgr-goal-status-good" });
-        meta.createEl("span", { text: "·", cls: "ledgr-goal-meta-sep" });
-        meta.createEl("span", { text: projDate, cls: "ledgr-goal-date" });
+        meta.createSpan({ text: `~${monthsNeeded} months`, cls: "ledgr-goal-status-good" });
+        meta.createSpan({ text: "·", cls: "ledgr-goal-meta-sep" });
+        meta.createSpan({ text: projDate, cls: "ledgr-goal-date" });
 
         if (goal.deadline && window.moment(goal.deadline, "YYYY-MM-DD", true).isValid()) {
           const deadlineMonths = window.moment(goal.deadline).diff(window.moment(), "months");
           if (deadlineMonths <= 0) {
-            meta.createEl("span", { text: "·", cls: "ledgr-goal-meta-sep" });
-            meta.createEl("span", { text: "Deadline passed", cls: "ledgr-goal-status-warn" });
+            meta.createSpan({ text: "·", cls: "ledgr-goal-meta-sep" });
+            meta.createSpan({ text: "Deadline passed", cls: "ledgr-goal-status-warn" });
           } else if (monthsNeeded > deadlineMonths) {
             const needed = Math.ceil(remaining / Math.max(deadlineMonths, 1));
-            meta.createEl("span", { text: "·", cls: "ledgr-goal-meta-sep" });
-            meta.createEl("span", { text: `needs ${fmt(needed)}/mo to hit deadline`, cls: "ledgr-goal-status-warn" });
+            meta.createSpan({ text: "·", cls: "ledgr-goal-meta-sep" });
+            meta.createSpan({ text: `needs ${fmt(needed)}/mo to hit deadline`, cls: "ledgr-goal-status-warn" });
           }
         }
       } else if (avgMonthlySavings <= 0) {
-        meta.createEl("span", { text: "Increase savings to project", cls: "ledgr-goal-status-warn" });
+        meta.createSpan({ text: "Increase savings to project", cls: "ledgr-goal-status-warn" });
       }
     }
   }

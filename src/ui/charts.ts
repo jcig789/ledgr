@@ -151,9 +151,9 @@ export function renderDonutChart(
   // ── Center label overlay ──
   const center = frame.createDiv("ledgr-donut-center");
   const displayCenter = centerValue ?? formatCenterValue(total, nonZero, segments);
-  center.createEl("span", { text: displayCenter, cls: "ledgr-donut-center-value" });
+  center.createSpan({ text: displayCenter, cls: "ledgr-donut-center-value" });
   if (centerLabel) {
-    center.createEl("span", { text: centerLabel, cls: "ledgr-donut-center-label" });
+    center.createSpan({ text: centerLabel, cls: "ledgr-donut-center-label" });
   }
 
   // ── Legend ──
@@ -163,11 +163,11 @@ export function renderDonutChart(
     const pct = Math.round((seg.value / total) * 100);
     const item = legend.createDiv("ledgr-legend-item");
 
-    const swatch = item.createEl("span", { cls: "ledgr-legend-swatch" });
+    const swatch = item.createSpan({ cls: "ledgr-legend-swatch" });
     swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
 
-    item.createEl("span", { text: seg.label, cls: "ledgr-legend-label" });
-    item.createEl("span", {
+    item.createSpan({ text: seg.label, cls: "ledgr-legend-label" });
+    item.createSpan({
       text: seg.displayValue ?? `${pct}%`,
       cls: "ledgr-legend-amt",
     });
@@ -252,12 +252,12 @@ export function renderCompositionBar(
     const color = seg.color ?? categoryColor(seg.label, i);
     const item = legendRow.createDiv("ledgr-comp-legend-item");
 
-    const swatch = item.createEl("span", { cls: "ledgr-comp-legend-swatch" });
+    const swatch = item.createSpan({ cls: "ledgr-comp-legend-swatch" });
     swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
 
-    item.createEl("span", { text: seg.label, cls: "ledgr-comp-legend-label" });
+    item.createSpan({ text: seg.label, cls: "ledgr-comp-legend-label" });
     if (seg.displayValue) {
-      item.createEl("span", { text: seg.displayValue, cls: "ledgr-comp-legend-amt" });
+      item.createSpan({ text: seg.displayValue, cls: "ledgr-comp-legend-amt" });
     }
   });
 }
@@ -460,8 +460,8 @@ export function renderGauge(
   }
 
   const center = wrap.createDiv("ledgr-gauge-center");
-  center.createEl("span", { text: `${Math.round(clamped)}%`, cls: "ledgr-gauge-value" });
-  if (label) center.createEl("span", { text: label, cls: "ledgr-gauge-label" });
+  center.createSpan({ text: `${Math.round(clamped)}%`, cls: "ledgr-gauge-value" });
+  if (label) center.createSpan({ text: label, cls: "ledgr-gauge-label" });
 }
 
 // ─── renderTrendLine ─────────────────────────────────────────────────────────
@@ -583,10 +583,10 @@ export function renderTrendLine(
     series.forEach((s, si) => {
       const color = s.color ?? defaultColors[si % defaultColors.length];
       const item = legend.createDiv("ledgr-trend-legend-item");
-      const swatch = item.createEl("span", { cls: "ledgr-trend-legend-swatch" });
+      const swatch = item.createSpan({ cls: "ledgr-trend-legend-swatch" });
       swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
       if (s.dashed) swatch.addClass("ledgr-trend-legend-swatch-dashed");
-      item.createEl("span", { text: s.label, cls: "ledgr-trend-legend-label" });
+      item.createSpan({ text: s.label, cls: "ledgr-trend-legend-label" });
     });
   }
 }
@@ -605,7 +605,7 @@ export function renderBudgetScale(
   parent.empty();
   const clamped = Math.max(0, Math.min(100, value));
   const wrap = parent.createDiv("ledgr-scale-wrap");
-  if (label) wrap.createEl("div", { text: label, cls: "ledgr-scale-label" });
+  if (label) wrap.createDiv({ text: label, cls: "ledgr-scale-label" });
 
   const track = wrap.createDiv("ledgr-scale-track");
   const colors = ["var(--ledgr-green)", "var(--ledgr-cat-9)", "var(--ledgr-cat-8)", "var(--ledgr-red)"];
@@ -621,7 +621,7 @@ export function renderBudgetScale(
   indicator.createDiv("ledgr-scale-arrow");
 
   const zoneRow = wrap.createDiv("ledgr-scale-zones");
-  zoneRow.createEl("span", { text: zones.left, cls: "ledgr-scale-zone-label" });
-  zoneRow.createEl("span", { text: zones.center, cls: "ledgr-scale-zone-label" });
-  zoneRow.createEl("span", { text: zones.right, cls: "ledgr-scale-zone-label" });
+  zoneRow.createSpan({ text: zones.left, cls: "ledgr-scale-zone-label" });
+  zoneRow.createSpan({ text: zones.center, cls: "ledgr-scale-zone-label" });
+  zoneRow.createSpan({ text: zones.right, cls: "ledgr-scale-zone-label" });
 }

@@ -27,7 +27,7 @@ export class OnboardingModal extends Modal {
     // Progress indicator
     const progress = contentEl.createDiv("ledgr-onboarding-progress");
     for (let i = 1; i <= 3; i++) {
-      progress.createEl("span", {
+      progress.createSpan({
         cls: `ledgr-onboarding-dot ${i === this.step ? "active" : i < this.step ? "done" : ""}`,
       });
     }
@@ -131,8 +131,8 @@ export class OnboardingModal extends Modal {
       { label: "Lunch", amount: `200 ${base}` },
     ].forEach(({ label, amount }) => {
       const ex = examples.createDiv("ledgr-onboarding-example");
-      ex.createEl("span", { text: label });
-      ex.createEl("span", { text: amount, cls: "ledgr-onboarding-example-amt" });
+      ex.createSpan({ text: label });
+      ex.createSpan({ text: amount, cls: "ledgr-onboarding-example-amt" });
     });
 
     this.addBackBtn();

@@ -35,7 +35,7 @@ export class MonthlyReviewModal extends Modal {
       this.overwriteWarning = false;
       this.render();
     };
-    monthRow.createEl("span", {
+    monthRow.createSpan({
       text: window.moment(this.selectedMonth).format("MMMM YYYY"),
       cls: "ledgr-month-label",
     });
@@ -52,7 +52,7 @@ export class MonthlyReviewModal extends Modal {
 
     if (this.overwriteWarning) {
       const warn = contentEl.createDiv("ledgr-rate-banner");
-      warn.createEl("span", { text: `${this.selectedMonth}-review.md already exists. ` });
+      warn.createSpan({ text: `${this.selectedMonth}-review.md already exists. ` });
       const overwriteBtn = warn.createEl("a", { text: "Overwrite →" });
       overwriteBtn.onclick = async () => { await this.generate(true); };
     }

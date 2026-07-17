@@ -34,7 +34,7 @@ export class WrappedModal extends Modal {
       this.overwriteWarning = false;
       this.render();
     };
-    yearRow.createEl("span", { text: this.selectedYear, cls: "ledgr-month-label" });
+    yearRow.createSpan({ text: this.selectedYear, cls: "ledgr-month-label" });
     yearRow.createEl("button", { text: "→" }).onclick = () => {
       this.selectedYear = String(parseInt(this.selectedYear) + 1);
       this.overwriteWarning = false;
@@ -43,7 +43,7 @@ export class WrappedModal extends Modal {
 
     if (this.overwriteWarning) {
       const warn = contentEl.createDiv("ledgr-rate-banner");
-      warn.createEl("span", { text: `${this.selectedYear}-wrapped.md already exists. ` });
+      warn.createSpan({ text: `${this.selectedYear}-wrapped.md already exists. ` });
       warn.createEl("a", { text: "Overwrite →" }).onclick = async () => { await this.generate(true); };
     }
 

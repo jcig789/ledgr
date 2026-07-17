@@ -145,7 +145,7 @@ export class DashboardView extends ItemView {
       this.currentMonth = window.moment(this.currentMonth).subtract(1, "month").format("YYYY-MM");
       await this.render();
     };
-    monthRow.createEl("span", {
+    monthRow.createSpan({
       text: window.moment(this.currentMonth).format("MMMM YYYY"),
       cls: "ledgr-month-label",
     });
@@ -170,7 +170,7 @@ export class DashboardView extends ItemView {
       const msg = !rates.updatedAt
         ? "Exchange rates not set — PHP totals may be inaccurate."
         : `Exchange rates updated ${window.moment().diff(window.moment(rates.updatedAt), "days")} days ago.`;
-      banner.createEl("span", { text: msg });
+      banner.createSpan({ text: msg });
       const updateLink = banner.createEl("a", { text: " Update now →", cls: "ledgr-rate-banner-link" });
       updateLink.onclick = () => new ConfigModal(this.app, this.plugin).open();
     }
@@ -256,7 +256,7 @@ export class DashboardView extends ItemView {
         const tr = tbody.createEl("tr");
         tr.createEl("td", { text: tx.date });
         const typeTd = tr.createEl("td");
-        typeTd.createEl("span", { text: tx.type, cls: `ledgr-badge ledgr-badge-${tx.type}` });
+        typeTd.createSpan({ text: tx.type, cls: `ledgr-badge ledgr-badge-${tx.type}` });
         tr.createEl("td", { text: tx.category });
         tr.createEl("td", { text: tx.note || "-", cls: "ledgr-note-col" });
         const amtCell = tr.createEl("td", {
@@ -292,7 +292,7 @@ export class DashboardView extends ItemView {
     const sec = this.plugin.settings.secondaryCurrencies[0] ?? "";
     const widget = parent.createDiv("ledgr-remit-widget");
     const header = widget.createDiv("ledgr-remit-widget-header");
-    header.createEl("span", { text: "Transfers", cls: "ledgr-remit-widget-title" });
+    header.createSpan({ text: "Transfers", cls: "ledgr-remit-widget-title" });
     const rightGroup = header.createDiv("ledgr-remit-widget-actions");
     const addBtn = rightGroup.createEl("button", { text: "+ Log Transfer", cls: "ledgr-budget-btn ledgr-remit-add" });
     addBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
@@ -363,8 +363,8 @@ export class DashboardView extends ItemView {
       filtered.forEach((r) => {
         const tr = tbody.createEl("tr");
         const dateTd = tr.createEl("td");
-        dateTd.createEl("div", { text: r.date });
-        dateTd.createEl("div", { text: `@ ${r.rateAtSend.toFixed(4)}`, cls: "ledgr-remit-row-rate" });
+        dateTd.createDiv({ text: r.date });
+        dateTd.createDiv({ text: `@ ${r.rateAtSend.toFixed(4)}`, cls: "ledgr-remit-row-rate" });
         tr.createEl("td", { text: r.service });
         tr.createEl("td", { text: r.amountJPY.toLocaleString(), cls: "ledgr-stmt-amt" });
         tr.createEl("td", { text: r.amountPHP > 0 ? r.amountPHP.toLocaleString() : "—", cls: "ledgr-remit-received" });
@@ -376,13 +376,13 @@ export class DashboardView extends ItemView {
       const footer = wrap.createDiv("ledgr-remit-history-footer");
       const totalSent = filtered.reduce((s, r) => s + r.amountJPY, 0);
       const totalReceived = filtered.reduce((s, r) => s + r.amountPHP, 0);
-      const sentSpan = footer.createEl("span");
+      const sentSpan = footer.createSpan();
       sentSpan.appendText(`${filtered.length} transfers · `);
-      sentSpan.createEl("span", { text: `${base} ${totalSent.toLocaleString()}`, cls: "ledgr-remit-history-footer-val" });
+      sentSpan.createSpan({ text: `${base} ${totalSent.toLocaleString()}`, cls: "ledgr-remit-history-footer-val" });
       sentSpan.appendText(" sent");
       if (totalReceived > 0 && sec) {
-        const recvSpan = footer.createEl("span");
-        recvSpan.createEl("span", { text: `${totalReceived.toLocaleString()} ${sec}`, cls: "ledgr-remit-history-footer-val" });
+        const recvSpan = footer.createSpan();
+        recvSpan.createSpan({ text: `${totalReceived.toLocaleString()} ${sec}`, cls: "ledgr-remit-history-footer-val" });
         recvSpan.appendText(" received");
       }
 
@@ -417,7 +417,7 @@ export class DashboardView extends ItemView {
       if (upcoming.length === 0) return;
 
       const banner = parent.createDiv("ledgr-upcoming-payments");
-      banner.createEl("div", { text: "Upcoming Payments", cls: "ledgr-upcoming-payments-title" });
+      banner.createDiv({ text: "Upcoming Payments", cls: "ledgr-upcoming-payments-title" });
 
       upcoming.forEach((acc) => {
         const ld = acc.liabilityDetails!;
@@ -425,11 +425,11 @@ export class DashboardView extends ItemView {
         const isOverdue = daysLeft < 0;
         const isDueToday = daysLeft === 0;
         const row = banner.createDiv(`ledgr-payment-due-row${isDueToday || isOverdue ? " ledgr-payment-due-urgent" : ""}`);
-        row.createEl("span", { text: acc.name, cls: "ledgr-payment-due-name" });
+        row.createSpan({ text: acc.name, cls: "ledgr-payment-due-name" });
         const meta = row.createDiv("ledgr-payment-due-meta");
         const dueLabel = isOverdue ? `${Math.abs(daysLeft)}d overdue` : isDueToday ? "Due today" : `Due in ${daysLeft}d`;
-        meta.createEl("span", { text: dueLabel, cls: isOverdue ? "ledgr-text-red" : isDueToday ? "ledgr-text-red" : "" });
-        row.createEl("span", {
+        meta.createSpan({ text: dueLabel, cls: isOverdue ? "ledgr-text-red" : isDueToday ? "ledgr-text-red" : "" });
+        row.createSpan({
           text: formatCurrency(ld.monthlyPayment, acc.currency),
           cls: "ledgr-payment-due-amount",
         });
@@ -461,33 +461,33 @@ export class DashboardView extends ItemView {
     const daysClass = pctLeft < 0.1 || remaining < 0 ? "ledgr-countdown-over"
       : pctLeft < 0.3 ? "ledgr-countdown-warn" : "";
 
-    banner.createEl("span", {
+    banner.createSpan({
       text: daysLeft === 1 ? "Last day" : String(daysLeft),
       cls: `ledgr-countdown-days ${daysClass}`,
     });
-    banner.createEl("span", {
+    banner.createSpan({
       text: daysLeft === 1 ? " of the month" : " days left in " + window.moment(this.currentMonth).format("MMMM"),
       cls: "ledgr-countdown-label",
     });
-    banner.createEl("span", { text: "·", cls: "ledgr-countdown-sep" });
+    banner.createSpan({ text: "·", cls: "ledgr-countdown-sep" });
 
     if (remaining < 0) {
-      banner.createEl("span", { text: `${fmt(remaining)} over budget`, cls: "ledgr-countdown-budget ledgr-countdown-over" });
+      banner.createSpan({ text: `${fmt(remaining)} over budget`, cls: "ledgr-countdown-budget ledgr-countdown-over" });
     } else {
-      banner.createEl("span", { text: fmt(remaining), cls: "ledgr-countdown-budget" });
-      banner.createEl("span", { text: " remaining", cls: "ledgr-countdown-suffix" });
+      banner.createSpan({ text: fmt(remaining), cls: "ledgr-countdown-budget" });
+      banner.createSpan({ text: " remaining", cls: "ledgr-countdown-suffix" });
       if (daysLeft > 1) {
-        banner.createEl("span", { text: "·", cls: "ledgr-countdown-sep" });
-        banner.createEl("span", { text: `${fmt(dailyAllowance)} / day`, cls: "ledgr-countdown-budget" });
+        banner.createSpan({ text: "·", cls: "ledgr-countdown-sep" });
+        banner.createSpan({ text: `${fmt(dailyAllowance)} / day`, cls: "ledgr-countdown-budget" });
       }
     }
   }
 
   createRemitStat(parent: HTMLElement, label: string, jpy: string, php: string, highlight = false) {
     const stat = parent.createDiv(`ledgr-remit-stat${highlight ? " ledgr-remit-lifetime" : ""}`);
-    stat.createEl("div", { text: label, cls: "ledgr-remit-stat-label" });
-    if (jpy) stat.createEl("div", { text: jpy, cls: "ledgr-remit-stat-jpy" });
-    if (php) stat.createEl("div", { text: php, cls: "ledgr-remit-stat-php" });
+    stat.createDiv({ text: label, cls: "ledgr-remit-stat-label" });
+    if (jpy) stat.createDiv({ text: jpy, cls: "ledgr-remit-stat-jpy" });
+    if (php) stat.createDiv({ text: php, cls: "ledgr-remit-stat-php" });
   }
 
   renderOpexCapex(parent: HTMLElement, summary: ReturnType<typeof summarize>, budgetConfig: BudgetConfig) {
@@ -521,13 +521,13 @@ export class DashboardView extends ItemView {
       const row = breakdown.createDiv("ledgr-breakdown-row");
       const nameWrap = row.createDiv("ledgr-cat-name-wrap");
       // Color dot matching donut
-      const dot = nameWrap.createEl("span", { cls: "ledgr-cat-dot" });
+      const dot = nameWrap.createSpan({ cls: "ledgr-cat-dot" });
       dot.style.backgroundColor = catColor; // dynamic value — cannot use static CSS class
-      nameWrap.createEl("span", { text: cat, cls: "ledgr-cat-name" });
+      nameWrap.createSpan({ text: cat, cls: "ledgr-cat-name" });
       if (catType === "fixed") {
-        nameWrap.createEl("span", { text: "fixed", cls: "ledgr-cat-type-tag ledgr-cat-type-fixed" });
+        nameWrap.createSpan({ text: "fixed", cls: "ledgr-cat-type-tag ledgr-cat-type-fixed" });
       } else if (catType === "variable") {
-        nameWrap.createEl("span", { text: "variable", cls: "ledgr-cat-type-tag ledgr-cat-type-variable" });
+        nameWrap.createSpan({ text: "variable", cls: "ledgr-cat-type-tag ledgr-cat-type-variable" });
       }
       const barWrap = row.createDiv("ledgr-bar-wrap");
       const bar = barWrap.createDiv(`ledgr-bar${overBudget ? " ledgr-bar-over" : ""}`);
@@ -535,7 +535,7 @@ export class DashboardView extends ItemView {
       bar.setCssStyles({ width: "0%" });
       window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${Math.round(pct)}%` }); });
       const amtText = budget ? `${fmt(amt)} / ${fmt(budget)}` : fmt(amt);
-      row.createEl("span", { text: amtText, cls: `ledgr-cat-amt${overBudget ? " ledgr-negative" : ""}` });
+      row.createSpan({ text: amtText, cls: `ledgr-cat-amt${overBudget ? " ledgr-negative" : ""}` });
     });
   }
 
@@ -623,7 +623,7 @@ export class DashboardView extends ItemView {
 
   renderFirstRun(parent: HTMLElement) {
     const state = parent.createDiv("ledgr-first-run");
-    state.createEl("div", { cls: "ledgr-first-run-rule" });
+    state.createDiv({ cls: "ledgr-first-run-rule" });
     state.createEl("h3", { text: "Welcome to Ledgr" });
     state.createEl("p", { text: "Your money, both sides of the ocean." });
 
@@ -634,8 +634,8 @@ export class DashboardView extends ItemView {
       { n: "3", label: "See your full picture" },
     ].forEach(({ n, label }) => {
       const step = steps.createDiv("ledgr-first-run-step");
-      step.createEl("span", { text: n, cls: "ledgr-step-num" });
-      step.createEl("span", { text: label });
+      step.createSpan({ text: n, cls: "ledgr-step-num" });
+      step.createSpan({ text: label });
     });
 
     const cta = state.createEl("button", { text: "+ Add your first transaction", cls: "ledgr-log-btn mod-cta ledgr-first-run-cta" });
@@ -662,12 +662,12 @@ export class DashboardView extends ItemView {
   createCard(parent: HTMLElement, label: string, value: string, cls: string,
     trendData?: { pct: number; good: boolean } | null) {
     const card = parent.createDiv(`ledgr-card ${cls}`);
-    card.createEl("div", { text: label, cls: "ledgr-card-label" });
-    card.createEl("div", { text: value, cls: "ledgr-card-value" });
+    card.createDiv({ text: label, cls: "ledgr-card-label" });
+    card.createDiv({ text: value, cls: "ledgr-card-value" });
     if (trendData) {
       const { pct, good } = trendData;
       const arrow = pct > 0 ? "↑" : "↓";
-      card.createEl("div", {
+      card.createDiv({
         text: `${arrow} ${Math.abs(pct)}% vs last month`,
         cls: `ledgr-card-trend ${good ? "ledgr-trend-good" : "ledgr-trend-bad"}`,
       });

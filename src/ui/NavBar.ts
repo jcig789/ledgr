@@ -24,7 +24,7 @@ export function renderNavBar(
 
   pages.forEach(({ key, label, viewType }) => {
     const btn = nav.createDiv(`ledgr-nav-btn ${activePage === key ? "active" : ""}`);
-    btn.createEl("span", { text: label, cls: "ledgr-nav-label" });
+    btn.createSpan({ text: label, cls: "ledgr-nav-label" });
     if (activePage !== key) {
       btn.onclick = () => plugin.openView(viewType);
     }
@@ -32,6 +32,6 @@ export function renderNavBar(
 
   // Log button — right-aligned
   const logBtn = nav.createDiv("ledgr-nav-btn ledgr-nav-log");
-  logBtn.createEl("span", { text: "+ Add", cls: "ledgr-nav-label" });
+  logBtn.createSpan({ text: "+ Add", cls: "ledgr-nav-label" });
   logBtn.onclick = () => new QuickCaptureModal(app, plugin.settings).open();
 }
