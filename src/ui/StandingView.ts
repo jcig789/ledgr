@@ -273,13 +273,13 @@ export class StandingView extends ItemView {
     const section = parent.createDiv("ledgr-bearing-section");
     section.createDiv("ledgr-bearing-section-label").createSpan({ text: "G U I D A N C E" });
 
-    const guidanceMap: Record<string, { text: string; tab?: string }> = {
-      Discipline: { text: "Your spending has exceeded budget in some categories. Review your category limits to bring Discipline into alignment.", tab: "ledgr-dashboard" },
-      Ballast:    { text: "Your liabilities are elevated relative to your assets. Reducing outstanding balances will improve your Ballast over time.", tab: "ledgr-networth" },
-      Provision:  { text: "Your savings goals have room for progress. Link accounts to goals and review deadlines to sharpen your Provision score.", tab: "ledgr-networth" },
-      Composure:  { text: "Your spending shows notable variation month to month. Smoothing discretionary expenses will strengthen Composure.", tab: "ledgr-dashboard" },
-      Momentum:   { text: "Your net worth trend has been flat or declining. Consistent saving and liability reduction will improve Momentum.", tab: "ledgr-networth" },
-      Reserve:    { text: "Your liquid reserves cover less than three months of expenses. Building this buffer is a foundational step.", tab: "ledgr-networth" },
+    const guidanceMap: Record<string, { text: string; tab: string; tabLabel: string }> = {
+      Discipline: { text: "Your spending has exceeded budget in some categories. Review your category limits to bring Discipline into alignment.", tab: "ledgr-dashboard", tabLabel: "Dashboard" },
+      Ballast:    { text: "Your liabilities are elevated relative to your assets. Reducing outstanding balances will improve your Ballast over time.", tab: "ledgr-networth", tabLabel: "Net Worth" },
+      Provision:  { text: "Your savings goals have room for progress. Link accounts to goals and review deadlines to sharpen your Provision score.", tab: "ledgr-networth", tabLabel: "Net Worth" },
+      Composure:  { text: "Your spending shows notable variation month to month. Smoothing discretionary expenses will strengthen Composure.", tab: "ledgr-dashboard", tabLabel: "Dashboard" },
+      Momentum:   { text: "Your net worth trend has been flat or declining. Consistent saving and liability reduction will improve Momentum.", tab: "ledgr-networth", tabLabel: "Net Worth" },
+      Reserve:    { text: "Your liquid reserves cover less than three months of expenses. Building this buffer is a foundational step.", tab: "ledgr-networth", tabLabel: "Net Worth" },
     };
 
     weak.forEach((p) => {
@@ -288,10 +288,8 @@ export class StandingView extends ItemView {
       const item = section.createDiv("ledgr-bearing-guidance-item");
       item.createSpan({ text: p.name, cls: "ledgr-bearing-guidance-pillar" });
       item.createEl("p", { text: g.text, cls: "ledgr-bearing-guidance-text" });
-      if (g.tab) {
-        const link = item.createEl("a", { text: `Review in ${p.name === "Discipline" ? "Dashboard" : "Net Worth"} →`, cls: "ledgr-bearing-guidance-link" });
-        link.onclick = (e) => { e.preventDefault(); void this.plugin.openView(g.tab!); };
-      }
+      const link = item.createEl("a", { text: `Review in ${g.tabLabel} →`, cls: "ledgr-bearing-guidance-link" });
+      link.onclick = (e) => { e.preventDefault(); void this.plugin.openView(g.tab); };
     });
 
     // Also show notes from pillars (e.g. "Mortgage and all debt types are weighted equally")

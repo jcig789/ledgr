@@ -2784,6 +2784,13 @@ button.ledgr-del-confirm,
 
 .ledgr-standing {
   padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-xl);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.ledgr-standing .ledgr-sticky-zone {
+  align-self: stretch;
 }
 
 /* ── Card section ── */
@@ -2792,14 +2799,15 @@ button.ledgr-del-confirm,
   flex-direction: column;
   align-items: center;
   padding: var(--ledgr-spacing-lg) 0;
+  width: 100%;
 }
 
 .ledgr-bearing-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  max-width: 360px;
+  width: 320px;
+  max-width: 100%;
   margin-bottom: var(--ledgr-spacing-sm);
 }
 
@@ -2807,6 +2815,7 @@ button.ledgr-del-confirm,
 .ledgr-bearing-card {
   position: relative;
   width: 320px;
+  max-width: calc(100% - var(--ledgr-spacing-xl));
   padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
   background: var(--color-base-05, #C8BFA8);
   color: var(--ledgr-accent);
@@ -2814,6 +2823,7 @@ button.ledgr-del-confirm,
   border-radius: 2px;
   text-align: center;
   font-family: Georgia, 'Times New Roman', serif;
+  box-sizing: border-box;
 }
 
 .theme-dark .ledgr-bearing-card {
@@ -2931,6 +2941,7 @@ button.ledgr-del-confirm,
 /* ── Empty state ── */
 .ledgr-bearing-empty {
   width: 320px;
+  max-width: 100%;
   padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
   text-align: center;
   font-family: Georgia, 'Times New Roman', serif;
@@ -2945,8 +2956,6 @@ button.ledgr-del-confirm,
   margin: var(--ledgr-spacing-lg) 0;
   width: 100%;
   max-width: 520px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 .ledgr-bearing-section-label {
@@ -2980,10 +2989,11 @@ button.ledgr-del-confirm,
 
 .ledgr-bearing-pillar-bar-wrap {
   flex: 1;
-  height: 4px;
-  background: var(--ledgr-rule);
+  height: 5px;
+  background: var(--color-base-20, rgba(128,128,128,0.2));
   border-radius: 2px;
   overflow: hidden;
+  min-width: 0;
 }
 
 .ledgr-bearing-pillar-bar {
