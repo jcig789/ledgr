@@ -5,7 +5,6 @@ import { convertToBase } from "../data/reader";
 import { Currency } from "../settings";
 import { renderDonutChart, categoryColor } from "./charts";
 import { formatCurrency } from "../constants/currencies";
-import { renderBottomNav } from "./BottomNav";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";

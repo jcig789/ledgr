@@ -67,8 +67,8 @@ export class QuickCaptureModal extends Modal {
     // Type — update only category/sub state, no full re-render
     new Setting(contentEl)
       .setName("Type")
-      .addDropdown((d) =>
-        d
+      .addDropdown((d): void => {
+        void d
           .addOption("expense", "Expense")
           .addOption("income", "Income")
           .setValue(this.type)
@@ -77,10 +77,9 @@ export class QuickCaptureModal extends Modal {
             const map = v === "income" ? this.catStore.income : this.catStore.expense;
             this.category = Object.keys(map)[0] ?? "Other";
             this.subcategory = map[this.category]?.[0] ?? "Other";
-            // Only update category/subcategory dropdowns, not full re-render
             this.updateCategoryDropdowns();
-          })
-      );
+          });
+      });
 
     // Amount + currency
     new Setting(contentEl)
@@ -93,7 +92,7 @@ export class QuickCaptureModal extends Modal {
       .addDropdown((d): void => {
         const currencies = [this.settings.baseCurrency, ...this.settings.secondaryCurrencies];
         currencies.forEach((c) => d.addOption(c, c));
-        d.setValue(this.currency).onChange((v) => (this.currency = v));
+        void d.setValue(this.currency).onChange((v) => (this.currency = v));
       });
 
     // Amount error placeholder
@@ -107,7 +106,7 @@ export class QuickCaptureModal extends Modal {
       .setName("Category")
       .addDropdown((d): void => {
         catNames.forEach((c) => d.addOption(c, c));
-        d.setValue(this.category).onChange((v): void => {
+        void d.setValue(this.category).onChange((v): void => {
           this.category = v;
           this.subcategory = catMap[v][0];
           // Update only subcategory dropdown
@@ -129,7 +128,7 @@ export class QuickCaptureModal extends Modal {
       .setName("Subcategory")
       .addDropdown((d): void => {
         subs.forEach((s) => d.addOption(s, s));
-        d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
+        void d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
         d.selectEl.addClass("ledgr-sub-dropdown");
       });
 

@@ -51,7 +51,7 @@ export class GoalModal extends Modal {
       .addDropdown((d): void => {
         [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies]
           .forEach((c) => d.addOption(c, c));
-        d.setValue(this.currency).onChange((v) => (this.currency = v));
+        void d.setValue(this.currency).onChange((v) => (this.currency = v));
       });
 
     const deadlineSetting = new Setting(contentEl)
@@ -68,7 +68,7 @@ export class GoalModal extends Modal {
         .addDropdown((d): void => {
           d.addOption("", "None");
           accounts.forEach((a) => d.addOption(a.id, `${a.name} (${a.currency})`));
-          d.setValue(this.linkedAccountId).onChange((v) => (this.linkedAccountId = v));
+          void d.setValue(this.linkedAccountId).onChange((v) => (this.linkedAccountId = v));
         });
     }
 

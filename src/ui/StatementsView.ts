@@ -6,7 +6,6 @@ import { loadBudgets, BudgetConfig } from "../data/budgets";
 import { Transaction } from "../data/transactions";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
 import { formatCurrency } from "../constants/currencies";
-import { renderBottomNav } from "./BottomNav";
 
 export const STATEMENTS_VIEW_TYPE = "ledgr-statements";
 

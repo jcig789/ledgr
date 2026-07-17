@@ -12,7 +12,6 @@ import { loadRemittances, getRemittanceSummary, RemittanceStore, Remittance } fr
 import { BudgetConfig } from "../data/budgets";
 import { getCategoryType } from "../constants/categories";
 import { formatCurrency } from "../constants/currencies";
-import { renderBottomNav } from "./BottomNav";
 import { renderDonutChart, buildSpendingSegments, renderGauge, renderTrendLine, categoryColor } from "./charts";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { loadNetWorth } from "../data/networth";
