@@ -626,6 +626,192 @@ export function renderBudgetScale(
   zoneRow.createSpan({ text: zones.right, cls: "ledgr-scale-zone-label" });
 }
 
+// ─── renderNwHistoryChart ─────────────────────────────────────────────────────
+/**
+ * Net worth history line chart for the Net Worth tab.
+ * Uses real monthly snapshots from ledgr-nw-history.json.
+ */
+
+export interface NwSnapshot { month: string; value: number; }
+
+function fmtNwAxis(n: number, currency: string): string {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  const sym = currency === "JPY" ? "¥" : currency === "PHP" ? "₱" : currency === "USD" ? "$" : currency === "EUR" ? "€" : currency + " ";
+  if (abs >= 1_000_000_000) return `${sign}${sym}${(abs / 1_000_000_000).toFixed(1)}B`;
+  if (abs >= 1_000_000)     return `${sign}${sym}${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000)         return `${sign}${sym}${Math.round(abs / 1_000)}K`;
+  return `${sign}${sym}${Math.round(abs).toLocaleString()}`;
+}
+
+function cleanTickInterval(range: number): number {
+  const targets = [500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000, 2500000, 5000000];
+  const ideal = range / 3;
+  return targets.reduce((prev, curr) => Math.abs(curr - ideal) < Math.abs(prev - ideal) ? curr : prev);
+}
+
+export function renderNwHistoryChart(
+  parent: HTMLElement,
+  snapshots: NwSnapshot[],
+  currentNw: number,
+  currentMonth: string,
+  currency: string,
+  range: "6M" | "1Y" | "ALL",
+  onRangeChange: (r: "6M" | "1Y" | "ALL") => void
+): void {
+  parent.empty();
+  const section = parent.createDiv("ledgr-nw-history-section");
+
+  // ── Header row ──
+  const headerRow = section.createDiv("ledgr-nw-history-header");
+  headerRow.createSpan({ text: "Net Worth History", cls: "ledgr-nw-history-label" });
+
+  const rangeSelector = headerRow.createDiv("ledgr-nw-history-range-selector");
+  const ranges: Array<"6M" | "1Y" | "ALL"> = ["6M", "1Y", "ALL"];
+  ranges.forEach((r) => {
+    const btn = rangeSelector.createEl("button", { text: r, cls: "ledgr-nw-history-range-btn" });
+    if (r === range) btn.addClass("active");
+    const hasEnough = r === "ALL" || (r === "6M" && snapshots.length >= 2) || (r === "1Y" && snapshots.length >= 2);
+    if (!hasEnough) btn.addClass("disabled");
+    btn.onclick = () => { if (hasEnough) onRangeChange(r); };
+  });
+
+  // ── Filter snapshots by range ──
+  const sorted = [...snapshots].sort((a, b) => a.month.localeCompare(b.month));
+  // Ensure current month is included as latest point
+  const lastSnap = sorted[sorted.length - 1];
+  if (!lastSnap || lastSnap.month !== currentMonth) {
+    sorted.push({ month: currentMonth, value: Math.round(currentNw) });
+  } else {
+    sorted[sorted.length - 1] = { ...lastSnap, value: Math.round(currentNw) };
+  }
+
+  const cutoff = range === "6M" ? window.moment(currentMonth).subtract(5, "months").format("YYYY-MM")
+    : range === "1Y" ? window.moment(currentMonth).subtract(11, "months").format("YYYY-MM")
+    : "0000-00";
+  const visible = sorted.filter((s) => s.month >= cutoff);
+
+  // ── Delta row ──
+  const deltaRow = section.createDiv("ledgr-nw-history-deltas");
+  if (visible.length >= 2) {
+    const first = visible[0];
+    const prev = visible[visible.length - 2];
+    const curr = visible[visible.length - 1];
+
+    const periodDelta = curr.value - first.value;
+    const monthDelta = curr.value - prev.value;
+    const periodPct = first.value !== 0 ? ((periodDelta / Math.abs(first.value)) * 100).toFixed(1) : "—";
+    const monthPct = prev.value !== 0 ? ((monthDelta / Math.abs(prev.value)) * 100).toFixed(1) : "—";
+    const firstLabel = window.moment(first.month).format("MMM YYYY");
+
+    const mkDelta = (wrap: HTMLElement, delta: number, pct: string, label: string, primary: boolean) => {
+      const cls = delta >= 0 ? "ledgr-nw-history-delta--positive" : "ledgr-nw-history-delta--negative";
+      const sign = delta >= 0 ? "+" : "";
+      const amtEl = wrap.createSpan({ cls: `ledgr-nw-history-delta-amount ${cls}` });
+      amtEl.textContent = `${sign}${fmtNwAxis(delta, currency)}`;
+      wrap.createSpan({ cls: "ledgr-nw-history-delta-pct", text: ` (${sign}${pct}%)` });
+      wrap.createSpan({ cls: "ledgr-nw-history-delta-label", text: `  ${label}` });
+    };
+
+    const primary = deltaRow.createDiv("ledgr-nw-history-delta-primary");
+    mkDelta(primary, periodDelta, String(periodPct), `since ${firstLabel}`, true);
+    const secondary = deltaRow.createDiv("ledgr-nw-history-delta-secondary");
+    mkDelta(secondary, monthDelta, String(monthPct), "vs last month", false);
+  } else if (visible.length === 1) {
+    const noData = deltaRow.createDiv("ledgr-nw-history-delta-secondary");
+    noData.createSpan({ text: "—  Not enough history to compare", cls: "ledgr-nw-history-delta-label" });
+  }
+
+  // ── Chart ──
+  const chartWrap = section.createDiv("ledgr-nw-history-chart-wrap");
+
+  if (visible.length === 0) {
+    chartWrap.createEl("p", { text: "Save your net worth to begin tracking history.", cls: "ledgr-nw-history-empty-msg" });
+    return;
+  }
+
+  // SVG dimensions — internal coordinate system
+  const SVG_W = 600, SVG_H = 160;
+  const PAD_L = 54, PAD_R = 12, PAD_T = 12, PAD_B = 28;
+  const chartW = SVG_W - PAD_L - PAD_R;
+  const chartH = SVG_H - PAD_T - PAD_B;
+
+  const values = visible.map((s) => s.value);
+  const minV = Math.min(...values);
+  const maxV = Math.max(...values);
+  const vRange = maxV - minV || Math.abs(minV) * 0.1 || 1000;
+  const yMin = minV - vRange * 0.08;
+  const yMax = maxV + vRange * 0.08;
+
+  const xScale = (i: number) => visible.length === 1
+    ? PAD_L + chartW / 2
+    : PAD_L + (i / (visible.length - 1)) * chartW;
+  const yScale = (v: number) => PAD_T + chartH - ((v - yMin) / (yMax - yMin)) * chartH;
+  const zeroY = yScale(0);
+
+  // Line color based on net direction
+  const isPositive = visible[visible.length - 1].value >= visible[0].value;
+  const lineColor = isPositive ? "var(--ledgr-green)" : "var(--ledgr-red)";
+
+  const svg = chartWrap.createSvg("svg", {
+    attr: { viewBox: `0 0 ${SVG_W} ${SVG_H}`, class: "ledgr-nw-history-svg" },
+  });
+
+  // Y-axis ticks + gridlines
+  const tickInterval = cleanTickInterval(yMax - yMin);
+  const firstTick = Math.ceil(yMin / tickInterval) * tickInterval;
+  for (let t = firstTick; t <= yMax; t += tickInterval) {
+    const ty = yScale(t);
+    svg.createSvg("line", { attr: { x1: String(PAD_L), y1: String(ty), x2: String(PAD_L + chartW), y2: String(ty), stroke: "currentColor", "stroke-width": "0.5", opacity: "0.15" } });
+    svg.createSvg("text", { attr: { x: String(PAD_L - 4), y: String(ty + 3.5), "text-anchor": "end", class: "ledgr-nw-history-axis-label" } }).textContent = fmtNwAxis(t, currency);
+  }
+
+  // Zero line if visible range spans zero
+  if (yMin < 0 && yMax > 0) {
+    svg.createSvg("line", { attr: { x1: String(PAD_L), y1: String(zeroY), x2: String(PAD_L + chartW), y2: String(zeroY), stroke: "currentColor", "stroke-width": "0.8", opacity: "0.3" } });
+  }
+
+  // Area fill
+  if (visible.length >= 2) {
+    const baseline = Math.max(Math.min(zeroY, PAD_T + chartH), PAD_T);
+    const pts = visible.map((s, i) => `${xScale(i)},${yScale(s.value)}`).join(" L ");
+    const lastX = xScale(visible.length - 1);
+    const firstX = xScale(0);
+    const areaPath = `M ${pts.replace(",", " ")} L ${lastX},${baseline} L ${firstX},${baseline} Z`;
+    svg.createSvg("path", { attr: { d: `M ${visible.map((s, i) => `${xScale(i)},${yScale(s.value)}`).join(" L ")} L ${lastX},${baseline} L ${firstX},${baseline} Z`, fill: lineColor, opacity: "0.08", stroke: "none" } });
+  }
+
+  // Line
+  if (visible.length >= 2) {
+    const linePath = visible.map((s, i) => `${i === 0 ? "M" : "L"} ${xScale(i)},${yScale(s.value)}`).join(" ");
+    svg.createSvg("path", { attr: { d: linePath, stroke: lineColor, "stroke-width": "1.5", fill: "none" } });
+  }
+
+  // Historical dots (open circles)
+  visible.slice(0, -1).forEach((s, i) => {
+    svg.createSvg("circle", { attr: { cx: String(xScale(i)), cy: String(yScale(s.value)), r: "3", fill: "none", stroke: lineColor, "stroke-width": "1.5" } });
+  });
+
+  // Current dot (filled)
+  const lastIdx = visible.length - 1;
+  svg.createSvg("circle", { attr: { cx: String(xScale(lastIdx)), cy: String(yScale(visible[lastIdx].value)), r: "4", fill: lineColor, stroke: "none" } });
+
+  // X-axis labels
+  const labelStep = visible.length <= 6 ? 1 : visible.length <= 12 ? 2 : 3;
+  let prevYear = "";
+  visible.forEach((s, i) => {
+    if (i % labelStep !== 0 && i !== visible.length - 1) return;
+    const x = xScale(i);
+    const mon = window.moment(s.month).format("MMM").toUpperCase();
+    const yr = window.moment(s.month).format("YYYY");
+    svg.createSvg("text", { attr: { x: String(x), y: String(SVG_H - 14), "text-anchor": "middle", class: "ledgr-nw-history-axis-label" } }).textContent = mon;
+    if (yr !== prevYear && (i === 0 || yr !== window.moment(visible[0].month).format("YYYY"))) {
+      svg.createSvg("text", { attr: { x: String(x), y: String(SVG_H - 4), "text-anchor": "middle", class: "ledgr-nw-history-axis-year" } }).textContent = yr;
+      prevYear = yr;
+    }
+  });
+}
+
 // ─── renderAssaySeal ──────────────────────────────────────────────────────────
 /**
  * The Bearing's assay mark — a geometric certification seal inspired by

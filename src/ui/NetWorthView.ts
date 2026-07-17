@@ -3,7 +3,8 @@ import LedgrPlugin from "../main";
 import { loadNetWorth, saveNetWorth, NetWorthData, AccountType } from "../data/networth";
 import { convertToBase } from "../data/reader";
 import { Currency } from "../settings";
-import { renderDonutChart, categoryColor } from "./charts";
+import { renderDonutChart, categoryColor, renderNwHistoryChart } from "./charts";
+import { loadNwHistory } from "../data/nwHistory";
 import { formatCurrency } from "../constants/currencies";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
@@ -152,6 +153,27 @@ export class NetWorthView extends ItemView {
       .reduce((sum, a) => sum + this.toBase(a.balance, a.currency), 0);
     const totalAssets = bankAssets + investAssets;
     const netWorth = totalAssets - liabilities;
+
+    // ── Net Worth History Chart ──
+    if (!this.editMode) {
+      const historyData = await loadNwHistory(this.app, this.plugin.settings);
+      const snapshots = Object.entries(historyData.snapshots).map(([month, value]) => ({ month, value }));
+      const currentMonth = window.moment().format("YYYY-MM");
+      const chartWrap = contentEl.createDiv("ledgr-nw-history-wrap");
+      renderNwHistoryChart(
+        chartWrap,
+        snapshots,
+        netWorth,
+        currentMonth,
+        this.plugin.settings.baseCurrency,
+        this.plugin.settings.nwChartRange,
+        async (r) => {
+          this.plugin.settings.nwChartRange = r;
+          await this.plugin.saveSettings();
+          void this.render();
+        }
+      );
+    }
 
     const cards = contentEl.createDiv("ledgr-cards");
     this.createCard(cards, "Total Assets", this.fmt(totalAssets), "ledgr-income");

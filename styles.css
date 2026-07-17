@@ -3219,3 +3219,113 @@ button.ledgr-del-confirm,
 .ledgr-bearing-setup-item {
   padding: var(--ledgr-spacing-xs) 0;
 }
+
+/* ─── Net Worth History Chart ────────────────────────────────────────────── */
+
+.ledgr-nw-history-wrap {
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+.ledgr-nw-history-section {
+  padding-bottom: var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-md);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-nw-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-nw-history-label {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-nw-history-range-selector {
+  display: flex;
+  gap: 2px;
+}
+
+.ledgr-nw-history-range-btn {
+  background: transparent;
+  border: 1px solid var(--ledgr-rule);
+  color: var(--ledgr-text-faint);
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: color 0.1s, border-color 0.1s;
+  min-height: 24px;
+}
+
+.ledgr-nw-history-range-btn:hover { color: var(--ledgr-accent); border-color: var(--ledgr-accent-muted); }
+.ledgr-nw-history-range-btn.active { color: var(--ledgr-accent); border-color: var(--ledgr-accent); font-weight: 600; }
+.ledgr-nw-history-range-btn.disabled { opacity: 0.35; cursor: default; pointer-events: none; }
+
+.ledgr-nw-history-deltas {
+  display: flex;
+  gap: var(--ledgr-spacing-lg);
+  margin-bottom: var(--ledgr-spacing-sm);
+  flex-wrap: wrap;
+}
+
+.ledgr-nw-history-delta-primary {
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-nw-history-delta-secondary {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+}
+
+.ledgr-nw-history-delta-amount { font-variant-numeric: tabular-nums; font-weight: 500; }
+.ledgr-nw-history-delta-pct { color: var(--ledgr-text-faint); font-size: 0.9em; }
+.ledgr-nw-history-delta-label { color: var(--ledgr-text-faint); font-size: 0.85em; letter-spacing: 0.02em; }
+.ledgr-nw-history-delta--positive { color: var(--ledgr-green); }
+.ledgr-nw-history-delta--negative { color: var(--ledgr-red); }
+
+.ledgr-nw-history-chart-wrap {
+  min-height: 80px;
+}
+
+.ledgr-nw-history-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  color: var(--ledgr-accent);
+}
+
+.ledgr-nw-history-axis-label {
+  font-size: 9px;
+  fill: var(--ledgr-text-faint);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-monospace);
+}
+
+.ledgr-nw-history-axis-year {
+  font-size: 8px;
+  fill: var(--ledgr-text-faint);
+  opacity: 0.6;
+  font-family: var(--font-monospace);
+}
+
+.ledgr-nw-history-empty-msg {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  padding: var(--ledgr-spacing-md) 0;
+  text-align: center;
+}
+
+@media (max-width: 500px) {
+  .ledgr-nw-history-deltas { gap: var(--ledgr-spacing-sm); }
+  .ledgr-nw-history-range-selector { margin-top: 2px; }
+}

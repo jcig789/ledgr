@@ -20,6 +20,7 @@ export interface LedgrSettings {
   appendToDailyNote: boolean;
   dailyNotePath: string; // folder path for daily notes
   bearingExplainerCollapsed: boolean;
+  nwChartRange: "6M" | "1Y" | "ALL";
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -45,4 +46,5 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   appendToDailyNote: false,
   dailyNotePath: "",
   bearingExplainerCollapsed: false,
+  nwChartRange: "ALL",
 };
