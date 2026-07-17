@@ -2,73 +2,113 @@
 
 Multi-currency personal finance tracker that lives entirely inside your Obsidian vault. No accounts, no cloud, no subscriptions.
 
+---
+
 ## Features
 
-- **Quick transaction capture** — log expenses and income via a modal or command palette
-- **Dashboard** — monthly cash flow summary with income, expenses, savings rate, and category breakdown
-- **Budgets** — set category-level spending limits with visual progress indicators
-- **Net worth tracker** — track bank accounts, investment accounts, and liabilities across multiple currencies
-- **Multi-currency support** — set a base currency and up to two secondary currencies; all values convert at your configured rates
-- **Transfer tracker** — optional module for logging international money transfers with fee and exchange rate tracking
-- **Daily note integration** — append a spending summary to your daily note automatically
-- **Dataview compatibility** — all transactions are written with inline fields so you can query them with the Dataview plugin
-- **Offline-first** — all data is stored as plain files in your vault
+### Core
+- **Quick transaction capture** — log expenses and income in seconds via modal or command palette; Enter to save on desktop
+- **Dashboard** — monthly cash flow summary: income, expenses, savings, savings rate gauge, category donut chart, 6-month trend, per-category budget bars
+- **Budgets** — set per-category monthly limits with over-budget indicators and fixed/variable classification
+- **Net worth tracker** — bank accounts, investment accounts, and liabilities across multiple currencies with allocation chart
+- **Liability tracker** — track loans, mortgages, credit cards, and installment plans; log payments with live balance preview; due-date reminders on the dashboard
+- **Financial statements** — CPA-style Income Statement (with budget vs. actual variance), Cash Flow, and Balance Sheet; K/M/B formatting for large amounts
+- **Savings goals** — set a target amount, deadline, and linked account; see projected completion date and progress bar
+- **Daily countdown** — budget remaining and daily allowance for the rest of the month
+
+### Reports
+- **Monthly review** — generate a Markdown note summarizing any past month: income, expenses, category breakdown, notable transactions, vs. last month
+- **Ledgr Wrapped** — generate an annual year-in-review note with best/worst months, top spending categories, and transfers summary
+
+### Transfer Tracker (opt-in)
+- Log international money transfers with fee, exchange rate, and received amount
+- Dashboard widget with monthly and YTD totals, lifetime sent, history with period filter
+
+### Navigation & UX
+- Sticky top tab bar — Dashboard | Net Worth | Statements — works on mobile and desktop
+- Transaction edit and delete (2-step confirm on delete)
+- Currency toggle — switch between base and secondary currencies instantly
+- Old Money design system — charcoal, small caps, tabular numerals
+
+### Mobile
+- Fully responsive throughout
+- Safe-area-inset support for iPhone notch and home indicator
+- Compact controls in sticky zone on small screens
+
+---
 
 ## Quick Start
 
-**Manual installation (no community plugin store required):**
+**Manual installation:**
 
-1. Download `main.js`, `manifest.json`, and `styles.css` from the latest release.
+1. Download `main.js`, `manifest.json`, and `styles.css` from the [latest release](../../releases/latest).
 2. In your vault, create the folder `.obsidian/plugins/ledgr/`.
 3. Copy the three files into that folder.
-4. Open Obsidian, go to **Settings → Community plugins**, and enable **Ledgr**.
-5. The onboarding wizard will run on first launch.
+4. Open Obsidian → **Settings → Community plugins** → enable **Ledgr**.
+5. The onboarding wizard runs on first launch.
+
+**From the community store** (pending review): search "Ledgr" in Settings → Community plugins → Browse.
+
+---
 
 ## How It Works
 
-Ledgr stores all data as plain files inside your vault under a configurable folder (default: `Private/Finance`).
+All data is stored as plain files in your vault under a configurable folder (default: `Private/Finance`).
 
-- **Transactions** are appended to monthly Markdown files (`transactions/YYYY-MM.md`) as table rows with Dataview inline fields.
-- **Budgets** are stored in `budgets.json`.
-- **Net worth** is stored in `networth.json`.
-- **Transfers** are stored in `remittances.json` (if the transfer tracker is enabled).
+- **Transactions** — monthly Markdown files (`transactions/YYYY-MM.md`) as human-readable tables with Dataview inline fields
+- **Budgets** — `budgets.json`
+- **Net worth** — `networth.json` (accounts, brokerages, liabilities)
+- **Goals** — `goals.json`
+- **Transfers** — `remittances.json` (if transfer tracker is enabled)
 
-No external services are contacted. No data leaves your device.
+No external services are contacted. No data ever leaves your device.
+
+---
 
 ## Configuration
 
-Open **Settings → Ledgr** or use the command `Ledgr: Settings (exchange rates & categories)`.
+Open **Settings → Ledgr** or tap the gear icon on the dashboard.
 
 | Setting | Description |
 |---|---|
-| Finance folder | Vault path where all Ledgr data files are saved |
-| Base currency | Your primary currency (e.g. JPY, USD, EUR) |
+| Finance folder | Vault path where all Ledgr data is saved |
+| Base currency | Your primary currency (JPY, USD, EUR, PHP, etc.) |
 | Secondary currencies | Up to two additional currencies for display toggles |
-| Exchange rates | Manual rates used to convert amounts — update as needed |
-| Enable transfer tracker | Opt-in module for logging international transfers |
-| Append to daily note | Automatically append a spending summary when you open a daily note |
+| Exchange rates | Manual rates — update as needed; staleness indicator on dashboard |
+| Enable transfer tracker | Opt-in module for international transfers |
+| Append to daily note | Auto-append spending summary when opening a daily note |
 
-Exchange rates use the format `BASE_QUOTE` (e.g. `JPY_PHP` means 1 JPY = X PHP). Update them from the settings panel or the gear icon on the dashboard.
+Exchange rates use the format `BASE_QUOTE` — e.g. `JPY_PHP` means 1 JPY = X PHP.
+
+---
+
+## Liability Tracker
+
+Add liabilities (mortgage, car loan, credit card, personal loan, student loan, installment/BNPL) in the Net Worth tab. For each liability set:
+
+- Original amount and current balance
+- Monthly payment amount and due day
+- Reminder days ahead (shows upcoming payment banner on the dashboard)
+
+When a payment is due, a banner appears on the dashboard with a **Pay** button. Tapping it opens a payment modal showing a live preview (`Balance → Payment → Remaining`), logs the payment against the account balance, and records it as a transaction in the correct expense category.
+
+---
 
 ## Transfer Tracker
 
-Enable the transfer tracker in settings to log international money transfers. Each transfer record stores:
+Enable in settings. Log any international transfer with:
 
-- Date and amount sent
-- Transfer service used (Wise, Revolut, Bank Transfer, or Other)
-- Fee paid
-- Exchange rate at time of transfer
-- Amount received
+- Amount sent and received
+- Service (Wise, Revolut, Bank Transfer, or custom)
+- Fee and exchange rate at time of transfer
 
-This module is designed for anyone sending money internationally on a regular basis. The dashboard shows monthly and year-to-date totals alongside your regular spending.
+Dashboard shows monthly/YTD totals alongside regular spending. Full history with month/year/all-time filter.
 
-To log a transfer: use the command palette and run `Ledgr: Log transfer`.
+---
 
 ## Dataview Compatibility
 
-Transactions are written with Dataview inline fields embedded in comment blocks, so they do not affect the visual table but remain queryable.
-
-Example queries:
+Transactions are written with Dataview inline fields so they can be queried directly.
 
 ```dataview
 TABLE amount, currency, category, subcategory
@@ -84,40 +124,49 @@ WHERE category = "Food & Drink"
 GROUP BY date
 ```
 
-The fields available on each transaction are: `date`, `type`, `amount`, `currency`, `category`, `subcategory`, `note`.
+Fields per transaction: `date`, `type`, `amount`, `currency`, `category`, `subcategory`, `note`.
+
+---
 
 ## File Structure
 
 ```
 <financeFolder>/
   transactions/
-    YYYY-MM.md       # One file per month — human-readable table + Dataview fields
-  budgets.json       # Category budget limits
-  networth.json      # Account and brokerage balances
-  remittances.json   # Transfer history (if transfer tracker is enabled)
+    YYYY-MM.md         # One file per month — readable table + Dataview fields
+  budgets.json         # Category limits
+  networth.json        # Accounts, brokerages, liabilities
+  goals.json           # Savings goals
+  remittances.json     # Transfer history (if enabled)
+  reviews/
+    YYYY-MM-review.md  # Generated monthly review notes
+    YYYY-wrapped.md    # Generated annual wrapped notes
 ```
+
+---
 
 ## Development
 
 Requirements: Node.js 18+, npm.
 
 ```bash
-# Install dependencies
 npm install
 
-# Start development build with watch mode (auto-copies to vault)
+# Dev build with watch + auto-copy to vault
 VAULT_PATH=/path/to/your/vault npm run dev
 
 # Production build
 VAULT_PATH=/path/to/your/vault npm run build
 ```
 
-Set `VAULT_PATH` to your Obsidian vault root. The build will copy `main.js`, `manifest.json`, and `styles.css` into `.obsidian/plugins/ledgr/` automatically. Without `VAULT_PATH`, the build still succeeds but does not copy files.
+Create a `.env` file in the repo root with `VAULT_PATH=/path/to/vault` to avoid setting it every time.
+
+---
 
 ## Roadmap
 
+- CSV import / export
 - Recurring transaction templates
-- CSV import for bulk transaction entry
 - Historical exchange rate tracking
-- Category-level trend charts across multiple months
-- Mobile-optimized quick capture
+- Net worth snapshots over time
+- OFW pack — recipient tracking, rate alerts, dual-household view
