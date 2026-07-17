@@ -2958,12 +2958,10 @@ button.ledgr-del-confirm,
 }
 
 .ledgr-bearing-pillar-name {
-  width: 90px;
   font-variant: small-caps;
   font-size: var(--ledgr-font-label);
   letter-spacing: 0.05em;
   color: var(--ledgr-text-secondary);
-  flex-shrink: 0;
 }
 
 .ledgr-bearing-pillar-bar-wrap {
@@ -3137,6 +3135,62 @@ button.ledgr-del-confirm,
   font-size: var(--ledgr-font-sm);
   color: var(--ledgr-text-faint);
   font-style: italic;
+}
+
+/* ── Pillar descriptions ── */
+.ledgr-bearing-pillar-wrap {
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-bearing-pillar-wrap .ledgr-bearing-pillar-row {
+  border-bottom: none;
+}
+
+.ledgr-bearing-pillar-name-wrap {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  cursor: default;
+  flex-shrink: 0;
+  width: 90px;
+}
+
+.ledgr-bearing-pillar-name-wrap.ledgr-bearing-pillar-name-clickable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ledgr-bearing-pillar-name-wrap.ledgr-bearing-pillar-name-clickable:focus-visible {
+  outline: 1px solid currentColor;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.ledgr-bearing-pillar-chevron {
+  color: var(--ledgr-text-faint);
+  font-size: 0.85em;
+  transition: transform 120ms ease;
+  display: inline-block;
+  line-height: 1;
+}
+
+.ledgr-bearing-pillar-desc {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 150ms ease;
+}
+
+.ledgr-bearing-pillar-wrap.ledgr-bearing-pillar-expanded > .ledgr-bearing-pillar-desc {
+  max-height: 5rem;
+}
+
+.ledgr-bearing-pillar-desc-text {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  opacity: 0.85;
+  padding: 2px 0 var(--ledgr-spacing-sm) 0;
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* ── Guidance gap sentence (T2-2) ── */

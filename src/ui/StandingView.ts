@@ -220,13 +220,42 @@ export class StandingView extends ItemView {
 
   // ── Pillars ───────────────────────────────────────────────────────────────
 
+  private static readonly PILLAR_DESCRIPTIONS: Record<string, string> = {
+    Discipline: "Measures how closely your spending tracks your budget. Calculated from the magnitude of overspend relative to your total budget across all categories.",
+    Ballast:    "Measures the weight of your liabilities against your assets. A lower ratio indicates a stronger foundation.",
+    Provision:  "Tracks progress toward your savings goals, adjusted for how much time remains to reach each target.",
+    Composure:  "Measures the consistency of your spending from period to period. High volatility lowers this score regardless of the total amount spent.",
+    Momentum:   "Reflects the direction of your net worth over recent periods — whether it is growing, flat, or contracting.",
+    Reserve:    "Compares your liquid assets to three months of average expenses. Indicates how long you could sustain current spending without income.",
+  };
+
   renderPillars(parent: HTMLElement, pillars: PillarResult[]) {
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
 
     pillars.forEach((p) => {
-      const row = section.createDiv(`ledgr-bearing-pillar-row${p.hasData ? "" : " ledgr-bearing-pillar-row-inactive"}`);
-      row.createSpan({ text: p.name, cls: "ledgr-bearing-pillar-name" });
+      const wrap = section.createDiv("ledgr-bearing-pillar-wrap");
+      const row = wrap.createDiv(`ledgr-bearing-pillar-row${p.hasData ? "" : " ledgr-bearing-pillar-row-inactive"}`);
+
+      // Clickable name with chevron
+      const desc = StandingView.PILLAR_DESCRIPTIONS[p.name];
+      const nameEl = row.createDiv("ledgr-bearing-pillar-name-wrap");
+      nameEl.createSpan({ text: p.name, cls: "ledgr-bearing-pillar-name" });
+      if (desc) {
+        const chevron = nameEl.createSpan({ text: " ›", cls: "ledgr-bearing-pillar-chevron" });
+        const descEl = wrap.createDiv("ledgr-bearing-pillar-desc");
+        descEl.createEl("p", { text: desc, cls: "ledgr-bearing-pillar-desc-text" });
+
+        nameEl.addClass("ledgr-bearing-pillar-name-clickable");
+        nameEl.setAttribute("role", "button");
+        nameEl.setAttribute("aria-expanded", "false");
+        nameEl.onclick = () => {
+          const expanded = wrap.hasClass("ledgr-bearing-pillar-expanded");
+          wrap.toggleClass("ledgr-bearing-pillar-expanded", !expanded);
+          chevron.textContent = expanded ? " ›" : " ˅";
+          nameEl.setAttribute("aria-expanded", String(!expanded));
+        };
+      }
 
       const barWrap = row.createDiv("ledgr-bearing-pillar-bar-wrap");
       if (p.hasData) {
@@ -244,13 +273,8 @@ export class StandingView extends ItemView {
           : "ledgr-bearing-developing";
         row.createSpan({ text: p.label, cls: `ledgr-bearing-pillar-status ${statusCls}` });
       } else {
-        // T1-3: CTA on insufficient data rows
         const ctaWrap = row.createDiv("ledgr-bearing-pillar-cta");
-        if (p.note) {
-          ctaWrap.createSpan({ text: p.note, cls: "ledgr-bearing-pillar-cta-text" });
-        } else {
-          ctaWrap.createSpan({ text: "Insufficient data", cls: "ledgr-empty" });
-        }
+        ctaWrap.createSpan({ text: p.note ?? "Insufficient data", cls: "ledgr-bearing-pillar-cta-text" });
       }
     });
   }
