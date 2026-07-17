@@ -54,6 +54,8 @@ export class StandingView extends ItemView {
         });
         if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
       });
+      // Empty header row keeps sticky zone height consistent with other tabs
+      stickyZone.createDiv("ledgr-header");
 
       // ── Calculate ──
       this.result = await calculateBearing(this.app, this.plugin.settings);
@@ -68,14 +70,14 @@ export class StandingView extends ItemView {
       }
 
       // ── Card section ──
-      const cardSection = contentEl.createDiv("ledgr-bearing-card-section");
+      const cardSection = contentEl.createDiv("ledgr-section");
 
       if (!this.result.hasEnoughData) {
         this.renderEmptyState(cardSection);
       } else {
-        // Copy card button
-        const cardHeader = cardSection.createDiv("ledgr-bearing-card-header");
-        cardHeader.createDiv("ledgr-section-header").createEl("h3", { text: "The Bearing" });
+        // Copy card button row
+        const cardHeader = cardSection.createDiv("ledgr-section-header");
+        cardHeader.createEl("h3", { text: "The Bearing" });
         const copyBtn = cardHeader.createEl("button", { text: "Copy Card", cls: "ledgr-budget-btn" });
         copyBtn.onclick = () => void this.copyCardToClipboard();
 
@@ -162,8 +164,8 @@ export class StandingView extends ItemView {
     empty.createDiv("ledgr-bearing-rule-double");
 
     // Show pillar stubs
-    const pillarsEl = parent.createDiv("ledgr-bearing-section");
-    pillarsEl.createDiv("ledgr-bearing-section-label").createSpan({ text: "P I L L A R S" });
+    const pillarsEl = parent.createDiv("ledgr-section");
+    pillarsEl.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
     ["Discipline", "Ballast", "Provision", "Composure", "Momentum", "Reserve"].forEach((name) => {
       const row = pillarsEl.createDiv("ledgr-bearing-pillar-row");
       row.createSpan({ text: name, cls: "ledgr-bearing-pillar-name" });
@@ -175,8 +177,8 @@ export class StandingView extends ItemView {
   // ── Pillars ───────────────────────────────────────────────────────────────
 
   renderPillars(parent: HTMLElement, pillars: PillarResult[]) {
-    const section = parent.createDiv("ledgr-bearing-section");
-    section.createDiv("ledgr-bearing-section-label").createSpan({ text: "P I L L A R S" });
+    const section = parent.createDiv("ledgr-section");
+    section.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
 
     pillars.forEach((p) => {
       const row = section.createDiv("ledgr-bearing-pillar-row");
@@ -206,8 +208,8 @@ export class StandingView extends ItemView {
     const entries = Object.entries(history).sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
     if (entries.length < 2) return;
 
-    const section = parent.createDiv("ledgr-bearing-section");
-    section.createDiv("ledgr-bearing-section-label").createSpan({ text: "T R E N D" });
+    const section = parent.createDiv("ledgr-section");
+    section.createDiv("ledgr-section-header").createEl("h3", { text: "Trend" });
 
     const labels = entries.map(([m]) => window.moment(m).format("MMM"));
     const values = entries.map(([, v]) => v);
@@ -270,8 +272,8 @@ export class StandingView extends ItemView {
     const weak = withData.slice(0, 2);
     if (weak.length === 0) return;
 
-    const section = parent.createDiv("ledgr-bearing-section");
-    section.createDiv("ledgr-bearing-section-label").createSpan({ text: "G U I D A N C E" });
+    const section = parent.createDiv("ledgr-section");
+    section.createDiv("ledgr-section-header").createEl("h3", { text: "Guidance" });
 
     const guidanceMap: Record<string, { text: string; tab: string; tabLabel: string }> = {
       Discipline: { text: "Your spending has exceeded budget in some categories. Review your category limits to bring Discipline into alignment.", tab: "ledgr-dashboard", tabLabel: "Dashboard" },
