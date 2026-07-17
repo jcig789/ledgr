@@ -2784,30 +2784,17 @@ button.ledgr-del-confirm,
 
 .ledgr-standing {
   padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-xl);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ledgr-standing .ledgr-sticky-zone {
-  align-self: stretch;
 }
 
 /* ── Card section ── */
 .ledgr-bearing-card-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   padding: var(--ledgr-spacing-lg) 0;
-  width: 100%;
 }
 
 .ledgr-bearing-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 320px;
-  max-width: 100%;
   margin-bottom: var(--ledgr-spacing-sm);
 }
 
@@ -2815,7 +2802,8 @@ button.ledgr-del-confirm,
 .ledgr-bearing-card {
   position: relative;
   width: 320px;
-  max-width: calc(100% - var(--ledgr-spacing-xl));
+  max-width: 100%;
+  margin: 0 auto;
   padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
   background: var(--color-base-05, #C8BFA8);
   color: var(--ledgr-accent);
@@ -2954,8 +2942,6 @@ button.ledgr-del-confirm,
 /* ── Sections ── */
 .ledgr-bearing-section {
   margin: var(--ledgr-spacing-lg) 0;
-  width: 100%;
-  max-width: 520px;
 }
 
 .ledgr-bearing-section-label {
