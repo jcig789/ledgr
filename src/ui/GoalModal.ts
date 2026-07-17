@@ -48,11 +48,10 @@ export class GoalModal extends Modal {
     new Setting(contentEl)
       .setName("Target amount")
       .addText((t) => t.setPlaceholder("0").setValue(this.targetAmount).onChange((v) => (this.targetAmount = v)))
-      .addDropdown((d) => {
+      .addDropdown((d): void => {
         [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies]
           .forEach((c) => d.addOption(c, c));
         d.setValue(this.currency).onChange((v) => (this.currency = v));
-
       });
 
     const deadlineSetting = new Setting(contentEl)
@@ -66,11 +65,10 @@ export class GoalModal extends Modal {
       new Setting(contentEl)
         .setName("Link to account")
         .setDesc("Optional — track goal from a specific account balance")
-        .addDropdown((d) => {
+        .addDropdown((d): void => {
           d.addOption("", "None");
           accounts.forEach((a) => d.addOption(a.id, `${a.name} (${a.currency})`));
           d.setValue(this.linkedAccountId).onChange((v) => (this.linkedAccountId = v));
-
         });
     }
 

@@ -75,7 +75,7 @@ export class RemittanceModal extends Modal {
 
     new Setting(contentEl)
       .setName("Service")
-      .addDropdown((d) => {
+      .addDropdown((d): void => {
         services.forEach((s) => d.addOption(s, s));
         d.setValue(this.service).onChange((v): void => {
           this.service = v;
@@ -83,7 +83,6 @@ export class RemittanceModal extends Modal {
           this.recalcTo();
           void this.render().catch(console.error);
         });
-
       });
 
     // Fee

@@ -1788,7 +1788,6 @@ button.ledgr-del-confirm,
   margin-bottom: var(--ledgr-spacing-sm);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
 }
 
 .ledgr-top-tabs::-webkit-scrollbar { display: none; }
@@ -2123,7 +2122,6 @@ button.ledgr-del-confirm,
   border-bottom: 1px solid var(--ledgr-rule);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none; /* hide scrollbar — still scrollable */
 }
 
 .ledgr-stmt-tabs::-webkit-scrollbar {
@@ -2451,17 +2449,18 @@ button.ledgr-del-confirm,
     gap: 3px;
   }
 
-  .ledgr-currency-btn {
-    padding: 2px 5px !important;
+  .ledgr-sticky-zone .ledgr-currency-btn {
+    padding: 2px 5px;
     font-size: 0.68em;
-    min-height: 22px !important;
-    min-width: 28px !important;
+    min-height: 22px;
+    min-width: 28px;
   }
 
-  .ledgr-month-row button {
-    padding: 2px 5px !important;
-    min-height: 22px !important;
-    min-width: 22px !important;
+  .ledgr-dashboard .ledgr-month-row button,
+  .ledgr-networth .ledgr-month-row button {
+    padding: 2px 5px;
+    min-height: 22px;
+    min-width: 22px;
     font-size: 0.75em;
   }
 
@@ -2469,22 +2468,22 @@ button.ledgr-del-confirm,
     font-size: 0.78em;
   }
 
-  .ledgr-log-btn {
-    padding: 3px 8px !important;
+  .ledgr-sticky-zone .ledgr-log-btn {
+    padding: 3px 8px;
     font-size: 0.7em;
-    min-height: 22px !important;
+    min-height: 22px;
   }
 
-  .ledgr-budget-btn {
-    padding: 2px 6px !important;
+  .ledgr-sticky-zone .ledgr-budget-btn {
+    padding: 2px 6px;
     font-size: 0.68em;
-    min-height: 22px !important;
+    min-height: 22px;
   }
 
-  .ledgr-icon-btn {
-    padding: 2px 5px !important;
-    min-width: 22px !important;
-    min-height: 22px !important;
+  .ledgr-sticky-zone .ledgr-icon-btn {
+    padding: 2px 5px;
+    min-width: 22px;
+    min-height: 22px;
   }
 
   .ledgr-controls-row,

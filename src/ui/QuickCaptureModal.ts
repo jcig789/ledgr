@@ -90,11 +90,10 @@ export class QuickCaptureModal extends Modal {
         this.amtInput = t.inputEl;
         return t;
       })
-      .addDropdown((d) => {
+      .addDropdown((d): void => {
         const currencies = [this.settings.baseCurrency, ...this.settings.secondaryCurrencies];
         currencies.forEach((c) => d.addOption(c, c));
         d.setValue(this.currency).onChange((v) => (this.currency = v));
-
       });
 
     // Amount error placeholder
@@ -106,7 +105,7 @@ export class QuickCaptureModal extends Modal {
 
     new Setting(contentEl)
       .setName("Category")
-      .addDropdown((d) => {
+      .addDropdown((d): void => {
         catNames.forEach((c) => d.addOption(c, c));
         d.setValue(this.category).onChange((v): void => {
           this.category = v;
@@ -122,18 +121,16 @@ export class QuickCaptureModal extends Modal {
             subDrop.value = this.subcategory;
           }
         });
-
       });
 
     // Subcategory
     const subs = catMap[this.category] ?? ["Other"];
     new Setting(contentEl)
       .setName("Subcategory")
-      .addDropdown((d) => {
+      .addDropdown((d): void => {
         subs.forEach((s) => d.addOption(s, s));
         d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
         d.selectEl.addClass("ledgr-sub-dropdown");
-
       });
 
     // Note
