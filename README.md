@@ -169,4 +169,4 @@ Create a `.env` file in the repo root with `VAULT_PATH=/path/to/vault` to avoid 
 - Recurring transaction templates
 - Historical exchange rate tracking
 - Net worth snapshots over time
-- OFW pack — recipient tracking, rate alerts, dual-household view
+- Multi-household / multi-country view
