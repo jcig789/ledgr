@@ -287,9 +287,16 @@ export class StatementsView extends ItemView {
     const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
     const thead = table.createEl("thead");
     const hrow = thead.createEl("tr");
-    ["Month", "Inflows", "Outflows", "Net Cash"].forEach((h) => {
-      const th = hrow.createEl("th", { text: h });
-      if (h !== "Month") th.addClass("ledgr-text-right");
+    [
+      { full: "Month",    short: "Month" },
+      { full: "Inflows",  short: "In" },
+      { full: "Outflows", short: "Out" },
+      { full: "Net Cash", short: "Net" },
+    ].forEach(({ full, short }) => {
+      const th = hrow.createEl("th");
+      th.createSpan({ text: full, cls: "ledgr-cf-hdr-full" });
+      th.createSpan({ text: short, cls: "ledgr-cf-hdr-short" });
+      if (full !== "Month") th.addClass("ledgr-text-right");
     });
 
     const tbody = table.createEl("tbody");

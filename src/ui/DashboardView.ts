@@ -641,8 +641,13 @@ export class DashboardView extends ItemView {
     const cta = state.createEl("button", { text: "+ Add your first transaction", cls: "ledgr-log-btn mod-cta ledgr-first-run-cta" });
     cta.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings, this.currentMonth).open();
 
-    const remitCta = state.createEl("button", { text: "Log a transfer", cls: "ledgr-budget-btn ledgr-first-run-remit" });
-    remitCta.onclick = () => new RemittanceModal(this.app, this.plugin).open();
+    if (this.plugin.settings.enableTransferTracker) {
+      const remitCta = state.createEl("button", { text: "Log a transfer", cls: "ledgr-budget-btn ledgr-first-run-remit" });
+      remitCta.onclick = () => new RemittanceModal(this.app, this.plugin).open();
+    } else {
+      const nwCta = state.createEl("button", { text: "Set up Net Worth", cls: "ledgr-budget-btn ledgr-first-run-remit" });
+      nwCta.onclick = () => void this.plugin.openView("ledgr-networth");
+    }
 
     if (!this.plugin.settings.exchangeRates.updatedAt) {
       const hint = state.createEl("p", { cls: "ledgr-first-run-hint" });

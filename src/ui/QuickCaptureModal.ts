@@ -11,7 +11,7 @@ export class QuickCaptureModal extends Modal {
   settings: LedgrSettings;
   type: TransactionType = "expense";
   amount = "";
-  currency: Currency;
+  currency: Currency = "";
   category = "Food & Drink";
   subcategory = "Groceries";
   note = "";
@@ -22,7 +22,6 @@ export class QuickCaptureModal extends Modal {
   constructor(app: App, settings: LedgrSettings, contextMonth?: string) {
     super(app);
     this.settings = settings;
-    this.currency = settings.baseCurrency;
     // If viewing a historical month, default date to last day of that month
     // If viewing current or future month, default to today
     const today = window.moment().format("YYYY-MM");
@@ -34,6 +33,7 @@ export class QuickCaptureModal extends Modal {
   }
 
   async onOpen() {
+    this.currency = this.settings.baseCurrency;
     this.catStore = await loadCategories(this.app, this.settings);
     const firstCat = Object.keys(this.catStore.expense)[0] ?? "Other";
     if (!this.catStore.expense[this.category]) {

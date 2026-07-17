@@ -2370,6 +2370,8 @@ button.ledgr-del-confirm,
   border-collapse: collapse;
   font-size: var(--ledgr-font-body);
 }
+.ledgr-cf-hdr-full  { display: inline; }
+.ledgr-cf-hdr-short { display: none; }
 .ledgr-stmt-cf-table th {
   font-variant: small-caps;
   font-size: var(--ledgr-font-label);
@@ -2677,24 +2679,10 @@ button.ledgr-del-confirm,
   .ledgr-stmt-cf-table th:nth-child(4),
   .ledgr-stmt-cf-table td:nth-child(4) { width: 23.33%; }
 
-  /* Abbreviated headers via ::after — collapse real text, substitute short label */
-  .ledgr-stmt-cf-table thead th {
-    font-size: 0;
-    letter-spacing: 0;
-  }
-
-  .ledgr-stmt-cf-table thead th::after {
-    font-size: var(--ledgr-font-label);
-    font-variant: small-caps;
-    letter-spacing: 0.06em;
-    font-weight: 500;
-    color: var(--ledgr-text-secondary);
-  }
-
-  .ledgr-stmt-cf-table thead th:nth-child(1)::after { content: "Month"; }
-  .ledgr-stmt-cf-table thead th:nth-child(2)::after { content: "In"; }
-  .ledgr-stmt-cf-table thead th:nth-child(3)::after { content: "Out"; }
-  .ledgr-stmt-cf-table thead th:nth-child(4)::after { content: "Net"; }
+  /* Compressed header text for mobile — show short labels, hide full labels */
+  .ledgr-stmt-cf-table thead th { font-size: var(--ledgr-font-label); }
+  .ledgr-cf-hdr-full  { display: none; }
+  .ledgr-cf-hdr-short { display: inline; }
 }
 
 /* ─── Utility classes (used instead of inline styles) ─────────────────── */
