@@ -19,6 +19,7 @@ export interface LedgrSettings {
   firstRun: boolean;
   appendToDailyNote: boolean;
   dailyNotePath: string; // folder path for daily notes
+  bearingExplainerCollapsed: boolean;
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -43,4 +44,5 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   firstRun: true,
   appendToDailyNote: false,
   dailyNotePath: "",
+  bearingExplainerCollapsed: false,
 };

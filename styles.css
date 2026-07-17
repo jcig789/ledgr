@@ -2804,19 +2804,21 @@ button.ledgr-del-confirm,
   max-width: 100%;
   margin: 0 auto;
   padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
-  background: var(--color-base-05, #C8BFA8);
+  background: #F0E8D8;
   color: var(--ledgr-accent);
-  border: 1px solid var(--ledgr-rule);
+  border: 1px solid rgba(44,44,44,0.15);
   border-radius: 2px;
   text-align: center;
   font-family: Georgia, 'Times New Roman', serif;
   box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
 }
 
 .theme-dark .ledgr-bearing-card {
   background: #1a1a1a;
   color: #C8BFA8;
   border-color: rgba(200,191,168,0.2);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.4);
 }
 
 /* Corner marks */
@@ -2892,16 +2894,6 @@ button.ledgr-del-confirm,
   white-space: nowrap;
 }
 
-.ledgr-bearing-grade {
-  margin-bottom: var(--ledgr-spacing-sm);
-}
-
-.ledgr-bearing-grade-label {
-  font-size: 0.6em;
-  letter-spacing: 0.35em;
-  opacity: 0.6;
-  font-variant: small-caps;
-}
 
 .ledgr-bearing-index-row {
   display: flex;
@@ -3061,4 +3053,115 @@ button.ledgr-del-confirm,
   color: var(--ledgr-text-faint);
   margin: 2px 0;
   font-style: italic;
+}
+
+/* ── Explainer (T1-1) ── */
+.ledgr-bearing-explainer {
+  margin-bottom: var(--ledgr-spacing-sm);
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  overflow: hidden;
+}
+
+.ledgr-bearing-explainer-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  cursor: pointer;
+  user-select: none;
+  background: var(--ledgr-surface-raised);
+}
+
+.ledgr-bearing-explainer-arrow {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  width: 10px;
+}
+
+.ledgr-bearing-explainer-title {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-bearing-explainer-body {
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md) var(--ledgr-spacing-md);
+  border-top: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-bearing-explainer-text {
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text-secondary);
+  line-height: 1.55;
+  margin: 0 0 var(--ledgr-spacing-xs);
+}
+
+.ledgr-bearing-explainer-note {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ── Card meta row (T2-1, T2-3) ── */
+.ledgr-bearing-card-meta {
+  display: flex;
+  gap: var(--ledgr-spacing-sm);
+  justify-content: center;
+  margin-top: var(--ledgr-spacing-sm);
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+}
+
+.ledgr-bearing-card-meta-sep { opacity: 0.4; }
+
+/* ── Subtitle on card (T2-4) ── */
+.ledgr-bearing-subtitle { margin-bottom: 2px; }
+.ledgr-bearing-subtitle-text {
+  font-size: 0.55em;
+  letter-spacing: 0.18em;
+  opacity: 0.45;
+  font-variant: small-caps;
+}
+
+/* ── Pillar CTA on insufficient data (T1-3) ── */
+.ledgr-bearing-pillar-row-inactive { opacity: 0.7; }
+.ledgr-bearing-pillar-cta {
+  flex: 0 0 auto;
+  max-width: 200px;
+  text-align: right;
+}
+.ledgr-bearing-pillar-cta-text {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+}
+
+/* ── Guidance gap sentence (T2-2) ── */
+.ledgr-bearing-guidance-gap {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  margin: 0 0 2px;
+  font-style: italic;
+}
+
+/* ── Setup section for missing pillars (T1-3) ── */
+.ledgr-bearing-setup-section {
+  margin-top: var(--ledgr-spacing-md);
+  padding-top: var(--ledgr-spacing-sm);
+  border-top: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-bearing-setup-label {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  font-variant: small-caps;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+.ledgr-bearing-setup-item {
+  padding: var(--ledgr-spacing-xs) 0;
 }

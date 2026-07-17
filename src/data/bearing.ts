@@ -215,7 +215,7 @@ function calcReserve(
 
   const avgExpenses = mean(recentMonths.slice(-3));
   if (avgExpenses === 0) {
-    return { name, score: 0, max: pillarMax, label: "Insufficient", hasData: false };
+    return { name, score: 0, max: pillarMax, label: "Insufficient", hasData: false, note: "Add expense data to measure Reserve." };
   }
 
   const monthsCovered = liquidAssets / avgExpenses;

@@ -69,34 +69,73 @@ export class StandingView extends ItemView {
         await saveBearingHistory(this.app, this.plugin.settings, history);
       }
 
+      // ── Explainer (T1-1) ──
+      this.renderExplainer(contentEl);
+
       // ── Card section ──
       const cardSection = contentEl.createDiv("ledgr-section");
 
       if (!this.result.hasEnoughData) {
         this.renderEmptyState(cardSection);
       } else {
-        // Copy card button row
         const cardHeader = cardSection.createDiv("ledgr-section-header");
         cardHeader.createEl("h3", { text: "The Bearing" });
         const copyBtn = cardHeader.createEl("button", { text: "Copy Card", cls: "ledgr-budget-btn" });
         copyBtn.onclick = () => void this.copyCardToClipboard();
 
         this.renderCard(cardSection, this.result);
+
+        // T2-1: Active pillar count + T2-3: Last assessed
+        const activePillars = this.result.pillars.filter((p) => p.hasData).length;
+        const metaRow = cardSection.createDiv("ledgr-bearing-card-meta");
+        metaRow.createSpan({ text: `Scored from ${activePillars} of 6 pillars`, cls: "ledgr-bearing-card-meta-item" });
+        if (history.lastCalculated) {
+          metaRow.createSpan({ text: "·", cls: "ledgr-bearing-card-meta-sep" });
+          metaRow.createSpan({
+            text: `Last assessed ${window.moment(history.lastCalculated).format("D MMM YYYY")}`,
+            cls: "ledgr-bearing-card-meta-item",
+          });
+        }
       }
 
       if (this.result.hasEnoughData) {
-        // ── Pillars ──
         this.renderPillars(contentEl, this.result.pillars);
-
-        // ── Trend ──
         this.renderTrend(contentEl, history.history);
-
-        // ── Guidance ──
         this.renderGuidance(contentEl, this.result.pillars);
       }
     } finally {
       this.isRendering = false;
     }
+  }
+
+  // ── Explainer (T1-1) ─────────────────────────────────────────────────────
+
+  renderExplainer(parent: HTMLElement) {
+    const collapsed = this.plugin.settings.bearingExplainerCollapsed;
+    const wrap = parent.createDiv("ledgr-bearing-explainer");
+
+    const toggle = wrap.createDiv("ledgr-bearing-explainer-toggle");
+    const arrow = toggle.createSpan({ text: collapsed ? "▸" : "▾", cls: "ledgr-bearing-explainer-arrow" });
+    toggle.createSpan({ text: "About The Bearing", cls: "ledgr-bearing-explainer-title" });
+
+    const body = wrap.createDiv("ledgr-bearing-explainer-body");
+    if (collapsed) body.addClass("ledgr-hidden");
+
+    body.createEl("p", {
+      text: "The Bearing is a composite financial health index scored from 0 to 100. It reflects your behavior across six pillars — budget discipline, debt posture, savings progress, spending consistency, net worth direction, and liquid reserves. A higher score indicates stronger overall financial footing.",
+      cls: "ledgr-bearing-explainer-text",
+    });
+    body.createEl("p", {
+      text: "Pillars without sufficient data are excluded from the calculation; the remaining pillars are renormalized to maintain a 0–100 scale.",
+      cls: "ledgr-bearing-explainer-text ledgr-bearing-explainer-note",
+    });
+
+    toggle.onclick = async () => {
+      this.plugin.settings.bearingExplainerCollapsed = !this.plugin.settings.bearingExplainerCollapsed;
+      await this.plugin.saveSettings();
+      body.toggleClass("ledgr-hidden", this.plugin.settings.bearingExplainerCollapsed);
+      arrow.textContent = this.plugin.settings.bearingExplainerCollapsed ? "▸" : "▾";
+    };
   }
 
   // ── Card ──────────────────────────────────────────────────────────────────
@@ -114,11 +153,13 @@ export class StandingView extends ItemView {
     card.createDiv("ledgr-bearing-rule-double");
 
     // Header
-    const hdr = card.createDiv("ledgr-bearing-card-hdr");
-    hdr.createSpan({ text: "L E D G R", cls: "ledgr-bearing-wordmark" });
+    card.createDiv("ledgr-bearing-card-hdr").createSpan({ text: "L E D G R", cls: "ledgr-bearing-wordmark" });
 
     // Thin rule
     card.createDiv("ledgr-bearing-rule-thin");
+
+    // T2-4: Subtitle — shared vocabulary
+    card.createDiv("ledgr-bearing-subtitle").createSpan({ text: "Financial Health Index", cls: "ledgr-bearing-subtitle-text" });
 
     // Metric name
     card.createDiv("ledgr-bearing-metric-name").createSpan({ text: "T H E  B E A R I N G" });
@@ -130,16 +171,10 @@ export class StandingView extends ItemView {
     // Thin rule
     card.createDiv("ledgr-bearing-rule-thin");
 
-    // Tier
+    // Tier (T1-4: CLASS IV removed)
     card.createDiv("ledgr-bearing-tier").createSpan({
       text: result.tier.toUpperCase().split("").join(" "),
       cls: "ledgr-bearing-tier-label",
-    });
-
-    // Grade
-    card.createDiv("ledgr-bearing-grade").createSpan({
-      text: `C L A S S   ${result.grade}`,
-      cls: "ledgr-bearing-grade-label",
     });
 
     // Index
@@ -163,14 +198,23 @@ export class StandingView extends ItemView {
     });
     empty.createDiv("ledgr-bearing-rule-double");
 
-    // Show pillar stubs
+    // Show pillar stubs with setup notes
     const pillarsEl = parent.createDiv("ledgr-section");
     pillarsEl.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
-    ["Discipline", "Ballast", "Provision", "Composure", "Momentum", "Reserve"].forEach((name) => {
-      const row = pillarsEl.createDiv("ledgr-bearing-pillar-row");
+    const stubNotes: Record<string, string> = {
+      Discipline: "Set budgets to measure discipline.",
+      Ballast:    "Add accounts and liabilities to measure leverage.",
+      Provision:  "Add savings goals to measure provision.",
+      Composure:  "Building history — need at least 2 months.",
+      Momentum:   "Building history — need at least 2 months.",
+      Reserve:    "Add expense data to measure reserve.",
+    };
+    Object.entries(stubNotes).forEach(([name, note]) => {
+      const row = pillarsEl.createDiv("ledgr-bearing-pillar-row ledgr-bearing-pillar-row-inactive");
       row.createSpan({ text: name, cls: "ledgr-bearing-pillar-name" });
       row.createDiv("ledgr-bearing-pillar-bar-wrap").createDiv("ledgr-bearing-pillar-bar-empty");
-      row.createSpan({ text: "Insufficient data", cls: "ledgr-bearing-pillar-status ledgr-empty" });
+      const ctaWrap = row.createDiv("ledgr-bearing-pillar-cta");
+      ctaWrap.createSpan({ text: note, cls: "ledgr-bearing-pillar-cta-text" });
     });
   }
 
@@ -181,7 +225,7 @@ export class StandingView extends ItemView {
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
 
     pillars.forEach((p) => {
-      const row = section.createDiv("ledgr-bearing-pillar-row");
+      const row = section.createDiv(`ledgr-bearing-pillar-row${p.hasData ? "" : " ledgr-bearing-pillar-row-inactive"}`);
       row.createSpan({ text: p.name, cls: "ledgr-bearing-pillar-name" });
 
       const barWrap = row.createDiv("ledgr-bearing-pillar-bar-wrap");
@@ -194,11 +238,20 @@ export class StandingView extends ItemView {
         barWrap.createDiv("ledgr-bearing-pillar-bar-empty");
       }
 
-      const statusCls = !p.hasData ? "ledgr-empty"
-        : p.label === "Strong" ? "ledgr-bearing-strong"
-        : p.label === "Moderate" ? "ledgr-bearing-moderate"
-        : "ledgr-bearing-developing";
-      row.createSpan({ text: p.hasData ? p.label : "Insufficient data", cls: `ledgr-bearing-pillar-status ${statusCls}` });
+      if (p.hasData) {
+        const statusCls = p.label === "Strong" ? "ledgr-bearing-strong"
+          : p.label === "Moderate" ? "ledgr-bearing-moderate"
+          : "ledgr-bearing-developing";
+        row.createSpan({ text: p.label, cls: `ledgr-bearing-pillar-status ${statusCls}` });
+      } else {
+        // T1-3: CTA on insufficient data rows
+        const ctaWrap = row.createDiv("ledgr-bearing-pillar-cta");
+        if (p.note) {
+          ctaWrap.createSpan({ text: p.note, cls: "ledgr-bearing-pillar-cta-text" });
+        } else {
+          ctaWrap.createSpan({ text: "Insufficient data", cls: "ledgr-empty" });
+        }
+      }
     });
   }
 
@@ -269,8 +322,10 @@ export class StandingView extends ItemView {
 
   renderGuidance(parent: HTMLElement, pillars: PillarResult[]) {
     const withData = pillars.filter((p) => p.hasData).sort((a, b) => (a.score / a.max) - (b.score / b.max));
+    const missing = pillars.filter((p) => !p.hasData && p.note);
     const weak = withData.slice(0, 2);
-    if (weak.length === 0) return;
+
+    if (weak.length === 0 && missing.length === 0) return;
 
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Guidance" });
@@ -284,17 +339,38 @@ export class StandingView extends ItemView {
       Reserve:    { text: "Your liquid reserves cover less than three months of expenses. Building this buffer is a foundational step.", tab: "ledgr-networth", tabLabel: "Net Worth" },
     };
 
+    // T2-2: Weak active pillars with gap numbers
     weak.forEach((p) => {
       const g = guidanceMap[p.name];
       if (!g) return;
       const item = section.createDiv("ledgr-bearing-guidance-item");
       item.createSpan({ text: p.name, cls: "ledgr-bearing-guidance-pillar" });
+      // Gap as % of pillar ceiling — raw points are uninterpretable after renormalization
+      const pctOfCeiling = p.max > 0 ? Math.round((p.score / p.max) * 100) : 0;
+      const gapPct = 100 - pctOfCeiling;
+      if (gapPct > 0) {
+        item.createEl("p", {
+          text: `${p.name} is at ${pctOfCeiling}% of its ceiling — ${gapPct}% of potential remaining.`,
+          cls: "ledgr-bearing-guidance-gap",
+        });
+      }
       item.createEl("p", { text: g.text, cls: "ledgr-bearing-guidance-text" });
       const link = item.createEl("a", { text: `Review in ${g.tabLabel} →`, cls: "ledgr-bearing-guidance-link" });
       link.onclick = (e) => { e.preventDefault(); void this.plugin.openView(g.tab); };
     });
 
-    // Also show notes from pillars (e.g. "Mortgage and all debt types are weighted equally")
+    // T1-3: Setup items for pillars with no data
+    if (missing.length > 0) {
+      const setupWrap = section.createDiv("ledgr-bearing-setup-section");
+      setupWrap.createDiv("ledgr-bearing-setup-label").createSpan({ text: "To activate more pillars:" });
+      missing.forEach((p) => {
+        const item = setupWrap.createDiv("ledgr-bearing-setup-item");
+        item.createSpan({ text: p.name, cls: "ledgr-bearing-guidance-pillar" });
+        item.createEl("p", { text: p.note ?? "", cls: "ledgr-bearing-guidance-text" });
+      });
+    }
+
+    // Notes (e.g. "Mortgage and all debt types are weighted equally")
     const notes = pillars.filter((p) => p.hasData && p.note);
     if (notes.length > 0) {
       const noteWrap = section.createDiv("ledgr-bearing-notes");
@@ -312,14 +388,14 @@ export class StandingView extends ItemView {
 
     // Render card to canvas
     const canvas = document.createElement("canvas");
-    const W = 400, H = 520;
+    const W = 400, H = 500;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const isDark = document.body.hasClass("theme-dark");
-    const bg = isDark ? "#2C2C2C" : "#C8BFA8";
+    const bg = isDark ? "#2C2C2C" : "#F0E8D8";
     const fg = isDark ? "#C8BFA8" : "#2C2C2C";
     const fgFaint = isDark ? "rgba(200,191,168,0.45)" : "rgba(44,44,44,0.45)";
 
@@ -360,39 +436,39 @@ export class StandingView extends ItemView {
     ctx.font = "600 13px 'Georgia', serif";
     ctx.letterSpacing = "6px";
     ctx.textAlign = "center";
-    ctx.fillText("L E D G R", W / 2, 70);
+    ctx.fillText("L E D G R", W / 2, 68);
 
-    drawThinRule(85);
+    drawThinRule(82);
+
+    // T2-4: Financial Health Index subtitle
+    ctx.font = "300 9px 'Georgia', serif";
+    ctx.letterSpacing = "3px";
+    ctx.fillStyle = fgFaint;
+    ctx.fillText("Financial Health Index", W / 2, 100);
 
     // THE BEARING
-    ctx.font = "400 11px 'Georgia', serif";
+    ctx.font = "400 10px 'Georgia', serif";
     ctx.letterSpacing = "5px";
     ctx.fillStyle = fgFaint;
-    ctx.fillText("T H E  B E A R I N G", W / 2, 110);
+    ctx.fillText("T H E  B E A R I N G", W / 2, 118);
 
     // Draw assay seal (canvas version)
-    this.drawSealOnCanvas(ctx, W / 2, 220, 80, fg, fgFaint);
+    this.drawSealOnCanvas(ctx, W / 2, 215, 80, fg, fgFaint);
 
-    drawThinRule(295);
+    drawThinRule(282);
 
-    // Tier
+    // Tier (T1-4: CLASS IV removed)
     ctx.font = "700 20px 'Georgia', serif";
     ctx.letterSpacing = "5px";
     ctx.fillStyle = fg;
     const tierSpaced = result.tier.toUpperCase().split("").join(" ");
-    ctx.fillText(tierSpaced, W / 2, 330);
-
-    // Grade
-    ctx.font = "400 11px 'Georgia', serif";
-    ctx.letterSpacing = "4px";
-    ctx.fillStyle = fgFaint;
-    ctx.fillText(`C L A S S   ${result.grade}`, W / 2, 355);
+    ctx.fillText(tierSpaced, W / 2, 318);
 
     // Index
     ctx.font = "300 13px 'Georgia', serif";
     ctx.letterSpacing = "2px";
     ctx.fillStyle = fg;
-    ctx.fillText(`Index  ·  ${result.score}`, W / 2, 395);
+    ctx.fillText(`Index  ·  ${result.score}`, W / 2, 350);
 
     try {
       canvas.toBlob(async (blob) => {
