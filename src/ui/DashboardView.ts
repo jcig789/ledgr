@@ -89,9 +89,10 @@ export class DashboardView extends ItemView {
     // Tab navigation
     const tabNav = stickyZone.createDiv("ledgr-top-tabs");
     const tabPages = [
-      { key: "dashboard", label: "Dashboard", viewType: "ledgr-dashboard" },
-      { key: "networth",  label: "Net Worth",  viewType: "ledgr-networth" },
-      { key: "statements",label: "Statements", viewType: "ledgr-statements" },
+      { key: "dashboard",  label: "Dashboard",  viewType: "ledgr-dashboard" },
+      { key: "networth",   label: "Net Worth",   viewType: "ledgr-networth" },
+      { key: "statements", label: "Statements",  viewType: "ledgr-statements" },
+      { key: "standing",   label: "Standing",    viewType: "ledgr-standing" },
     ];
     tabPages.forEach(({ key, label, viewType }) => {
       const isActive = key === "dashboard";

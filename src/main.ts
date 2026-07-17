@@ -15,6 +15,7 @@ import { ConfigModal } from "./ui/ConfigModal";
 import { RemittanceModal } from "./ui/RemittanceModal";
 import { OnboardingModal } from "./ui/OnboardingModal";
 import { StatementsView, STATEMENTS_VIEW_TYPE } from "./ui/StatementsView";
+import { StandingView, STANDING_VIEW_TYPE } from "./ui/StandingView";
 import { MonthlyReviewModal } from "./ui/MonthlyReviewModal";
 import { WrappedModal } from "./ui/WrappedModal";
 
@@ -27,6 +28,7 @@ export default class LedgrPlugin extends Plugin {
     this.registerView(DASHBOARD_VIEW_TYPE, (leaf) => new DashboardView(leaf, this));
     this.registerView(NETWORTH_VIEW_TYPE, (leaf) => new NetWorthView(leaf, this));
     this.registerView(STATEMENTS_VIEW_TYPE, (leaf) => new StatementsView(leaf, this));
+    this.registerView(STANDING_VIEW_TYPE, (leaf) => new StandingView(leaf, this));
 
     this.addRibbonIcon("wallet", "Ledgr — Open dashboard", () => {
       void this.openDashboard();
@@ -97,6 +99,12 @@ export default class LedgrPlugin extends Plugin {
       id: "open-statements",
       name: "Open financial statements",
       callback: () => { void this.openView(STATEMENTS_VIEW_TYPE); },
+    });
+
+    this.addCommand({
+      id: "open-standing",
+      name: "Open Standing (The Bearing)",
+      callback: () => { void this.openView(STANDING_VIEW_TYPE); },
     });
 
     this.addCommand({

@@ -625,3 +625,77 @@ export function renderBudgetScale(
   zoneRow.createSpan({ text: zones.center, cls: "ledgr-scale-zone-label" });
   zoneRow.createSpan({ text: zones.right, cls: "ledgr-scale-zone-label" });
 }
+
+// ─── renderAssaySeal ──────────────────────────────────────────────────────────
+/**
+ * The Bearing's assay mark — a geometric certification seal inspired by
+ * hallmarking tradition. Built entirely from SVG paths, monochrome.
+ */
+export function renderAssaySeal(parent: HTMLElement, size = 80): SVGElement {
+  const cx = size / 2;
+  const cy = size / 2;
+  const scale = size / 80;
+
+  const svg = parent.createSvg("svg", {
+    attr: {
+      viewBox: `0 0 ${size} ${size}`,
+      width: String(size),
+      height: String(size),
+      "aria-hidden": "true",
+      class: "ledgr-assay-seal",
+    },
+  });
+
+  const s = (v: number) => v * scale;
+  const sw = (v: number) => String(v * scale);
+
+  // Outer ring
+  svg.createSvg("circle", { attr: { cx: String(cx), cy: String(cy), r: sw(38), "stroke-width": sw(0.75), fill: "none", stroke: "currentColor" } });
+
+  // Inner ring
+  svg.createSvg("circle", { attr: { cx: String(cx), cy: String(cy), r: sw(32), "stroke-width": sw(0.75), fill: "none", stroke: "currentColor" } });
+
+  // Octagon (regular 8-gon, rotated 22.5°, r=28)
+  const octR = s(28);
+  const octPts = Array.from({ length: 8 }, (_, i) => {
+    const angle = (Math.PI / 4) * i + (Math.PI / 8);
+    return `${cx + octR * Math.cos(angle)},${cy + octR * Math.sin(angle)}`;
+  }).join(" ");
+  svg.createSvg("polygon", { attr: { points: octPts, "stroke-width": sw(0.75), fill: "none", stroke: "currentColor" } });
+
+  // Cross lines (horizontal + vertical, stopping at octagon boundary r=28)
+  const lineR = s(28);
+  svg.createSvg("line", { attr: { x1: String(cx - lineR), y1: String(cy), x2: String(cx + lineR), y2: String(cy), "stroke-width": sw(0.5), stroke: "currentColor" } });
+  svg.createSvg("line", { attr: { x1: String(cx), y1: String(cy - lineR), x2: String(cx), y2: String(cy + lineR), "stroke-width": sw(0.5), stroke: "currentColor" } });
+
+  // Diagonal lines (45°/135°)
+  const diagR = s(28) * Math.cos(Math.PI / 4);
+  svg.createSvg("line", { attr: { x1: String(cx - diagR), y1: String(cy - diagR), x2: String(cx + diagR), y2: String(cy + diagR), "stroke-width": sw(0.5), stroke: "currentColor" } });
+  svg.createSvg("line", { attr: { x1: String(cx + diagR), y1: String(cy - diagR), x2: String(cx - diagR), y2: String(cy + diagR), "stroke-width": sw(0.5), stroke: "currentColor" } });
+
+  // Center pinpoint
+  svg.createSvg("circle", { attr: { cx: String(cx), cy: String(cy), r: sw(1.5), fill: "currentColor" } });
+
+  // Cardinal diamonds (rotated squares at cardinal midpoints)
+  const dR = s(17);
+  const dHalf = s(2.2);
+  [[cx + dR, cy], [cx - dR, cy], [cx, cy + dR], [cx, cy - dR]].forEach(([dx, dy]) => {
+    const pts = [
+      `${dx},${dy - dHalf}`,
+      `${dx + dHalf},${dy}`,
+      `${dx},${dy + dHalf}`,
+      `${dx - dHalf},${dy}`,
+    ].join(" ");
+    svg.createSvg("polygon", { attr: { points: pts, fill: "currentColor" } });
+  });
+
+  // Inner hexagon (focal anchor)
+  const hexR = s(8);
+  const hexPts = Array.from({ length: 6 }, (_, i) => {
+    const angle = (Math.PI / 3) * i;
+    return `${cx + hexR * Math.cos(angle)},${cy + hexR * Math.sin(angle)}`;
+  }).join(" ");
+  svg.createSvg("polygon", { attr: { points: hexPts, "stroke-width": sw(0.5), fill: "none", stroke: "currentColor" } });
+
+  return svg;
+}

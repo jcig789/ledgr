@@ -74,8 +74,9 @@ export class NetWorthView extends ItemView {
     const tabNav = stickyZone.createDiv("ledgr-top-tabs");
     [
       { key: "dashboard",  label: "Dashboard",  viewType: "ledgr-dashboard" },
-      { key: "networth",   label: "Net Worth",  viewType: "ledgr-networth" },
-      { key: "statements", label: "Statements", viewType: "ledgr-statements" },
+      { key: "networth",   label: "Net Worth",   viewType: "ledgr-networth" },
+      { key: "statements", label: "Statements",  viewType: "ledgr-statements" },
+      { key: "standing",   label: "Standing",    viewType: "ledgr-standing" },
     ].forEach(({ key, label, viewType }) => {
       const isActive = key === "networth";
       const btn = tabNav.createEl("button", {

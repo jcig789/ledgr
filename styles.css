@@ -2779,3 +2779,289 @@ button.ledgr-del-confirm,
 .ledgr-lpay-arrow { color: var(--ledgr-text-faint); }
 .ledgr-lpay-payment { color: var(--ledgr-red); font-weight: 500; }
 .ledgr-lpay-remaining { color: var(--ledgr-green); font-weight: 500; }
+
+/* ─── Standing / The Bearing ─────────────────────────────────────────────── */
+
+.ledgr-standing {
+  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-xl);
+}
+
+/* ── Card section ── */
+.ledgr-bearing-card-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--ledgr-spacing-lg) 0;
+}
+
+.ledgr-bearing-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+/* ── The card itself ── */
+.ledgr-bearing-card {
+  position: relative;
+  width: 320px;
+  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
+  background: var(--color-base-05, #C8BFA8);
+  color: var(--ledgr-accent);
+  border: 1px solid var(--ledgr-rule);
+  border-radius: 2px;
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.theme-dark .ledgr-bearing-card {
+  background: #1a1a1a;
+  color: #C8BFA8;
+  border-color: rgba(200,191,168,0.2);
+}
+
+/* Corner marks */
+.ledgr-bearing-corner {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-color: currentColor;
+  border-style: solid;
+  opacity: 0.6;
+}
+.ledgr-bearing-corner-tl { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+.ledgr-bearing-corner-tr { top: 10px; right: 10px; border-width: 1px 1px 0 0; }
+.ledgr-bearing-corner-bl { bottom: 10px; left: 10px; border-width: 0 0 1px 1px; }
+.ledgr-bearing-corner-br { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+/* Rules */
+.ledgr-bearing-rule-double {
+  width: 100%;
+  height: 4px;
+  border-top: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  margin: var(--ledgr-spacing-sm) 0;
+  opacity: 0.5;
+}
+
+.ledgr-bearing-rule-thin {
+  width: 80%;
+  margin: var(--ledgr-spacing-sm) auto;
+  border-top: 1px solid currentColor;
+  opacity: 0.25;
+}
+
+/* Card content */
+.ledgr-bearing-card-hdr { margin-bottom: 2px; }
+
+.ledgr-bearing-wordmark {
+  font-size: 0.65em;
+  letter-spacing: 0.45em;
+  font-variant: small-caps;
+  opacity: 0.7;
+}
+
+.ledgr-bearing-metric-name {
+  font-size: 0.6em;
+  letter-spacing: 0.4em;
+  font-variant: small-caps;
+  opacity: 0.55;
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-bearing-seal-wrap {
+  display: flex;
+  justify-content: center;
+  margin: var(--ledgr-spacing-md) 0;
+  opacity: 0.85;
+}
+
+.ledgr-assay-seal {
+  display: block;
+}
+
+.ledgr-bearing-tier {
+  margin: var(--ledgr-spacing-sm) 0 2px;
+}
+
+.ledgr-bearing-tier-label {
+  font-size: 1.1em;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  font-variant: small-caps;
+}
+
+.ledgr-bearing-grade {
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-bearing-grade-label {
+  font-size: 0.6em;
+  letter-spacing: 0.35em;
+  opacity: 0.6;
+  font-variant: small-caps;
+}
+
+.ledgr-bearing-index-row {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  margin: var(--ledgr-spacing-sm) 0;
+}
+
+.ledgr-bearing-index-label {
+  font-size: 0.65em;
+  letter-spacing: 0.2em;
+  opacity: 0.55;
+  font-variant: small-caps;
+}
+
+.ledgr-bearing-index-sep { opacity: 0.3; font-size: 0.8em; }
+
+.ledgr-bearing-index-value {
+  font-size: 1.3em;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+/* ── Empty state ── */
+.ledgr-bearing-empty {
+  width: 320px;
+  padding: var(--ledgr-spacing-lg) var(--ledgr-spacing-xl);
+  text-align: center;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.ledgr-bearing-empty-msg {
+  padding: var(--ledgr-spacing-lg) 0;
+}
+
+/* ── Sections ── */
+.ledgr-bearing-section {
+  margin: var(--ledgr-spacing-lg) 0;
+  width: 100%;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ledgr-bearing-section-label {
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.3em;
+  font-variant: small-caps;
+  color: var(--ledgr-text-faint);
+  margin-bottom: var(--ledgr-spacing-sm);
+  padding-bottom: var(--ledgr-spacing-xs);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+/* ── Pillars ── */
+.ledgr-bearing-pillar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-bearing-pillar-name {
+  width: 90px;
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-secondary);
+  flex-shrink: 0;
+}
+
+.ledgr-bearing-pillar-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: var(--ledgr-rule);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ledgr-bearing-pillar-bar {
+  height: 100%;
+  background: var(--ledgr-green);
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.ledgr-bearing-pillar-bar-empty {
+  height: 100%;
+  background: var(--ledgr-rule);
+}
+
+.ledgr-bearing-pillar-status {
+  width: 88px;
+  text-align: right;
+  font-size: var(--ledgr-font-sm);
+  flex-shrink: 0;
+}
+
+.ledgr-bearing-strong    { color: var(--ledgr-green); }
+.ledgr-bearing-moderate  { color: var(--ledgr-text-secondary); }
+.ledgr-bearing-developing { color: var(--ledgr-text-faint); }
+
+/* ── Trend ── */
+.ledgr-bearing-trend-svg {
+  width: 100%;
+  height: auto;
+  color: var(--ledgr-accent);
+}
+
+.ledgr-bearing-trend-axis {
+  font-size: 7px;
+  fill: var(--ledgr-text-faint);
+  font-family: var(--font-monospace);
+}
+
+.ledgr-bearing-trend-dot {
+  opacity: 0.9;
+}
+
+/* ── Guidance ── */
+.ledgr-bearing-guidance-item {
+  padding: var(--ledgr-spacing-sm) 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-bearing-guidance-pillar {
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.1em;
+  font-variant: small-caps;
+  color: var(--ledgr-text-secondary);
+  display: block;
+  margin-bottom: 3px;
+}
+
+.ledgr-bearing-guidance-text {
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text-secondary);
+  line-height: 1.5;
+  margin: 0 0 4px;
+}
+
+.ledgr-bearing-guidance-link {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-accent-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.ledgr-bearing-notes {
+  margin-top: var(--ledgr-spacing-sm);
+}
+
+.ledgr-bearing-note {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  margin: 2px 0;
+  font-style: italic;
+}
