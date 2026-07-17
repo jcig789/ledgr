@@ -89,6 +89,13 @@
 /* ─── Layout wrappers ────────────────────────────────────────────────── */
 .ledgr-dashboard,
 .ledgr-networth,
+.ledgr-standing {
+  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-lg);
+  max-width: 860px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
 /* ─── Navigation bar ─────────────────────────────────────────────────── */
 .ledgr-nav {
   display: flex;
@@ -2104,6 +2111,7 @@ button.ledgr-del-confirm,
   box-sizing: border-box;
 }
 
+
 /* Document container — full available width */
 .ledgr-stmt {
   width: 100%;
@@ -2876,10 +2884,12 @@ button.ledgr-del-confirm,
 }
 
 .ledgr-bearing-tier-label {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 700;
-  letter-spacing: 0.3em;
+  letter-spacing: 0.2em;
   font-variant: small-caps;
+  word-break: keep-all;
+  white-space: nowrap;
 }
 
 .ledgr-bearing-grade {
