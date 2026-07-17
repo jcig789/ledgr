@@ -10,6 +10,7 @@ import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
 import { LIABILITY_TYPES } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
+import { recordNwSnapshot } from "../data/nwHistory";
 
 export const NETWORTH_VIEW_TYPE = "ledgr-networth";
 
@@ -114,6 +115,17 @@ export class NetWorthView extends ItemView {
         await saveNetWorth(this.app, this.plugin.settings, this.data);
         this.isDirty = false;
         new Notice("Net worth saved");
+        // Snapshot net worth total for Momentum pillar + history chart
+        const base = this.plugin.settings.baseCurrency;
+        const rates = this.plugin.settings.exchangeRates;
+        const totalAssets = [
+          ...this.data.accounts.filter((a) => !a.isLiability).map((a) => this.toBase(a.balance, a.currency)),
+          ...this.data.brokerages.map((b) => this.toBase(b.value, b.currency)),
+        ].reduce((s, v) => s + v, 0);
+        const totalLiabilities = this.data.accounts
+          .filter((a) => a.isLiability)
+          .reduce((s, a) => s + this.toBase(a.balance, a.currency), 0);
+        void recordNwSnapshot(this.app, this.plugin.settings, totalAssets - totalLiabilities);
       }
       this.editMode = !this.editMode;
       void this.render();

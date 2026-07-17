@@ -5,6 +5,7 @@ import { loadNetWorth } from "./networth";
 import { loadBudgets } from "./budgets";
 import { loadGoals } from "./goals";
 import { convertToBase } from "./reader";
+import { loadNwHistory } from "./nwHistory";
 
 export interface PillarResult {
   name: string;
@@ -234,10 +235,11 @@ export async function calculateBearing(
   const rates = settings.exchangeRates;
 
   // Load data in parallel
-  const [nwData, budgetConfig, goalsStore] = await Promise.all([
+  const [nwData, budgetConfig, goalsStore, nwHistory] = await Promise.all([
     loadNetWorth(app, settings),
     loadBudgets(app, settings),
     loadGoals(app, settings),
+    loadNwHistory(app, settings),
   ]);
 
   // Last 6 months
@@ -292,20 +294,37 @@ export async function calculateBearing(
   const allTxs = allMonthTxs.flat().sort((a, b) => a.date.localeCompare(b.date));
   const firstTxDate = allTxs.length > 0 ? allTxs[0].date : null;
 
-  // Net worth series (use monthly expense/income deltas to approximate trend)
-  // We only have current snapshot, so use monthly net savings to build a series
+  // Net worth series — prefer real snapshots, fall back to delta approximation
   const nwNow = totalAssets - totalLiabilities;
-  const monthlyNetSavings = allMonthTxs.map((txs) => {
-    const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
-    const exp = txs.filter((t) => t.type === "expense").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
-    return inc - exp;
-  });
-  // Build backwards from current: nw[5] = nwNow, nw[4] = nwNow - savings[5], etc.
-  const nwSeries: number[] = [nwNow];
-  for (let i = monthlyNetSavings.length - 1; i >= 0; i--) {
-    nwSeries.unshift(nwSeries[0] - monthlyNetSavings[i]);
+  const snapshotEntries = Object.entries(nwHistory.snapshots)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-12); // up to 12 months of real data
+
+  let nonZeroNwSeries: number[];
+
+  if (snapshotEntries.length >= 2) {
+    // Use real snapshots — accurate regardless of manual balance updates
+    // Always include current net worth as the latest point
+    const snapshotValues = snapshotEntries.map(([, v]) => v);
+    const lastSnapshotMonth = snapshotEntries[snapshotEntries.length - 1][0];
+    const currentMonth = window.moment(today).format("YYYY-MM");
+    if (lastSnapshotMonth !== currentMonth) {
+      snapshotValues.push(Math.round(nwNow));
+    }
+    nonZeroNwSeries = snapshotValues;
+  } else {
+    // Fall back to delta approximation for users with no snapshot history yet
+    const monthlyNetSavings = allMonthTxs.map((txs) => {
+      const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
+      const exp = txs.filter((t) => t.type === "expense").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
+      return inc - exp;
+    });
+    const nwSeries: number[] = [nwNow];
+    for (let i = monthlyNetSavings.length - 1; i >= 0; i--) {
+      nwSeries.unshift(nwSeries[0] - monthlyNetSavings[i]);
+    }
+    nonZeroNwSeries = nwSeries.filter((_, i) => allMonthTxs[i]?.length > 0 || i === nwSeries.length - 1);
   }
-  const nonZeroNwSeries = nwSeries.filter((_, i) => allMonthTxs[i]?.length > 0 || i === nwSeries.length - 1);
 
   // Calculate pillars (each gets equal share; excluded ones are renormalized)
   const PILLAR_BASE_MAX = 100 / 6;
