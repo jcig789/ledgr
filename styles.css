@@ -10,6 +10,7 @@
 .ledgr-dashboard,
 .ledgr-networth,
 .ledgr-statements,
+.ledgr-standing,
 .ledgr-quick-capture,
 .ledgr-config-modal,
 .modal-content {
@@ -40,6 +41,7 @@
 .theme-dark .ledgr-dashboard,
 .theme-dark .ledgr-networth,
 .theme-dark .ledgr-statements,
+.theme-dark .ledgr-standing,
 .theme-dark .ledgr-quick-capture,
 .theme-dark .ledgr-config-modal,
 .theme-dark .modal-content {
@@ -86,13 +88,7 @@
 
 /* ─── Layout wrappers ────────────────────────────────────────────────── */
 .ledgr-dashboard,
-.ledgr-networth {
-  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-lg);
-  max-width: 860px;
-  margin: 0 auto;
-  box-sizing: border-box;
-}
-
+.ledgr-networth,
 /* ─── Navigation bar ─────────────────────────────────────────────────── */
 .ledgr-nav {
   display: flex;
@@ -1107,6 +1103,7 @@ button.ledgr-del-confirm,
    ─────────────────────────────────────────────────────────────────── */
 .ledgr-dashboard,
 .ledgr-networth,
+.ledgr-standing,
 .ledgr-config-modal,
 .modal-content {
   /* Food & Drink  */ --ledgr-cat-1:  #7A6A55;
@@ -1759,10 +1756,8 @@ button.ledgr-del-confirm,
 /* Content padding — top nav no longer needs bottom clearance */
 .ledgr-dashboard,
 .ledgr-networth,
-.ledgr-statements {
-  padding-bottom: var(--ledgr-spacing-xl);
-  padding-top: 0;
-}
+.ledgr-statements,
+
 
 /* ─── Sticky header zone ────────────────────────────────────────────── */
 /*
@@ -2781,10 +2776,6 @@ button.ledgr-del-confirm,
 .ledgr-lpay-remaining { color: var(--ledgr-green); font-weight: 500; }
 
 /* ─── Standing / The Bearing ─────────────────────────────────────────────── */
-
-.ledgr-standing {
-  padding: 0 var(--ledgr-spacing-md) var(--ledgr-spacing-xl);
-}
 
 /* ── Card section ── */
 .ledgr-bearing-card-section {
