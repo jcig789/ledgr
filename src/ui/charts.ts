@@ -771,30 +771,37 @@ export function renderNwHistoryChart(
     svg.createSvg("line", { attr: { x1: String(PAD_L), y1: String(zeroY), x2: String(PAD_L + chartW), y2: String(zeroY), stroke: "currentColor", "stroke-width": "0.8", opacity: "0.3" } });
   }
 
-  // Area fill
-  if (visible.length >= 2) {
+  if (visible.length === 1) {
+    // Single snapshot: horizontal dashed reference line + dot at center
+    const dotY = yScale(visible[0].value);
+    svg.createSvg("line", {
+      attr: {
+        x1: String(PAD_L), y1: String(dotY),
+        x2: String(PAD_L + chartW), y2: String(dotY),
+        stroke: lineColor, "stroke-width": "1", "stroke-dasharray": "4 4", opacity: "0.5",
+      },
+    });
+    svg.createSvg("circle", { attr: { cx: String(PAD_L + chartW / 2), cy: String(dotY), r: "4", fill: lineColor, stroke: "none" } });
+  } else {
+    // Area fill
     const baseline = Math.max(Math.min(zeroY, PAD_T + chartH), PAD_T);
-    const pts = visible.map((s, i) => `${xScale(i)},${yScale(s.value)}`).join(" L ");
     const lastX = xScale(visible.length - 1);
     const firstX = xScale(0);
-    const areaPath = `M ${pts.replace(",", " ")} L ${lastX},${baseline} L ${firstX},${baseline} Z`;
     svg.createSvg("path", { attr: { d: `M ${visible.map((s, i) => `${xScale(i)},${yScale(s.value)}`).join(" L ")} L ${lastX},${baseline} L ${firstX},${baseline} Z`, fill: lineColor, opacity: "0.08", stroke: "none" } });
-  }
 
-  // Line
-  if (visible.length >= 2) {
+    // Line
     const linePath = visible.map((s, i) => `${i === 0 ? "M" : "L"} ${xScale(i)},${yScale(s.value)}`).join(" ");
     svg.createSvg("path", { attr: { d: linePath, stroke: lineColor, "stroke-width": "1.5", fill: "none" } });
+
+    // Historical dots (open circles)
+    visible.slice(0, -1).forEach((s, i) => {
+      svg.createSvg("circle", { attr: { cx: String(xScale(i)), cy: String(yScale(s.value)), r: "3", fill: "none", stroke: lineColor, "stroke-width": "1.5" } });
+    });
+
+    // Current dot (filled)
+    const lastIdx = visible.length - 1;
+    svg.createSvg("circle", { attr: { cx: String(xScale(lastIdx)), cy: String(yScale(visible[lastIdx].value)), r: "4", fill: lineColor, stroke: "none" } });
   }
-
-  // Historical dots (open circles)
-  visible.slice(0, -1).forEach((s, i) => {
-    svg.createSvg("circle", { attr: { cx: String(xScale(i)), cy: String(yScale(s.value)), r: "3", fill: "none", stroke: lineColor, "stroke-width": "1.5" } });
-  });
-
-  // Current dot (filled)
-  const lastIdx = visible.length - 1;
-  svg.createSvg("circle", { attr: { cx: String(xScale(lastIdx)), cy: String(yScale(visible[lastIdx].value)), r: "4", fill: lineColor, stroke: "none" } });
 
   // X-axis labels
   const labelStep = visible.length <= 6 ? 1 : visible.length <= 12 ? 2 : 3;
