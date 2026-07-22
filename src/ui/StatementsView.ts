@@ -419,19 +419,25 @@ export class StatementsView extends ItemView {
       return { month: historyMonths[i], income: s.ocfIncome, expenses: s.ocfExpenses };
     }).filter((h) => h.income > 0 || h.expenses > 0);
 
-    // Fixed commitments from liabilities
+    // Fixed commitments and liquid balance from net worth
     let fixedCommitments = 0;
+    let currentLiquidBalance = 0;
     try {
       const nwData = await loadNetWorth(this.app, this.plugin.settings);
       fixedCommitments = nwData.accounts
         .filter((a) => a.isLiability && a.liabilityDetails)
         .reduce((s, a) => s + convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+      // Liquid assets: bank, ewallet, cash accounts only
+      const liquidTypes = new Set(["bank", "ewallet", "cash"]);
+      currentLiquidBalance = nwData.accounts
+        .filter((a) => !a.isLiability && liquidTypes.has(a.type))
+        .reduce((s, a) => s + convertToBase(a.balance, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
     } catch { /* no networth */ }
 
     const result = buildProjection({
       monthlyOcfHistory: ocfHistory,
       fixedCommitments,
-      currentLiquidBalance: 0, // would need liquid balance — use 0 as conservative
+      currentLiquidBalance,
       reserveFloorMonths: 3,
       ocfCommitment: this.plugin.settings.ocfCommitments[today],
       scenarios: this.forecastScenarios,
