@@ -3317,3 +3317,185 @@ button.ledgr-del-confirm,
   .ledgr-nw-history-deltas { gap: var(--ledgr-spacing-sm); }
   .ledgr-nw-history-range-selector { margin-top: 2px; }
 }
+
+/* ─── Cash Flow Health (Dashboard) ─────────────────────────────────────── */
+
+.ledgr-cf-health-section { margin-bottom: var(--ledgr-spacing-lg); }
+
+.ledgr-cf-commitment-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  margin-bottom: var(--ledgr-spacing-sm);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-cf-commitment-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  min-width: 140px;
+}
+
+.ledgr-cf-commitment-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: var(--color-base-20, rgba(128,128,128,0.2));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ledgr-cf-commitment-bar {
+  height: 100%;
+  background: var(--ledgr-green);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.ledgr-cf-commitment-pct {
+  font-size: var(--ledgr-font-sm);
+  font-variant-numeric: tabular-nums;
+  width: 36px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.ledgr-cf-streams {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+}
+
+.ledgr-cf-stream-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-cf-stream-label {
+  font-variant: small-caps;
+  font-size: var(--ledgr-font-label);
+  letter-spacing: 0.05em;
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-cf-stream-right {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+}
+
+.ledgr-cf-stream-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+.ledgr-cf-stream-divider {
+  border-top: 1px solid var(--ledgr-rule);
+  margin: 4px 0;
+}
+
+/* ─── Cash Flow sub-tabs ────────────────────────────────────────────────── */
+
+.ledgr-cf-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: var(--ledgr-spacing-md);
+  padding-bottom: var(--ledgr-spacing-sm);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+/* ─── Templates Modal ───────────────────────────────────────────────────── */
+
+.ledgr-template-list { margin-bottom: var(--ledgr-spacing-md); }
+
+.ledgr-template-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  padding: 6px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-template-manage-row { justify-content: space-between; }
+
+.ledgr-template-name { flex: 1; font-variant: small-caps; letter-spacing: 0.04em; }
+
+.ledgr-template-amount {
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+  min-width: 80px;
+  text-align: right;
+}
+
+.ledgr-template-stream {
+  font-size: 0.7em;
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  padding: 1px 5px;
+  border-radius: var(--ledgr-radius-sm);
+  border: 1px solid var(--ledgr-rule);
+  color: var(--ledgr-text-faint);
+}
+
+.ledgr-template-stream-icf { color: var(--ledgr-green); border-color: var(--ledgr-green); }
+.ledgr-template-stream-fcf { color: var(--ledgr-red); border-color: var(--ledgr-red); }
+
+/* ─── Forecast / Projection ─────────────────────────────────────────────── */
+
+.ledgr-proj-horizon-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+.ledgr-proj-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--ledgr-spacing-sm);
+  margin-bottom: var(--ledgr-spacing-md);
+}
+
+.ledgr-proj-card {
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+}
+
+.ledgr-proj-runway {
+  margin: var(--ledgr-spacing-md) 0;
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  border-left: 2px solid var(--ledgr-accent);
+}
+
+.ledgr-proj-scenario-section {
+  margin-top: var(--ledgr-spacing-lg);
+  padding-top: var(--ledgr-spacing-md);
+  border-top: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-proj-scenario-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-body);
+}
+
+.ledgr-proj-scenario-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-xs);
+  margin-top: var(--ledgr-spacing-sm);
+  padding: var(--ledgr-spacing-sm);
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+}

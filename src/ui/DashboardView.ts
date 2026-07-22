@@ -17,6 +17,7 @@ import { EditTransactionModal } from "./EditTransactionModal";
 import { loadNetWorth } from "../data/networth";
 import { getUpcomingPayments, getDaysUntilDue } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
+import { TemplatesModal } from "./TemplatesModal";
 
 export const DASHBOARD_VIEW_TYPE = "ledgr-dashboard";
 
@@ -126,9 +127,10 @@ export class DashboardView extends ItemView {
       const remitBtn = btnRow.createEl("button", { text: "Transfer", cls: "ledgr-budget-btn" });
       remitBtn.onclick = () => new RemittanceModal(this.app, this.plugin).open();
     }
-    // Budgets button — kept as text for discoverability
     const budgetBtn = btnRow.createEl("button", { text: "Budgets", cls: "ledgr-budget-btn" });
     budgetBtn.onclick = () => new BudgetModal(this.app, this.plugin).open();
+    const templatesBtn = btnRow.createEl("button", { text: "Templates", cls: "ledgr-budget-btn" });
+    templatesBtn.onclick = () => new TemplatesModal(this.app, this.plugin).open();
     // Settings — icon only to save space (Option A)
     const configBtn = btnRow.createEl("button", { cls: "ledgr-budget-btn ledgr-icon-btn" });
     configBtn.setAttribute("aria-label", "Settings");
@@ -223,6 +225,9 @@ export class DashboardView extends ItemView {
         }
       }
     } catch { /* no networth data */ }
+
+    // Cash Flow Health panel
+    this.renderCashFlowHealth(contentEl, summary);
 
     // Daily countdown banner
     this.renderCountdownBanner(contentEl, budgetConfig, summary);
@@ -439,6 +444,69 @@ export class DashboardView extends ItemView {
         ).open();
       });
     } catch { /* no networth data */ }
+  }
+
+  renderCashFlowHealth(parent: HTMLElement, summary: ReturnType<typeof summarize>) {
+    if (!this.isLiveMonth) return;
+    if (summary.totalIncome === 0 && summary.totalExpenses === 0) return;
+
+    const fmt = (n: number) => formatCurrency(Math.abs(n), this.viewCurrency);
+    const month = this.currentMonth;
+    const commitment = this.plugin.settings.ocfCommitments[month];
+
+    const section = parent.createDiv("ledgr-section ledgr-cf-health-section");
+    const hdr = section.createDiv("ledgr-section-header");
+    hdr.createEl("h3", { text: "Cash Flow Health" });
+
+    // OCF Commitment Line — set target
+    const commitRow = section.createDiv("ledgr-cf-commitment-row");
+    if (commitment) {
+      const progress = summary.netOCF;
+      const pct = commitment > 0 ? Math.min(100, Math.round((progress / commitment) * 100)) : 0;
+      const commitMeta = commitRow.createDiv("ledgr-cf-commitment-meta");
+      commitMeta.createSpan({ text: "OCF Target", cls: "ledgr-cf-stream-label" });
+      commitMeta.createSpan({ text: fmt(commitment), cls: "ledgr-meta" });
+      const commitBar = commitRow.createDiv("ledgr-cf-commitment-bar-wrap");
+      const bar = commitBar.createDiv("ledgr-cf-commitment-bar");
+      bar.setCssStyles({ width: "0%" });
+      window.requestAnimationFrame(() => bar.setCssStyles({ width: `${pct}%` }));
+      commitRow.createSpan({ text: `${pct}%`, cls: `ledgr-cf-commitment-pct ${pct >= 100 ? "ledgr-bearing-strong" : pct >= 60 ? "ledgr-bearing-moderate" : "ledgr-bearing-developing"}` });
+    } else {
+      const setBtn = commitRow.createEl("a", { text: "Set OCF target for this month →", cls: "ledgr-bearing-guidance-link" });
+      setBtn.onclick = () => this.setOcfCommitment();
+    }
+
+    // Four stream numbers
+    const streams = section.createDiv("ledgr-cf-streams");
+
+    const addStream = (label: string, value: number, cls: string, note?: string) => {
+      const row = streams.createDiv("ledgr-cf-stream-row");
+      row.createSpan({ text: label, cls: "ledgr-cf-stream-label" });
+      const right = row.createDiv("ledgr-cf-stream-right");
+      const sign = value >= 0 ? "+" : "";
+      right.createSpan({ text: `${sign}${fmt(value)}`, cls: `ledgr-cf-stream-value ${cls}` });
+      if (note) right.createSpan({ text: note, cls: "ledgr-meta" });
+    };
+
+    addStream("Operating", summary.netOCF, summary.netOCF >= 0 ? "ledgr-positive" : "ledgr-negative");
+    addStream("Investing", summary.netICF, "ledgr-text-secondary", "capital deployed");
+    addStream("Financing", summary.netFCF, "ledgr-text-secondary", "debt service");
+
+    const divider = streams.createDiv("ledgr-cf-stream-divider");
+    addStream("Free Cash Flow", summary.freeCashFlow, summary.freeCashFlow >= 0 ? "ledgr-positive" : "ledgr-negative");
+  }
+
+  async setOcfCommitment() {
+    const month = this.currentMonth;
+    const current = this.plugin.settings.ocfCommitments[month];
+    const input = window.prompt(`Set OCF target for ${window.moment(month).format("MMMM YYYY")} (${this.viewCurrency}):`, current ? String(current) : "");
+    if (input === null) return;
+    const val = parseFloat(input);
+    if (!isNaN(val) && val > 0) {
+      this.plugin.settings.ocfCommitments[month] = val;
+      await this.plugin.saveSettings();
+      void this.render();
+    }
   }
 
   renderCountdownBanner(parent: HTMLElement, budgetConfig: BudgetConfig, summary: ReturnType<typeof summarize>) {

@@ -47,3 +47,65 @@ export function getSubcategoryType(subcategory: string): "fixed" | "variable" {
 
 export const EXPENSE_CATEGORY_NAMES = Object.keys(CATEGORIES);
 export const ALL_CATEGORY_NAMES = [...EXPENSE_CATEGORY_NAMES, ...Object.keys(INCOME_CATEGORIES)];
+
+// ── Cash flow stream classification ──────────────────────────────────────────
+// Maps subcategory → default stream. Used at transaction save time.
+// OCF = Operating (daily life), ICF = Investing (future value), FCF = Financing (debt)
+import type { CashFlowStream } from "../data/transactions";
+
+export const CASHFLOW_TYPE_DEFAULTS: Record<string, CashFlowStream> = {
+  // Income — all operational by default (dividends/rental override in QuickCapture)
+  "Salary": "ocf", "Freelance": "ocf", "Other income": "ocf",
+  "Dividends": "icf", "Rental income": "icf",
+
+  // Food & Drink — operational
+  "Groceries": "ocf", "Dining out": "ocf", "Coffee": "ocf",
+  "Convenience store": "ocf", "Alcohol": "ocf",
+
+  // Transport — operational
+  "Train / IC card": "ocf", "Taxi / Ride-share": "ocf",
+  "Shinkansen": "ocf", "Flight": "ocf", "Fuel / Parking": "ocf",
+
+  // Housing — operational
+  "Rent": "ocf", "Utilities": "ocf", "Internet": "ocf",
+  "Mobile phone": "ocf", "Condo fees": "ocf",
+
+  // Health — operational (gym = human capital maintenance)
+  "Doctor": "ocf", "Pharmacy": "ocf", "Dental": "ocf", "Gym": "ocf",
+
+  // Personal Care — operational
+  "Haircut": "ocf", "Clothing": "ocf", "Cosmetics": "ocf",
+
+  // Entertainment — operational
+  "Books / Manga": "ocf", "Movies / Events": "ocf", "Games": "ocf", "Hobbies": "ocf",
+
+  // Social — operational
+  "Gifts": "ocf", "Dining with friends": "ocf", "Charity": "ocf",
+
+  // Travel — operational (leisure travel = consumption, not investment)
+  "Flights": "ocf", "Hotel": "ocf", "Activities": "ocf",
+
+  // Subscriptions — operational
+  "Streaming": "ocf", "Software": "ocf", "Other subscription": "ocf",
+
+  // Family — operational
+  "Remittance": "ocf", "International travel": "ocf",
+
+  // Other
+  "Other": "ocf",
+
+  // Financing — auto-tagged by liability payment modal
+  "Loan payment": "fcf", "Mortgage payment": "fcf",
+};
+
+// Subcategories where the user should be asked to confirm the stream
+// (12+ month useful life and potentially income-enabling)
+export const AMBIGUOUS_STREAM_SUBCATEGORIES = new Set([
+  "Software",        // could be tool (ICF) or subscription (OCF)
+  "Other",           // catch-all — ambiguous by definition
+  "Hobbies",         // could be skill-building (ICF) or recreation (OCF)
+]);
+
+export function getDefaultStream(subcategory: string): CashFlowStream {
+  return CASHFLOW_TYPE_DEFAULTS[subcategory] ?? "ocf";
+}

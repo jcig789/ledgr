@@ -1,7 +1,7 @@
 import { App, TFile, normalizePath } from "obsidian";
 import { LedgrSettings } from "../settings";
-import { Transaction } from "./transactions";
-import { FIXED_SUBCATEGORIES } from "../constants/categories";
+import { Transaction, CashFlowStream } from "./transactions";
+import { FIXED_SUBCATEGORIES, getDefaultStream } from "../constants/categories";
 
 export async function readMonthTransactions(
   app: App,
@@ -17,14 +17,20 @@ export async function readMonthTransactions(
 
   return lines.map((line) => {
     const cols = line.split("|").map((c) => c.trim()).filter(Boolean);
+    const subcategory = cols[5];
+    const rawStream = cols[7] as string | undefined;
+    const stream: CashFlowStream = (rawStream === "ocf" || rawStream === "icf" || rawStream === "fcf")
+      ? rawStream
+      : getDefaultStream(subcategory);
     return {
       date: cols[0],
       type: cols[1] as Transaction["type"],
       amount: parseFloat(cols[2]),
       currency: cols[3],
       category: cols[4],
-      subcategory: cols[5],
+      subcategory,
       note: cols[6] === "-" ? "" : cols[6],
+      stream,
     };
   });
 }
@@ -104,6 +110,13 @@ export interface MonthlySummary {
   byCategory: Record<string, number>;
   byCategoryType: { opex: Record<string, number>; capex: Record<string, number> };
   transactions: Transaction[];
+  // Cash flow stream totals
+  ocfIncome: number;
+  ocfExpenses: number;
+  netOCF: number;
+  netICF: number;
+  netFCF: number;
+  freeCashFlow: number;
 }
 
 export function summarize(
@@ -116,14 +129,22 @@ export function summarize(
   let totalOpex = 0;
   let totalCapex = 0;
   let totalRemittances = 0;
+  let ocfIncome = 0;
+  let ocfExpenses = 0;
+  let netICF = 0;
+  let netFCF = 0;
   const byCategory: Record<string, number> = {};
   const opexByCategory: Record<string, number> = {};
   const capexByCategory: Record<string, number> = {};
 
   for (const tx of transactions) {
     const amt = convertToBase(tx.amount, tx.currency, baseCurrency, rates);
+    const stream = tx.stream ?? getDefaultStream(tx.subcategory);
+
     if (tx.type === "income") {
       totalIncome += amt;
+      if (stream === "ocf") ocfIncome += amt;
+      else if (stream === "icf") netICF += amt; // e.g. dividends
     } else if (tx.type === "expense") {
       totalExpenses += amt;
       byCategory[tx.category] = (byCategory[tx.category] ?? 0) + amt;
@@ -140,12 +161,20 @@ export function summarize(
       if (tx.category === "Family" && tx.subcategory === "Remittance") {
         totalRemittances += amt;
       }
+
+      // Stream totals
+      if (stream === "ocf") ocfExpenses += amt;
+      else if (stream === "icf") netICF -= amt;
+      else if (stream === "fcf") netFCF -= amt;
     }
   }
 
   const savingsRate = totalIncome > 0
     ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100)
     : 0;
+
+  const netOCF = ocfIncome - ocfExpenses;
+  const freeCashFlow = netOCF + netICF + netFCF;
 
   return {
     totalIncome,
@@ -158,5 +187,11 @@ export function summarize(
     byCategory,
     byCategoryType: { opex: opexByCategory, capex: capexByCategory },
     transactions,
+    ocfIncome,
+    ocfExpenses,
+    netOCF,
+    netICF,
+    netFCF,
+    freeCashFlow,
   };
 }

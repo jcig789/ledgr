@@ -1,6 +1,8 @@
 import { App, Notice, TFile, normalizePath } from "obsidian";
 import { LedgrSettings } from "../settings";
 
+export type CashFlowStream = "ocf" | "icf" | "fcf";
+
 export interface Transaction {
   date: string;
   type: "expense" | "income";
@@ -9,6 +11,7 @@ export interface Transaction {
   category: string;
   subcategory: string;
   note: string;
+  stream?: CashFlowStream;
 }
 
 export async function saveTransaction(app: App, settings: LedgrSettings, tx: Transaction) {
@@ -20,12 +23,13 @@ export async function saveTransaction(app: App, settings: LedgrSettings, tx: Tra
     await app.vault.adapter.mkdir(folder);
   }
 
+  const stream = tx.stream ?? "ocf";
   // Table row (human-readable, used by Ledgr's own reader)
-  const tableRow = `| ${tx.date} | ${tx.type} | ${tx.amount} | ${tx.currency} | ${tx.category} | ${tx.subcategory} | ${tx.note || "-"} |`;
+  const tableRow = `| ${tx.date} | ${tx.type} | ${tx.amount} | ${tx.currency} | ${tx.category} | ${tx.subcategory} | ${tx.note || "-"} | ${stream} |`;
 
   // Dataview inline fields — appended as a comment line so they don't disrupt table rendering
   // Users can query: TABLE amount, category FROM "Private/Finance/transactions"
-  const dvLine = `%%[date:: ${tx.date}] [type:: ${tx.type}] [amount:: ${tx.amount}] [currency:: ${tx.currency}] [category:: ${tx.category}] [subcategory:: ${tx.subcategory}]${tx.note ? ` [note:: ${tx.note}]` : ""}%%`;
+  const dvLine = `%%[date:: ${tx.date}] [type:: ${tx.type}] [amount:: ${tx.amount}] [currency:: ${tx.currency}] [category:: ${tx.category}] [subcategory:: ${tx.subcategory}]${tx.note ? ` [note:: ${tx.note}]` : ""} [stream:: ${stream}]%%`;
 
   const entry = tableRow + "\n" + dvLine;
 
@@ -40,8 +44,8 @@ export async function saveTransaction(app: App, settings: LedgrSettings, tx: Tra
       "",
       `%% Dataview queries: TABLE amount, category FROM "${settings.financeFolder}/transactions" WHERE type = "expense" %%`,
       "",
-      "| Date | Type | Amount | Currency | Category | Subcategory | Note |",
-      "|------|------|--------|----------|----------|-------------|------|",
+      "| Date | Type | Amount | Currency | Category | Subcategory | Note | Stream |",
+      "|------|------|--------|----------|----------|-------------|------|--------|",
       entry,
     ].join("\n");
     await app.vault.create(filePath, header);

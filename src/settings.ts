@@ -21,6 +21,8 @@ export interface LedgrSettings {
   dailyNotePath: string; // folder path for daily notes
   bearingExplainerCollapsed: boolean;
   nwChartRange: "6M" | "1Y" | "ALL";
+  ocfCommitments: Record<string, number>;  // "YYYY-MM": target OCF amount
+  forecastDefaultHorizon: 3 | 6 | 12;
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -47,4 +49,6 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   dailyNotePath: "",
   bearingExplainerCollapsed: false,
   nwChartRange: "ALL",
+  ocfCommitments: {},
+  forecastDefaultHorizon: 6,
 };

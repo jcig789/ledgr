@@ -6,16 +6,23 @@ import { loadBudgets, BudgetConfig } from "../data/budgets";
 import { Transaction } from "../data/transactions";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
 import { formatCurrency } from "../constants/currencies";
+import { buildProjection, ScenarioItem } from "../data/projection";
 
 export const STATEMENTS_VIEW_TYPE = "ledgr-statements";
 
 type StmtTab = "pl" | "cashflow" | "balance";
+type CfView = "summary" | "grid" | "forecast";
 
 export class StatementsView extends ItemView {
   plugin: LedgrPlugin;
   activeTab: StmtTab = "pl";
+  cfView: CfView = "summary";
   selectedYear: string;
   viewCurrency: string;
+  // Forecast state — ephemeral
+  private forecastHorizon: 3 | 6 | 12 = 6;
+  private forecastScenarios: ScenarioItem[] = [];
+  private showScenarioForm = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -160,7 +167,6 @@ export class StatementsView extends ItemView {
     const stmtWrap = contentEl.createDiv("ledgr-stmt");
 
     if (this.activeTab === "pl") {
-      // Parallel reads — all 12 months at once
       const months = Array.from({ length: 12 }, (_, i) =>
         window.moment(`${this.selectedYear}-01`).add(i, "month").format("YYYY-MM")
       );
@@ -170,7 +176,27 @@ export class StatementsView extends ItemView {
       const allTxs: Transaction[] = ([] as Transaction[]).concat(...monthlyTxs);
       await this.renderPL(stmtWrap, allTxs, budgetConfig, fmt, fmtSigned);
     } else if (this.activeTab === "cashflow") {
-      await this.renderCashFlow(stmtWrap, fmt, fmtSigned);
+      // Cash flow sub-tab bar
+      const cfTabRow = stmtWrap.createDiv("ledgr-cf-subtabs");
+      ([
+        { key: "summary",  label: "Summary" },
+        { key: "grid",     label: "Grid" },
+        { key: "forecast", label: "Forecast" },
+      ] as { key: CfView; label: string }[]).forEach(({ key, label }) => {
+        const btn = cfTabRow.createEl("button", {
+          text: label,
+          cls: `ledgr-opex-tab${this.cfView === key ? " active" : ""}`,
+        });
+        btn.onclick = async () => { this.cfView = key; await this.render(); };
+      });
+
+      if (this.cfView === "summary") {
+        await this.renderCashFlowSummary(stmtWrap, fmt, fmtSigned);
+      } else if (this.cfView === "grid") {
+        await this.renderCashFlow(stmtWrap, fmt, fmtSigned);
+      } else {
+        await this.renderForecast(stmtWrap, fmt);
+      }
     } else {
       this.renderBalanceSheet(stmtWrap, netWorthData, fmt, fmtSigned);
     }
@@ -279,6 +305,275 @@ export class StatementsView extends ItemView {
       text: `Cash basis. Fiscal year ${this.selectedYear}. All amounts in ${this.viewCurrency}.`,
       cls: "ledgr-stmt-footnote",
     });
+  }
+
+  // ── Cash Flow Summary — three-section OCF/ICF/FCF statement ─────────────────
+
+  async renderCashFlowSummary(parent: HTMLElement, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
+    const months = Array.from({ length: 12 }, (_, i) =>
+      window.moment(`${this.selectedYear}-01`).add(i, "month").format("YYYY-MM")
+    );
+    const currentMonth = window.moment().format("YYYY-MM");
+    const allTxs = await Promise.all(months.map((m) => readMonthTransactions(this.app, this.plugin.settings, m)));
+    const yearTxs = ([] as Transaction[]).concat(...allTxs);
+    const s = summarize(yearTxs, this.viewCurrency, this.plugin.settings.exchangeRates);
+
+    this.stmtDocHeader(parent, "Statement of Cash Flows", this.selectedYear);
+
+    const addSection = (label: string, items: { label: string; value: number }[], net: number, netLabel: string) => {
+      const sec = parent.createDiv("ledgr-stmt-section");
+      this.stmtSectionLabel(sec, label);
+      items.forEach(({ label: l, value: v }) => {
+        if (v === 0) return;
+        const row = this.stmtLine(sec, l, v >= 0 ? `+ ${fmt(v)}` : fmtSigned(-Math.abs(v)), true);
+        if (v >= 0) row.querySelector<HTMLElement>(".ledgr-stmt-amt")?.addClass("ledgr-positive");
+        else row.querySelector<HTMLElement>(".ledgr-stmt-amt")?.addClass("ledgr-negative");
+      });
+      this.stmtSubtotal(sec, netLabel, (net >= 0 ? "+ " : "") + (net >= 0 ? fmt(net) : fmtSigned(net)));
+      const netEl = sec.querySelector<HTMLElement>(".ledgr-stmt-subtotal .ledgr-stmt-amt");
+      if (netEl) netEl.addClass(net >= 0 ? "ledgr-positive" : "ledgr-negative");
+      parent.createDiv({ cls: "ledgr-stmt-spacer" });
+      return sec;
+    };
+
+    // Collect OCF line items from transaction categories
+    const ocfInItems = s.transactions.filter((t) => t.type === "income" && (t.stream ?? "ocf") === "ocf");
+    const ocfOutItems = s.transactions.filter((t) => t.type === "expense" && (t.stream ?? "ocf") === "ocf");
+    const ocfInBySource = ocfInItems.reduce((acc, t) => { acc[t.subcategory] = (acc[t.subcategory] ?? 0) + t.amount; return acc; }, {} as Record<string, number>);
+    const ocfOutByCategory = ocfOutItems.reduce((acc, t) => { acc[t.category] = (acc[t.category] ?? 0) + t.amount; return acc; }, {} as Record<string, number>);
+
+    const ocfLines = [
+      ...Object.entries(ocfInBySource).map(([l, v]) => ({ label: l, value: v })),
+      ...Object.entries(ocfOutByCategory).map(([l, v]) => ({ label: l, value: -v })),
+    ];
+    addSection("Operating Activities", ocfLines, s.netOCF, "Net Operating Cash Flow");
+
+    // ICF
+    const icfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "icf");
+    const icfLines = icfTxs.reduce((acc, t) => {
+      const key = t.subcategory;
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? t.amount : -t.amount);
+      return acc;
+    }, {} as Record<string, number>);
+    addSection("Investing Activities", Object.entries(icfLines).map(([l, v]) => ({ label: l, value: v })), s.netICF, "Net Investing Cash Flow");
+
+    // FCF
+    const fcfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "fcf");
+    const fcfLines = fcfTxs.reduce((acc, t) => {
+      const key = t.subcategory;
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? t.amount : -t.amount);
+      return acc;
+    }, {} as Record<string, number>);
+    addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFCF, "Net Financing Cash Flow");
+
+    // Free Cash Flow total
+    const totalEl = parent.createDiv("ledgr-stmt-total");
+    totalEl.createSpan({ text: "Free Cash Flow" });
+    totalEl.createSpan({
+      text: (s.freeCashFlow >= 0 ? "+ " : "") + fmt(Math.abs(s.freeCashFlow)),
+      cls: `ledgr-stmt-amt ${s.freeCashFlow >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
+    });
+
+    // FCF margin
+    if (s.totalIncome > 0) {
+      const margin = Math.round((s.freeCashFlow / s.totalIncome) * 100);
+      const rateEl = parent.createDiv("ledgr-stmt-rate-row");
+      rateEl.createSpan({ text: "FCF Margin", cls: "ledgr-stmt-rate-label" });
+      rateEl.createSpan({ text: `${margin}%`, cls: `ledgr-stmt-amt ${margin >= 20 ? "ledgr-positive" : "ledgr-neutral"}` });
+    }
+
+    parent.createEl("p", {
+      text: `Cash basis. Fiscal year ${this.selectedYear}. All amounts in ${this.viewCurrency}.`,
+      cls: "ledgr-stmt-footnote",
+    });
+  }
+
+  // ── Cash Flow Forecast — projection + what-if simulator ──────────────────────
+
+  async renderForecast(parent: HTMLElement, fmt: (n: number) => string) {
+    parent.createDiv("ledgr-stmt-doc-rule");
+    const hdr = parent.createDiv("ledgr-stmt-doc-header");
+    hdr.createDiv({ text: "Cash Flow Forecast", cls: "ledgr-stmt-doc-title" });
+    hdr.createDiv({ text: "Forward visibility for strategic decisions", cls: "ledgr-stmt-doc-period" });
+    parent.createDiv({ cls: "ledgr-stmt-doc-rule" });
+
+    // Horizon toggle
+    const horizonRow = parent.createDiv("ledgr-proj-horizon-row");
+    horizonRow.createSpan({ text: "Horizon", cls: "ledgr-meta" });
+    const horizonToggle = horizonRow.createDiv("ledgr-nw-history-range-selector");
+    ([3, 6, 12] as const).forEach((h) => {
+      const btn = horizonToggle.createEl("button", {
+        text: h === 3 ? "3M" : h === 6 ? "6M" : "12M",
+        cls: `ledgr-nw-history-range-btn${this.forecastHorizon === h ? " active" : ""}`,
+      });
+      btn.onclick = async () => { this.forecastHorizon = h; await this.render(); };
+    });
+
+    // Build projection input from history
+    const today = window.moment().format("YYYY-MM");
+    const historyMonths: string[] = [];
+    for (let i = 5; i >= 0; i--) historyMonths.push(window.moment(today).subtract(i, "month").format("YYYY-MM"));
+    const historyTxs = await Promise.all(historyMonths.map((m) => readMonthTransactions(this.app, this.plugin.settings, m)));
+    const ocfHistory = historyTxs.map((txs, i) => {
+      const s = summarize(txs, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return { month: historyMonths[i], income: s.ocfIncome, expenses: s.ocfExpenses };
+    }).filter((h) => h.income > 0 || h.expenses > 0);
+
+    // Fixed commitments from liabilities
+    let fixedCommitments = 0;
+    try {
+      const nwData = await loadNetWorth(this.app, this.plugin.settings);
+      fixedCommitments = nwData.accounts
+        .filter((a) => a.isLiability && a.liabilityDetails)
+        .reduce((s, a) => s + convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+    } catch { /* no networth */ }
+
+    const result = buildProjection({
+      monthlyOcfHistory: ocfHistory,
+      fixedCommitments,
+      currentLiquidBalance: 0, // would need liquid balance — use 0 as conservative
+      reserveFloorMonths: 3,
+      ocfCommitment: this.plugin.settings.ocfCommitments[today],
+      scenarios: this.forecastScenarios,
+    }, this.forecastHorizon);
+
+    if (result.dataQuality === "insufficient") {
+      parent.createEl("p", { text: "Record at least 2 months of transactions to generate a projection.", cls: "ledgr-nw-history-empty-msg" });
+      return;
+    }
+
+    // Data quality notice
+    if (result.dataQuality === "thin" || result.dataQuality === "building") {
+      parent.createEl("p", {
+        text: result.dataQuality === "thin"
+          ? "Projection based on 2 months of data — high uncertainty. Continue logging for better accuracy."
+          : "Projection based on 3–5 months. Accuracy improves with more history.",
+        cls: "ledgr-bearing-explainer-note",
+      });
+    }
+
+    // Summary cards
+    const cards = parent.createDiv("ledgr-proj-cards");
+    const lastMonth = result.months[result.months.length - 1];
+    if (lastMonth) {
+      const horizonLabel = this.forecastHorizon === 3 ? "3 months" : this.forecastHorizon === 6 ? "6 months" : "12 months";
+      this.projCard(cards, `Projected OCF / mo`, fmt(result.baselineMonthlyNet), result.baselineMonthlyNet >= 0);
+      this.projCard(cards, `Balance in ${horizonLabel}`, fmt(lastMonth.projectedBalance), lastMonth.projectedBalance >= 0);
+      if (this.forecastScenarios.length > 0) {
+        const baseResult = buildProjection({ monthlyOcfHistory: ocfHistory, fixedCommitments, currentLiquidBalance: 0, reserveFloorMonths: 3, scenarios: [] }, this.forecastHorizon);
+        const baseLast = baseResult.months[baseResult.months.length - 1];
+        if (baseLast) {
+          const delta = lastMonth.projectedBalance - baseLast.projectedBalance;
+          this.projCard(cards, "Scenario delta", `(${fmt(Math.abs(delta))})`, delta >= 0);
+        }
+      }
+    }
+
+    // Projection table
+    const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
+    const thead = table.createEl("thead").createEl("tr");
+    ["Month", "Proj. OCF", "Balance", ""].forEach((h) => {
+      const th = thead.createEl("th");
+      th.textContent = h;
+      if (h !== "Month" && h !== "") th.addClass("ledgr-text-right");
+    });
+    const tbody = table.createEl("tbody");
+    result.months.forEach((m) => {
+      const tr = tbody.createEl("tr");
+      tr.createEl("td", { text: window.moment(m.month).format("MMM YYYY") });
+      const netTd = tr.createEl("td", { cls: "ledgr-text-right" });
+      netTd.textContent = (m.projectedNet >= 0 ? "+" : "") + fmt(m.projectedNet);
+      netTd.addClass(m.projectedNet >= 0 ? "ledgr-positive" : "ledgr-negative");
+      tr.createEl("td", { text: fmt(m.projectedBalance), cls: "ledgr-text-right" });
+      const flagTd = tr.createEl("td");
+      if (m.belowReserveFloor) flagTd.createSpan({ text: "▼ reserve", cls: "ledgr-text-red ledgr-meta" });
+    });
+
+    // Runway to commit
+    if (result.runwayMonth && this.forecastScenarios.length > 0) {
+      const runwayEl = parent.createDiv("ledgr-proj-runway");
+      runwayEl.createSpan({ text: "Runway to Commit", cls: "ledgr-bearing-guidance-pillar" });
+      runwayEl.createEl("p", {
+        text: `Earliest viable start: ${window.moment(result.runwayMonth).format("MMMM YYYY")}`,
+        cls: "ledgr-bearing-guidance-text",
+      });
+      result.runwayConditions.forEach((c) => {
+        const row = runwayEl.createDiv("ledgr-bearing-pillar-row");
+        row.createSpan({ text: c.met ? "✓" : "○", cls: c.met ? "ledgr-positive" : "ledgr-meta" });
+        row.createSpan({ text: c.label, cls: "ledgr-meta" });
+      });
+    } else if (this.forecastScenarios.length > 0 && !result.runwayMonth) {
+      parent.createEl("p", {
+        text: "This commitment is not supported within the projection horizon at current income and expense levels.",
+        cls: "ledgr-bearing-guidance-text",
+      });
+    }
+
+    // What-if form
+    this.renderScenarioSection(parent, fmt);
+  }
+
+  renderScenarioSection(parent: HTMLElement, fmt: (n: number) => string) {
+    const sec = parent.createDiv("ledgr-proj-scenario-section");
+    sec.createDiv("ledgr-bearing-section-label").createSpan({ text: "Hypothetical" });
+
+    // Active scenarios list
+    if (this.forecastScenarios.length > 0) {
+      this.forecastScenarios.forEach((s) => {
+        const row = sec.createDiv("ledgr-proj-scenario-row");
+        row.createSpan({ text: s.label, cls: "ledgr-bearing-guidance-pillar" });
+        row.createSpan({ text: `${fmt(Math.abs(s.monthlyDelta))}/mo · ${window.moment(s.startMonth).format("MMM YYYY")} →`, cls: "ledgr-meta" });
+        const removeBtn = row.createEl("button", { text: "×", cls: "ledgr-del-btn" });
+        removeBtn.onclick = async () => {
+          this.forecastScenarios = this.forecastScenarios.filter((sc) => sc.id !== s.id);
+          await this.render();
+        };
+      });
+    }
+
+    if (this.forecastScenarios.length < 4) {
+      if (!this.showScenarioForm) {
+        const addBtn = sec.createEl("a", { text: `+ Add scenario${this.forecastScenarios.length > 0 ? ` (${this.forecastScenarios.length} of 4)` : ""}`, cls: "ledgr-bearing-guidance-link" });
+        addBtn.onclick = async () => { this.showScenarioForm = true; await this.render(); };
+      } else {
+        // Inline form
+        const form = sec.createDiv("ledgr-proj-scenario-form");
+        const labelInput = form.createEl("input"); labelInput.type = "text"; labelInput.placeholder = "Description (e.g. new venture)"; labelInput.className = "ledgr-inline-input";
+        const amtInput = form.createEl("input"); amtInput.type = "number"; amtInput.placeholder = "Monthly amount"; amtInput.className = "ledgr-inline-input";
+        const typeSelect = form.createEl("select", { cls: "ledgr-inline-input" });
+        ["Expense", "Income"].forEach((t) => typeSelect.createEl("option", { text: t, value: t.toLowerCase() }));
+        const startInput = form.createEl("input"); startInput.type = "month"; startInput.value = window.moment().add(1, "month").format("YYYY-MM"); startInput.className = "ledgr-inline-input";
+
+        const btnRow = form.createDiv("ledgr-btn-row");
+        const applyBtn = btnRow.createEl("button", { text: "Apply", cls: "ledgr-log-btn mod-cta" });
+        applyBtn.onclick = async () => {
+          const amt = parseFloat(amtInput.value) || 0;
+          if (!amt) return;
+          const delta = typeSelect.value === "expense" ? -amt : amt;
+          this.forecastScenarios.push({
+            id: `sc_${Date.now()}`,
+            label: labelInput.value.trim() || "Scenario",
+            monthlyDelta: delta,
+            startMonth: startInput.value,
+          });
+          this.showScenarioForm = false;
+          await this.render();
+        };
+        const cancelBtn = btnRow.createEl("button", { text: "Cancel", cls: "ledgr-budget-btn" });
+        cancelBtn.onclick = async () => { this.showScenarioForm = false; await this.render(); };
+      }
+    }
+
+    parent.createEl("p", {
+      text: "Projection uses trailing 3-month average. 3M: high confidence · 6M: medium · 12M: directional.",
+      cls: "ledgr-stmt-footnote",
+    });
+  }
+
+  projCard(parent: HTMLElement, label: string, value: string, positive: boolean) {
+    const card = parent.createDiv("ledgr-proj-card");
+    card.createDiv({ text: label, cls: "ledgr-card-label" });
+    card.createDiv({ text: value, cls: `ledgr-card-value ${positive ? "ledgr-positive" : "ledgr-negative"}` });
   }
 
   async renderCashFlow(parent: HTMLElement, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
