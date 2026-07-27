@@ -61,9 +61,9 @@ function mean(arr: number[]): number {
 }
 
 function trimmedMean(arr: number[]): number {
-  if (arr.length <= 2) return mean(arr);
+  // Only trim when 4+ data points — at 3 months dropping one is 33% data loss
+  if (arr.length < 4) return mean(arr);
   const sorted = [...arr].sort((a, b) => a - b);
-  // Drop the single highest outlier only
   return mean(sorted.slice(0, -1));
 }
 
@@ -152,30 +152,36 @@ export function buildProjection(
     });
   }
 
-  // Runway to Commit — find earliest month where all 3 conditions hold
-  // (only meaningful when there's an active scenario)
+  // Runway to Commit — find earliest month where all 3 conditions hold simultaneously
   const runwayConditions: ProjectionResult["runwayConditions"] = [];
   if (scenarios.length > 0) {
-    // Check each projected month against all 3 conditions
+    const scenarioMonthlyExpense = Math.abs(
+      scenarios.reduce((s, sc) => s + Math.min(0, sc.monthlyDelta), 0)
+    );
+    const totalCommitments = fixedCommitments + scenarioMonthlyExpense;
+    const c3 = avgIncome > 0 ? totalCommitments / avgIncome <= 0.40 : true;
+
     for (const pm of projectedMonths) {
       const c1 = pm.projectedBalance >= reserveFloor;
       const c2 = pm.projectedNet >= 0;
-      const c3 = fixedCommitments > 0
-        ? (fixedCommitments + Math.abs(scenarios.reduce((s, sc) => s + Math.min(0, sc.monthlyDelta), 0))) / avgIncome <= 0.40
-        : true;
-
       if (c1 && c2 && c3 && runwayMonth === null) {
         runwayMonth = pm.month;
+        // Capture conditions at the runway month — not at the last month (B4 fix)
+        runwayConditions.push(
+          { met: c1, label: "Reserve floor maintained (3 months)" },
+          { met: c2, label: "Monthly OCF positive after commitment" },
+          { met: c3, label: "Commitment ratio within 40% of income" },
+        );
       }
     }
 
-    // Build condition status for display
-    const last = projectedMonths[projectedMonths.length - 1];
-    if (last) {
+    // If no runway found, show conditions at first month to explain why
+    if (!runwayMonth && projectedMonths.length > 0) {
+      const first = projectedMonths[0];
       runwayConditions.push(
-        { met: last.projectedBalance >= reserveFloor, label: "Reserve floor maintained (3 months)" },
-        { met: last.projectedNet >= 0, label: "Monthly OCF positive after commitment" },
-        { met: fixedCommitments / Math.max(avgIncome, 1) <= 0.40, label: "Commitment ratio within 40% of income" },
+        { met: first.projectedBalance >= reserveFloor, label: "Reserve floor maintained (3 months)" },
+        { met: first.projectedNet >= 0, label: "Monthly OCF positive after commitment" },
+        { met: c3, label: "Commitment ratio within 40% of income" },
       );
     }
   }

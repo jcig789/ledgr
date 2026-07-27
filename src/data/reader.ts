@@ -115,8 +115,8 @@ export interface MonthlySummary {
   ocfExpenses: number;
   netOCF: number;
   netICF: number;
-  netFCF: number;
-  freeCashFlow: number;
+  netFinancingCF: number;  // Net Financing Cash Flow (renamed from netFinancingCF to avoid FCF ambiguity)
+  freeCashFlow: number;    // = netOCF + netICF + netFinancingCF = Net Change in Cash
 }
 
 export function summarize(
@@ -132,7 +132,7 @@ export function summarize(
   let ocfIncome = 0;
   let ocfExpenses = 0;
   let netICF = 0;
-  let netFCF = 0;
+  let netFinancingCF = 0;
   const byCategory: Record<string, number> = {};
   const opexByCategory: Record<string, number> = {};
   const capexByCategory: Record<string, number> = {};
@@ -165,7 +165,7 @@ export function summarize(
       // Stream totals
       if (stream === "ocf") ocfExpenses += amt;
       else if (stream === "icf") netICF -= amt;
-      else if (stream === "fcf") netFCF -= amt;
+      else if (stream === "fcf") netFinancingCF -= amt;
     }
   }
 
@@ -174,7 +174,7 @@ export function summarize(
     : 0;
 
   const netOCF = ocfIncome - ocfExpenses;
-  const freeCashFlow = netOCF + netICF + netFCF;
+  const freeCashFlow = netOCF + netICF + netFinancingCF;
 
   return {
     totalIncome,
@@ -191,7 +191,7 @@ export function summarize(
     ocfExpenses,
     netOCF,
     netICF,
-    netFCF,
+    netFinancingCF,
     freeCashFlow,
   };
 }

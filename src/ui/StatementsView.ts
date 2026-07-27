@@ -20,7 +20,7 @@ export class StatementsView extends ItemView {
   selectedYear: string;
   viewCurrency: string;
   // Forecast state — ephemeral
-  private forecastHorizon: 3 | 6 | 12 = 6;
+  private forecastHorizon: 3 | 6 | 12;
   private forecastScenarios: ScenarioItem[] = [];
   private showScenarioForm = false;
 
@@ -29,6 +29,7 @@ export class StatementsView extends ItemView {
     this.plugin = plugin;
     this.selectedYear = window.moment().format("YYYY");
     this.viewCurrency = plugin.settings.baseCurrency;
+    this.forecastHorizon = plugin.settings.forecastDefaultHorizon ?? 6;
   }
 
   getViewType() { return STATEMENTS_VIEW_TYPE; }
@@ -101,6 +102,22 @@ export class StatementsView extends ItemView {
       });
       btn.onclick = async () => { this.activeTab = key; await this.render(); };
     });
+
+    // Cash flow sub-tabs — rendered inside sticky zone so they stay visible while scrolling
+    if (this.activeTab === "cashflow") {
+      const cfTabRow = stickyZone.createDiv("ledgr-cf-subtabs");
+      ([
+        { key: "summary",  label: "Summary" },
+        { key: "grid",     label: "Grid" },
+        { key: "forecast", label: "Forecast" },
+      ] as { key: CfView; label: string }[]).forEach(({ key, label }) => {
+        const btn = cfTabRow.createEl("button", {
+          text: label,
+          cls: `ledgr-opex-tab${this.cfView === key ? " active" : ""}`,
+        });
+        btn.onclick = async () => { this.cfView = key; await this.render(); };
+      });
+    }
 
     const budgetConfig = await loadBudgets(this.app, this.plugin.settings);
     const netWorthData = await loadNetWorth(this.app, this.plugin.settings);
@@ -176,20 +193,6 @@ export class StatementsView extends ItemView {
       const allTxs: Transaction[] = ([] as Transaction[]).concat(...monthlyTxs);
       await this.renderPL(stmtWrap, allTxs, budgetConfig, fmt, fmtSigned);
     } else if (this.activeTab === "cashflow") {
-      // Cash flow sub-tab bar
-      const cfTabRow = stmtWrap.createDiv("ledgr-cf-subtabs");
-      ([
-        { key: "summary",  label: "Summary" },
-        { key: "grid",     label: "Grid" },
-        { key: "forecast", label: "Forecast" },
-      ] as { key: CfView; label: string }[]).forEach(({ key, label }) => {
-        const btn = cfTabRow.createEl("button", {
-          text: label,
-          cls: `ledgr-opex-tab${this.cfView === key ? " active" : ""}`,
-        });
-        btn.onclick = async () => { this.cfView = key; await this.render(); };
-      });
-
       if (this.cfView === "summary") {
         await this.renderCashFlowSummary(stmtWrap, fmt, fmtSigned);
       } else if (this.cfView === "grid") {
@@ -320,16 +323,22 @@ export class StatementsView extends ItemView {
 
     this.stmtDocHeader(parent, "Statement of Cash Flows", this.selectedYear);
 
+    // Consistent sign convention: parenthetical for negative, plain for positive (CPA standard)
+    const fmtFlow = (v: number) => v >= 0 ? fmt(v) : fmtSigned(v);
+
     const addSection = (label: string, items: { label: string; value: number }[], net: number, netLabel: string) => {
+      // W3: skip section entirely when net is zero and no non-zero line items
+      const nonZero = items.filter((i) => i.value !== 0);
+      if (net === 0 && nonZero.length === 0) return null;
+
       const sec = parent.createDiv("ledgr-stmt-section");
       this.stmtSectionLabel(sec, label);
-      items.forEach(({ label: l, value: v }) => {
-        if (v === 0) return;
-        const row = this.stmtLine(sec, l, v >= 0 ? `+ ${fmt(v)}` : fmtSigned(-Math.abs(v)), true);
+      nonZero.forEach(({ label: l, value: v }) => {
+        const row = this.stmtLine(sec, l, fmtFlow(v), true);
         if (v >= 0) row.querySelector<HTMLElement>(".ledgr-stmt-amt")?.addClass("ledgr-positive");
         else row.querySelector<HTMLElement>(".ledgr-stmt-amt")?.addClass("ledgr-negative");
       });
-      this.stmtSubtotal(sec, netLabel, (net >= 0 ? "+ " : "") + (net >= 0 ? fmt(net) : fmtSigned(net)));
+      this.stmtSubtotal(sec, netLabel, fmtFlow(net));
       const netEl = sec.querySelector<HTMLElement>(".ledgr-stmt-subtotal .ledgr-stmt-amt");
       if (netEl) netEl.addClass(net >= 0 ? "ledgr-positive" : "ledgr-negative");
       parent.createDiv({ cls: "ledgr-stmt-spacer" });
@@ -364,21 +373,21 @@ export class StatementsView extends ItemView {
       acc[key] = (acc[key] ?? 0) + (t.type === "income" ? t.amount : -t.amount);
       return acc;
     }, {} as Record<string, number>);
-    addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFCF, "Net Financing Cash Flow");
+    addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFinancingCF, "Net Financing Cash Flow");
 
-    // Free Cash Flow total
+    // Net Change in Cash (= OCF + ICF + Financing) — renamed from "Free Cash Flow" per CFA review
     const totalEl = parent.createDiv("ledgr-stmt-total");
-    totalEl.createSpan({ text: "Free Cash Flow" });
+    totalEl.createSpan({ text: "Net Change in Cash" });
     totalEl.createSpan({
-      text: (s.freeCashFlow >= 0 ? "+ " : "") + fmt(Math.abs(s.freeCashFlow)),
+      text: fmtFlow(s.freeCashFlow),
       cls: `ledgr-stmt-amt ${s.freeCashFlow >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
     });
 
-    // FCF margin
+    // Cash flow margin (net change / total income)
     if (s.totalIncome > 0) {
       const margin = Math.round((s.freeCashFlow / s.totalIncome) * 100);
       const rateEl = parent.createDiv("ledgr-stmt-rate-row");
-      rateEl.createSpan({ text: "FCF Margin", cls: "ledgr-stmt-rate-label" });
+      rateEl.createSpan({ text: "Cash Flow Margin", cls: "ledgr-stmt-rate-label" });
       rateEl.createSpan({ text: `${margin}%`, cls: `ledgr-stmt-amt ${margin >= 20 ? "ledgr-positive" : "ledgr-neutral"}` });
     }
 
@@ -505,7 +514,7 @@ export class StatementsView extends ItemView {
       });
       result.runwayConditions.forEach((c) => {
         const row = runwayEl.createDiv("ledgr-bearing-pillar-row");
-        row.createSpan({ text: c.met ? "✓" : "○", cls: c.met ? "ledgr-positive" : "ledgr-meta" });
+        row.createSpan({ text: c.met ? "✓" : "—", cls: c.met ? "ledgr-positive" : "ledgr-text-red" });
         row.createSpan({ text: c.label, cls: "ledgr-meta" });
       });
     } else if (this.forecastScenarios.length > 0 && !result.runwayMonth) {

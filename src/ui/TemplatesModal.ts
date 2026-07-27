@@ -18,16 +18,21 @@ export class TemplatesModal extends Modal {
     this.selectedMonth = window.moment().format("YYYY-MM");
   }
 
+  private seededThisSession = false;
+  private seedCount = 0;
+
   async onOpen() {
     this.store = await loadTemplates(this.app, this.plugin.settings);
-    // If no templates yet, seed suggestions from prior month's fixed transactions
     if (this.store.templates.length === 0) {
-      await this.seedSuggestions();
+      // Don't auto-save yet — show suggestions with disclosure first
+      await this.seedSuggestions(false);
+      this.seededThisSession = this.store.templates.length > 0;
+      this.seedCount = this.store.templates.length;
     }
     this.render();
   }
 
-  async seedSuggestions() {
+  async seedSuggestions(save = true) {
     const prevMonth = window.moment().subtract(1, "month").format("YYYY-MM");
     const txs = await readMonthTransactions(this.app, this.plugin.settings, prevMonth);
     const fixedTxs = txs.filter((t) => FIXED_SUBCATEGORIES.has(t.subcategory) && t.type === "expense");
@@ -47,7 +52,7 @@ export class TemplatesModal extends Modal {
         note: t.note,
       });
     });
-    if (this.store.templates.length > 0) {
+    if (save && this.store.templates.length > 0) {
       await saveTemplates(this.app, this.plugin.settings, this.store);
     }
   }
@@ -72,6 +77,12 @@ export class TemplatesModal extends Modal {
     if (this.store.templates.length === 0) {
       parent.createEl("p", { text: "No templates yet. Switch to Manage to create one.", cls: "ledgr-empty" });
       return;
+    }
+
+    // Disclosure banner when seeded this session (W2 fix)
+    if (this.seededThisSession) {
+      const banner = parent.createDiv("ledgr-rate-banner");
+      banner.createEl("span", { text: `${this.seedCount} template${this.seedCount > 1 ? "s" : ""} suggested from your fixed expenses last month. Review and uncheck any you don't want before applying.` });
     }
 
     // Month picker
@@ -124,6 +135,11 @@ export class TemplatesModal extends Modal {
         note: tpl.note || `Template: ${tpl.name}`,
         stream: tpl.stream,
       });
+    }
+    // Persist seeded templates to disk on first apply confirmation
+    if (this.seededThisSession) {
+      await saveTemplates(this.app, this.plugin.settings, this.store);
+      this.seededThisSession = false;
     }
     new Notice(`${toApply.length} template${toApply.length > 1 ? "s" : ""} applied to ${this.selectedMonth}.`);
     this.checked.clear();
