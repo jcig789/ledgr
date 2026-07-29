@@ -248,7 +248,7 @@ export async function calculateBearing(
     months.push(window.moment(today).subtract(i, "month").format("YYYY-MM"));
   }
 
-  const allMonthTxs = await Promise.all(
+  const allMonthTxs: import("./transactions").Transaction[][] = await Promise.all(
     months.map((m) => readMonthTransactions(app, settings, m))
   );
 
@@ -291,14 +291,14 @@ export async function calculateBearing(
   }
 
   // First transaction date (for goal urgency)
-  const allTxs = allMonthTxs.flat().sort((a, b) => a.date.localeCompare(b.date));
+  const allTxs: import("./transactions").Transaction[] = ([] as import("./transactions").Transaction[]).concat(...allMonthTxs);
+  allTxs.sort((a, b) => a.date.localeCompare(b.date));
   const firstTxDate = allTxs.length > 0 ? allTxs[0].date : null;
 
   // Net worth series — prefer real snapshots, fall back to delta approximation
   const nwNow = totalAssets - totalLiabilities;
-  const snapshotEntries = (Object.entries(nwHistory.snapshots) as [string, number][])
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .slice(-12); // up to 12 months of real data
+  const snapshotKeys = Object.keys(nwHistory.snapshots).sort().slice(-12);
+  const snapshotEntries: [string, number][] = snapshotKeys.map((k) => [k, nwHistory.snapshots[k] ?? 0]);
 
   let nonZeroNwSeries: number[];
 

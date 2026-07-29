@@ -410,9 +410,9 @@ export class StandingView extends ItemView {
     if (!this.result?.hasEnoughData) return;
     const result = this.result;
 
-    // Render card to canvas — Canvas 2D API has no Obsidian alternative
-    // eslint-disable-next-line no-restricted-globals
-    const canvas = document.createElement("canvas");
+    // Render card to canvas using Obsidian's createEl — returns HTMLCanvasElement directly
+    const canvas = this.contentEl.createEl("canvas");
+    canvas.detach(); // detach from DOM — only need the 2D context, not a visible element
     const W = 400, H = 500;
     canvas.width = W;
     canvas.height = H;

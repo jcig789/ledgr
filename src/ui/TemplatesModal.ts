@@ -82,16 +82,18 @@ export class TemplatesModal extends Modal {
     // Disclosure banner when seeded this session (W2 fix)
     if (this.seededThisSession) {
       const banner = parent.createDiv("ledgr-rate-banner");
-      banner.createEl("span", { text: `${this.seedCount} template${this.seedCount > 1 ? "s" : ""} suggested from your fixed expenses last month. Review and uncheck any you don't want before applying.` });
+      banner.createSpan({ text: `${this.seedCount} template${this.seedCount > 1 ? "s" : ""} suggested from your fixed expenses last month. Review and uncheck any you don't want before applying.` });
     }
 
     // Month picker
     const monthRow = parent.createDiv("ledgr-month-row ledgr-row-spaced");
-    monthRow.createEl("span", { text: "Apply to:", cls: "ledgr-meta" });
-    const monthInput = monthRow.createEl("input", {
-      attr: { type: "month", value: this.selectedMonth, class: "ledgr-inline-input" },
+    monthRow.createSpan({ text: "Apply to:", cls: "ledgr-meta" });
+    new Setting(monthRow).addText((t): void => {
+      t.inputEl.type = "month";
+      t.inputEl.value = this.selectedMonth;
+      t.inputEl.addClass("ledgr-inline-input");
+      t.onChange((v) => { this.selectedMonth = v; });
     });
-    monthInput.onchange = (e) => { this.selectedMonth = (e.target as HTMLInputElement).value; };
 
     parent.createEl("p", { text: "Select templates to log as transactions:", cls: "ledgr-meta" });
 
