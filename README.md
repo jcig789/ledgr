@@ -8,27 +8,38 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 
 ### Core
 - **Quick transaction capture** — log expenses and income in seconds via modal or command palette; Enter to save on desktop
-- **Dashboard** — monthly cash flow summary: income, expenses, savings, savings rate gauge, category donut chart, 6-month trend, per-category budget bars
+- **Dashboard** — monthly cash flow summary: income, expenses, savings, savings rate gauge, category donut chart, 6-month trend, per-category budget bars; Cash Flow Health panel (OCF/ICF/FCF)
 - **Budgets** — set per-category monthly limits with over-budget indicators and fixed/variable classification
-- **Net worth tracker** — bank accounts, investment accounts, and liabilities across multiple currencies with allocation chart
-- **Liability tracker** — track loans, mortgages, credit cards, and installment plans; log payments with live balance preview; due-date reminders on the dashboard
-- **Financial statements** — CPA-style Income Statement (with budget vs. actual variance), Cash Flow, and Balance Sheet; K/M/B formatting for large amounts
+- **Net worth tracker** — bank accounts, investment accounts, and liabilities across multiple currencies with allocation chart and history chart
+- **Liability tracker** — track loans, mortgages, credit cards; log payments with live balance preview; closure prompt when paid off
+- **Debt cost analysis** — enter APR to see monthly interest cost, months to payoff, total interest, extra payment what-if, avalanche vs snowball priority order
+- **Property equity** — link a mortgage to a property asset to track equity %, LTV ratio, and principal paid
+- **Financial statements** — CPA-style Income Statement, three-section Cash Flow (Operating/Investing/Financing), Balance Sheet; K/M/B formatting
+- **Cash Flow Forecast** — 3/6/12M projection, what-if simulator (up to 4 scenarios), Runway to Commit timing
 - **Savings goals** — set a target amount, deadline, and linked account; see projected completion date and progress bar
 - **Daily countdown** — budget remaining and daily allowance for the rest of the month
+- **Recurring templates** — save fixed monthly expenses and income; apply in one click at month start
+
+### Standing — The Bearing
+- **Financial health index** — scored 0–100 from 6 behavioral pillars (Discipline, Ballast, Provision, Composure, Momentum, Reserve)
+- **Shareable card** — old money assay seal design, zero monetary amounts, exportable as PNG
+- **Forward projection** — "At current trajectory, Established in ~4 months" based on score history
+- **Behavioral guidance** — weakest pillars surface with deep-links to the relevant section
 
 ### Reports
-- **Monthly review** — generate a Markdown note summarizing any past month: income, expenses, category breakdown, notable transactions, vs. last month
-- **Ledgr Wrapped** — generate an annual year-in-review note with best/worst months, top spending categories, and transfers summary
+- **Monthly review** — generate a Markdown note summarizing any past month
+- **Ledgr Wrapped** — annual year-in-review note
 
 ### Transfer Tracker (opt-in)
 - Log international money transfers with fee, exchange rate, and received amount
 - Dashboard widget with monthly and YTD totals, lifetime sent, history with period filter
 
 ### Navigation & UX
-- Sticky top tab bar — Dashboard | Net Worth | Statements — works on mobile and desktop
+- Sticky top tab bar — Dashboard | Net Worth | Statements | Standing — works on mobile and desktop
 - Transaction edit and delete (2-step confirm on delete)
 - Currency toggle — switch between base and secondary currencies instantly
 - Old Money design system — charcoal, small caps, tabular numerals
+- Guidance deep-links scroll to the relevant section in the target tab
 
 ### Mobile
 - Fully responsive throughout
@@ -133,14 +144,17 @@ Fields per transaction: `date`, `type`, `amount`, `currency`, `category`, `subca
 ```
 <financeFolder>/
   transactions/
-    YYYY-MM.md         # One file per month — readable table + Dataview fields
-  budgets.json         # Category limits
-  networth.json        # Accounts, brokerages, liabilities
-  goals.json           # Savings goals
-  remittances.json     # Transfer history (if enabled)
+    YYYY-MM.md           # One file per month — readable table + Dataview fields
+  budgets.json           # Category limits
+  networth.json          # Accounts, brokerages, liabilities
+  goals.json             # Savings goals
+  remittances.json       # Transfer history (if enabled)
+  ledgr-templates.json   # Recurring transaction templates
+  ledgr-bearing.json     # Bearing score history (per-pillar, monthly)
+  ledgr-nw-history.json  # Net worth snapshots (monthly totals)
   reviews/
-    YYYY-MM-review.md  # Generated monthly review notes
-    YYYY-wrapped.md    # Generated annual wrapped notes
+    YYYY-MM-review.md    # Generated monthly review notes
+    YYYY-wrapped.md      # Generated annual wrapped notes
 ```
 
 ---
