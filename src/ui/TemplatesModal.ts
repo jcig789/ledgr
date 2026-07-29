@@ -100,11 +100,12 @@ export class TemplatesModal extends Modal {
     const list = parent.createDiv("ledgr-template-list");
     this.store.templates.forEach((tpl) => {
       const row = list.createDiv("ledgr-template-row");
-      const cb = row.createEl("input"); cb.type = "checkbox";
+      const cb = row.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
       cb.checked = this.checked.has(tpl.id);
       cb.onchange = () => { cb.checked ? this.checked.add(tpl.id) : this.checked.delete(tpl.id); };
       row.createSpan({ text: tpl.name, cls: "ledgr-template-name" });
       row.createSpan({ text: `${tpl.currency} ${tpl.amount.toLocaleString()}`, cls: "ledgr-template-amount" });
+      row.createSpan({ text: tpl.type, cls: `ledgr-badge ledgr-badge-${tpl.type}` });
       row.createSpan({ text: tpl.stream.toUpperCase(), cls: `ledgr-template-stream ledgr-template-stream-${tpl.stream}` });
     });
 
@@ -168,10 +169,25 @@ export class TemplatesModal extends Modal {
     // Add new template form
     parent.createEl("h3", { text: "Add Template" });
     const form = parent.createDiv("ledgr-edit-card");
-    const nameInput = form.createEl("input"); nameInput.type = "text"; nameInput.placeholder = "Name (e.g. Rent)"; nameInput.className = "ledgr-inline-input";
-    const amtInput = form.createEl("input"); amtInput.type = "number"; amtInput.placeholder = "Amount"; amtInput.className = "ledgr-inline-input";
-    const catInput = form.createEl("input"); catInput.type = "text"; catInput.placeholder = "Category"; catInput.className = "ledgr-inline-input";
-    const subInput = form.createEl("input"); subInput.type = "text"; subInput.placeholder = "Subcategory"; subInput.className = "ledgr-inline-input";
+
+    // Type toggle: Expense / Income
+    let newType: "expense" | "income" = "expense";
+    const typeRow = form.createDiv("ledgr-edit-card-row");
+    typeRow.createSpan({ text: "Type", cls: "ledgr-meta" });
+    const typeToggleRow = typeRow.createDiv("ledgr-btn-row");
+    const expenseBtn = typeToggleRow.createEl("button", { text: "Expense", cls: "ledgr-budget-btn active" });
+    const incomeBtn = typeToggleRow.createEl("button", { text: "Income", cls: "ledgr-budget-btn" });
+    expenseBtn.onclick = () => { newType = "expense"; expenseBtn.addClass("active"); incomeBtn.removeClass("active"); };
+    incomeBtn.onclick = () => { newType = "income"; incomeBtn.addClass("active"); expenseBtn.removeClass("active"); };
+
+    const nameInput = form.createEl("input", { attr: { type: "text", placeholder: "Name (e.g. Rent or Salary)" } }) as HTMLInputElement;
+    nameInput.className = "ledgr-inline-input";
+    const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Amount" } }) as HTMLInputElement;
+    amtInput.className = "ledgr-inline-input";
+    const catInput = form.createEl("input", { attr: { type: "text", placeholder: "Category" } }) as HTMLInputElement;
+    catInput.className = "ledgr-inline-input";
+    const subInput = form.createEl("input", { attr: { type: "text", placeholder: "Subcategory" } }) as HTMLInputElement;
+    subInput.className = "ledgr-inline-input";
 
     const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
     addBtn.onclick = async () => {
@@ -179,10 +195,10 @@ export class TemplatesModal extends Modal {
       this.store.templates.push({
         id: `tpl_${Date.now()}`,
         name: nameInput.value.trim() || sub,
-        type: "expense",
+        type: newType,
         amount: parseFloat(amtInput.value) || 0,
         currency: this.plugin.settings.baseCurrency,
-        category: catInput.value.trim() || "Other",
+        category: catInput.value.trim() || (newType === "income" ? "Income" : "Other"),
         subcategory: sub,
         stream: getDefaultStream(sub),
         note: "",
@@ -190,6 +206,7 @@ export class TemplatesModal extends Modal {
       await saveTemplates(this.app, this.plugin.settings, this.store);
       this.render();
     };
+    parent.createEl("p", { text: "Income templates do not affect the Forecast projection until real transactions are recorded.", cls: "ledgr-empty" });
   }
 
   onClose() { this.contentEl.empty(); }

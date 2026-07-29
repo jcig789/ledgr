@@ -210,7 +210,7 @@ export class DashboardView extends ItemView {
     // Payments Due card — sum of monthly obligations across active liabilities
     try {
       const nwData = await loadNetWorth(this.app, this.plugin.settings);
-      const liabilities = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails);
+      const liabilities = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails && !a.liabilityDetails.closedAt);
       if (liabilities.length > 0) {
         const totalMonthly = liabilities.reduce((sum, a) => {
           return sum + convertToBase(

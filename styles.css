@@ -3499,3 +3499,37 @@ button.ledgr-del-confirm,
   border: 1px solid var(--ledgr-rule);
   border-radius: var(--ledgr-radius-md);
 }
+
+/* ─── v0.3.0 — Property / Debt / Closure ────────────────────────────────── */
+
+/* Property equity card */
+.ledgr-nw-property-card {
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-sm);
+}
+
+.ledgr-nw-property-name {
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  font-weight: 500;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+
+/* Closed liability */
+.ledgr-liability-closed-name {
+  text-decoration: line-through;
+  color: var(--ledgr-text-faint);
+}
+
+.ledgr-liability-closed td { opacity: 0.6; }
+
+/* Composure exclusion list */
+.ledgr-composure-exclusion-list { margin-top: var(--ledgr-spacing-sm); }
+.ledgr-composure-exclusion-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-sm);
+  padding: 4px 0;
+}

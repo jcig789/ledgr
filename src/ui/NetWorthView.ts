@@ -11,6 +11,7 @@ import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
 import { LIABILITY_TYPES } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
+import { DebtCostModal } from "./DebtCostModal";
 import { recordNwSnapshot } from "../data/nwHistory";
 
 export const NETWORTH_VIEW_TYPE = "ledgr-networth";
@@ -187,6 +188,7 @@ export class NetWorthView extends ItemView {
     this.renderAccountGroup(contentEl, "Primary Accounts", "JP");
     this.renderAccountGroup(contentEl, "Secondary Accounts", "PH");
     this.renderBrokerages(contentEl);
+    this.renderPropertyEquity(contentEl);
     this.renderLiabilities(contentEl);
 
     if (this.editMode) {
@@ -368,20 +370,98 @@ export class NetWorthView extends ItemView {
     }
   }
 
-  renderLiabilities(parent: HTMLElement) {
-    const liabilities = this.data.accounts.filter((a) => a.isLiability);
-    if (liabilities.length === 0 && !this.editMode) return;
+  renderPropertyEquity(parent: HTMLElement) {
+    // Find linked asset+liability pairs
+    const pairs: { asset: typeof this.data.accounts[0]; mortgage: typeof this.data.accounts[0] }[] = [];
+    this.data.accounts.forEach((acc) => {
+      if (!acc.isLiability && acc.linkedLiabilityId) {
+        const mortgage = this.data.accounts.find((a) => a.id === acc.linkedLiabilityId && a.isLiability);
+        if (mortgage) pairs.push({ asset: acc, mortgage });
+      }
+    });
+    if (pairs.length === 0) return;
 
     const section = parent.createDiv("ledgr-section");
-    section.createEl("h3", { text: "Liabilities" });
+    section.createDiv("ledgr-section-header").createEl("h3", { text: "Property" });
 
-    if (liabilities.length === 0) {
+    pairs.forEach(({ asset, mortgage }) => {
+      const propertyValue = this.toBase(asset.balance, asset.currency);
+      const mortgageBalance = this.toBase(mortgage.balance, mortgage.currency);
+      const equity = propertyValue - mortgageBalance;
+      const equityPct = propertyValue > 0 ? (equity / propertyValue) * 100 : 0;
+      const ltv = propertyValue > 0 ? (mortgageBalance / propertyValue) * 100 : 0;
+      const originalAmount = mortgage.liabilityDetails?.originalAmount ?? 0;
+      const principalPaid = originalAmount > 0 ? originalAmount - mortgageBalance : 0;
+
+      const card = section.createDiv("ledgr-nw-property-card");
+      card.createDiv({ text: asset.name, cls: "ledgr-nw-property-name" });
+      card.createDiv("ledgr-bearing-rule-thin");
+
+      const tbl = card.createEl("table", { cls: "ledgr-tx-table" });
+      const tbody = tbl.createEl("tbody");
+      const row = (label: string, value: string, cls = "") => {
+        const tr = tbody.createEl("tr");
+        tr.createEl("td", { text: label, cls: "ledgr-meta" });
+        tr.createEl("td", { text: value, cls: `ledgr-text-right ${cls}` });
+      };
+      row("Property value", this.fmt(propertyValue));
+      row("Mortgage balance", this.fmt(mortgageBalance), "ledgr-expense");
+      card.createDiv("ledgr-bearing-rule-thin");
+      row("Equity", `${this.fmt(equity)}  ${equityPct.toFixed(1)}%`, equity >= 0 ? "ledgr-positive" : "ledgr-negative");
+      row("LTV ratio", `${ltv.toFixed(1)}%`);
+      if (principalPaid > 0) row("Principal paid", `${this.fmt(principalPaid)}  ${originalAmount > 0 ? ((principalPaid / originalAmount) * 100).toFixed(1) : 0}% of loan`);
+    });
+  }
+
+  renderLiabilities(parent: HTMLElement) {
+    const allLiabilities = this.data.accounts.filter((a) => a.isLiability);
+    const liabilities = allLiabilities.filter((a) => !a.liabilityDetails?.closedAt);
+    const closedLiabilities = allLiabilities.filter((a) => a.liabilityDetails?.closedAt);
+
+    if (allLiabilities.length === 0 && !this.editMode) return;
+
+    const section = parent.createDiv("ledgr-section");
+    const hdr = section.createDiv("ledgr-section-header");
+    hdr.createEl("h3", { text: "Liabilities" });
+    if (closedLiabilities.length > 0 && !this.editMode) {
+      let showClosed = false;
+      const toggleLink = hdr.createEl("a", {
+        text: `Show closed (${closedLiabilities.length})`,
+        cls: "ledgr-bearing-guidance-link",
+      });
+      toggleLink.onclick = () => {
+        showClosed = !showClosed;
+        closedSection.toggleClass("ledgr-hidden", !showClosed);
+        toggleLink.textContent = showClosed
+          ? `Hide closed (${closedLiabilities.length})`
+          : `Show closed (${closedLiabilities.length})`;
+      };
+    }
+
+    if (allLiabilities.length === 0) {
       section.createEl("p", { text: "No liabilities. Click Edit to add.", cls: "ledgr-empty" });
       return;
     }
 
+    // Closed liabilities section (hidden by default)
+    const closedSection = section.createDiv("ledgr-hidden");
+
+    // Render closed liabilities inside the hidden section
+    if (closedLiabilities.length > 0) {
+      const closedTable = closedSection.createEl("table", { cls: "ledgr-tx-table" });
+      const chrow = closedTable.createEl("thead").createEl("tr");
+      ["Name", "Type", "Archived"].forEach((h) => chrow.createEl("th", { text: h }));
+      const ctbody = closedTable.createEl("tbody");
+      closedLiabilities.forEach((acc) => {
+        const tr = ctbody.createEl("tr", { cls: "ledgr-liability-closed" });
+        tr.createEl("td", { text: acc.name, cls: "ledgr-liability-closed-name" });
+        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
+        tr.createEl("td", { text: acc.liabilityDetails?.closedAt ?? "—", cls: "ledgr-empty" });
+      });
+    }
+
     if (this.editMode) {
-      liabilities.forEach((acc) => {
+      allLiabilities.forEach((acc) => {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
         const nameInput = row1.createEl("input");
@@ -427,9 +507,46 @@ export class NetWorthView extends ItemView {
 
           const row6 = card.createDiv("ledgr-edit-card-row");
           row6.createSpan({ text: "Reminder", cls: "ledgr-meta" });
-          const reminderCheck = row6.createEl("input");
-          reminderCheck.type = "checkbox"; reminderCheck.checked = ld.reminderEnabled;
+          const reminderCheck = row6.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+          reminderCheck.checked = ld.reminderEnabled;
           reminderCheck.onchange = () => { this.isDirty = true; ld.reminderEnabled = reminderCheck.checked; };
+
+          const row7 = card.createDiv("ledgr-edit-card-row");
+          row7.createSpan({ text: "APR (%)", cls: "ledgr-meta" });
+          const aprInput = row7.createEl("input", { attr: { type: "number", placeholder: "e.g. 18.0", step: "0.1", min: "0" } }) as HTMLInputElement;
+          aprInput.className = "ledgr-inline-input";
+          if (ld.apr !== undefined) aprInput.value = String(ld.apr);
+          aprInput.oninput = () => { this.isDirty = true; ld.apr = parseFloat(aprInput.value) || undefined; };
+
+          // Linked property dropdown (for mortgages)
+          if (acc.type === "mortgage" || acc.type === "car_loan" || acc.type === "installment") {
+            const propertyAccounts = this.data.accounts.filter((a) => !a.isLiability && a.type === "property");
+            if (propertyAccounts.length > 0) {
+              const row8 = card.createDiv("ledgr-edit-card-row");
+              row8.createSpan({ text: "Linked property", cls: "ledgr-meta" });
+              const select = row8.createEl("select", { cls: "ledgr-inline-input" });
+              const noneOpt = select.createEl("option"); noneOpt.value = ""; noneOpt.textContent = "(none)";
+              propertyAccounts.forEach((pa) => {
+                const opt = select.createEl("option");
+                opt.value = pa.id; opt.textContent = pa.name;
+              });
+              select.value = acc.linkedAssetId ?? "";
+              select.onchange = () => {
+                this.isDirty = true;
+                const prev = acc.linkedAssetId;
+                acc.linkedAssetId = select.value || undefined;
+                // Update the linked asset's back-reference
+                if (prev) {
+                  const prevAsset = this.data.accounts.find((a) => a.id === prev);
+                  if (prevAsset) prevAsset.linkedLiabilityId = undefined;
+                }
+                if (acc.linkedAssetId) {
+                  const newAsset = this.data.accounts.find((a) => a.id === acc.linkedAssetId);
+                  if (newAsset) newAsset.linkedLiabilityId = acc.id;
+                }
+              };
+            }
+          }
         }
 
         const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
@@ -437,6 +554,17 @@ export class NetWorthView extends ItemView {
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
           void this.render();
         };
+        // Archive button for zero-balance liabilities
+        if (acc.isLiability && acc.liabilityDetails && !acc.liabilityDetails.closedAt && Math.round(acc.balance * 100) === 0) {
+          const archiveBtn = card.createEl("button", { text: "Archive", cls: "ledgr-budget-btn" });
+          archiveBtn.onclick = () => {
+            if (acc.liabilityDetails) {
+              acc.liabilityDetails.closedAt = window.moment().format("YYYY-MM-DD");
+              this.isDirty = true;
+              void this.render();
+            }
+          };
+        }
       });
     } else {
       const table = section.createEl("table", { cls: "ledgr-tx-table" });
@@ -470,6 +598,10 @@ export class NetWorthView extends ItemView {
           payBtn.onclick = () => new LiabilityPaymentModal(
             this.app, this.plugin, acc, () => { void this.render(); }
           ).open();
+        }
+        if (acc.liabilityDetails) {
+          const analyzeBtn = actionTd.createEl("button", { text: "Analyze", cls: "ledgr-budget-btn" });
+          analyzeBtn.onclick = () => new DebtCostModal(this.app, this.plugin, acc).open();
         }
       });
     }

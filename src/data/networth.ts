@@ -19,6 +19,8 @@ export interface LiabilityDetails {
   reminderEnabled: boolean;    // Default true
   reminderDaysAhead: number;   // Default 3
   payments: LiabilityPayment[];
+  apr?: number;                // Annual percentage rate e.g. 15.9 for 15.9%
+  closedAt?: string;           // YYYY-MM-DD — set when balance reaches 0 and archived
 }
 
 export interface Account {
@@ -30,6 +32,8 @@ export interface Account {
   country: "JP" | "PH" | "US" | "OTHER";
   isLiability: boolean;
   liabilityDetails?: LiabilityDetails;
+  linkedAssetId?: string;      // liability → points to property asset account id
+  linkedLiabilityId?: string;  // asset → points to mortgage/loan account id
 }
 
 export interface Brokerage {

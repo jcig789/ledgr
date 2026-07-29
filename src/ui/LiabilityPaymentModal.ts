@@ -116,7 +116,33 @@ export class LiabilityPaymentModal extends Modal {
     this.app.workspace.trigger("ledgr:transaction-saved");
     this.app.workspace.trigger("ledgr:networth-updated");
     this.onPaid();
-    this.close();
+
+    // Closure prompt when balance reaches zero (float-safe check)
+    if (Math.round(newBalance * 100) === 0) {
+      this.renderClosurePrompt(acc, data);
+    } else {
+      this.close();
+    }
+  }
+
+  renderClosurePrompt(acc: Account, data: import("../data/networth").NetWorthData) {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: `${acc.name} — Paid Off` });
+    contentEl.createEl("p", { text: "Balance is now zero. Archive this liability?", cls: "ledgr-meta" });
+    contentEl.createEl("p", { text: "Archived liabilities are hidden from your active view and Payments Due card.", cls: "ledgr-empty" });
+
+    const btnRow = contentEl.createDiv("ledgr-btn-row");
+    const archiveBtn = btnRow.createEl("button", { text: "Archive", cls: "ledgr-log-btn mod-cta" });
+    archiveBtn.onclick = async () => {
+      if (!acc.liabilityDetails) return;
+      acc.liabilityDetails.closedAt = window.moment().format("YYYY-MM-DD");
+      await saveNetWorth(this.app, this.plugin.settings, data);
+      this.app.workspace.trigger("ledgr:networth-updated");
+      this.close();
+    };
+    const keepBtn = btnRow.createEl("button", { text: "Keep Open", cls: "ledgr-budget-btn" });
+    keepBtn.onclick = () => this.close();
   }
 
   onClose() { this.contentEl.empty(); }

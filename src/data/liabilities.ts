@@ -29,7 +29,10 @@ export function isPaymentAlreadyLogged(account: Account, month: string): boolean
 
 export function getUpcomingPayments(accounts: Account[], today: string, month: string): Account[] {
   return accounts.filter(
-    (a) => a.isLiability && getDueThisMonth(a, today) && !isPaymentAlreadyLogged(a, month)
+    (a) => a.isLiability
+      && !a.liabilityDetails?.closedAt          // exclude archived liabilities
+      && getDueThisMonth(a, today)
+      && !isPaymentAlreadyLogged(a, month)
   );
 }
 

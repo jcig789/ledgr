@@ -139,7 +139,8 @@ function calcProvision(
 ): PillarResult {
   const name = "Provision";
   if (goals.length === 0) {
-    return { name, score: 0, max: pillarMax, label: "Insufficient", hasData: false, note: "Add savings goals to measure Provision." };
+    // No goals = score 0, not excluded — users without goals are penalized, not rewarded
+    return { name, score: 0, max: pillarMax, label: "Developing", hasData: true, note: "Add savings goals to improve Provision." };
   }
 
   const goalScores = goals.map((g) => {
@@ -252,9 +253,10 @@ export async function calculateBearing(
     months.map((m) => readMonthTransactions(app, settings, m))
   );
 
-  // Monthly expense totals (base currency)
+  // Monthly expense totals — exclude business categories from Composure calculation
+  const composureExcluded = new Set(settings.composureExcludedCategories ?? []);
   const monthlyExpenses = allMonthTxs.map((txs) =>
-    txs.filter((t) => t.type === "expense")
+    txs.filter((t) => t.type === "expense" && !composureExcluded.has(t.category))
        .reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0)
   );
 
@@ -275,7 +277,7 @@ export async function calculateBearing(
     ...brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
   ].reduce((s, v) => s + v, 0);
   const totalLiabilities = accounts
-    .filter((a) => a.isLiability)
+    .filter((a) => a.isLiability && !a.liabilityDetails?.closedAt)
     .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
 
   // Liquid assets (bank, ewallet, cash only)

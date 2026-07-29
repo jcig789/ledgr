@@ -2,7 +2,7 @@ import { App, Modal, Setting, Notice } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadCategories, saveCategories, CategoryStore } from "../data/categoryStore";
 
-type Tab = "exchange" | "categories";
+type Tab = "exchange" | "categories" | "features";
 
 export class ConfigModal extends Modal {
   plugin: LedgrPlugin;
@@ -34,6 +34,7 @@ export class ConfigModal extends Modal {
     const tabs: { key: Tab; label: string }[] = [
       { key: "exchange", label: "Exchange Rates" },
       { key: "categories", label: "Categories" },
+      { key: "features", label: "Features" },
     ];
     tabs.forEach(({ key, label }) => {
       const btn = tabRow.createEl("button", {
@@ -47,8 +48,10 @@ export class ConfigModal extends Modal {
 
     if (this.activeTab === "exchange") {
       this.renderExchangeTab(body);
-    } else {
+    } else if (this.activeTab === "categories") {
       this.renderCategoriesTab(body);
+    } else {
+      this.renderFeaturesTab(body);
     }
   }
 
@@ -239,6 +242,34 @@ export class ConfigModal extends Modal {
           this.render();
         }
       };
+    }
+  }
+
+  renderFeaturesTab(parent: HTMLElement) {
+    // Composure exclusions
+    const excluded = new Set(this.plugin.settings.composureExcludedCategories ?? []);
+    const allCats = this.categories ? Object.keys(this.categories.expense) : [];
+
+    new Setting(parent)
+      .setName("Exclude from Composure")
+      .setDesc("Categories excluded from spending volatility (Composure pillar). Use for business expenses that are irregular by nature.");
+
+    if (allCats.length === 0) {
+      parent.createEl("p", { text: "Load categories first.", cls: "ledgr-empty" });
+    } else {
+      const listWrap = parent.createDiv("ledgr-composure-exclusion-list");
+      allCats.forEach((cat) => {
+        const row = listWrap.createDiv("ledgr-composure-exclusion-row");
+        const cb = row.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+        cb.checked = excluded.has(cat);
+        cb.onchange = async () => {
+          if (cb.checked) excluded.add(cat);
+          else excluded.delete(cat);
+          this.plugin.settings.composureExcludedCategories = Array.from(excluded);
+          await this.plugin.saveSettings();
+        };
+        row.createEl("label", { text: cat, cls: "ledgr-meta" });
+      });
     }
   }
 

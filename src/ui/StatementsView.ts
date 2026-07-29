@@ -487,7 +487,7 @@ export class StatementsView extends ItemView {
     // Projection table
     const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
     const thead = table.createEl("thead").createEl("tr");
-    ["Month", "Proj. OCF", "Balance", ""].forEach((h) => {
+    ["Month", "Proj. OCF", "Balance", "Low", "High", ""].forEach((h) => {
       const th = thead.createEl("th");
       th.textContent = h;
       if (h !== "Month" && h !== "") th.addClass("ledgr-text-right");
@@ -500,6 +500,8 @@ export class StatementsView extends ItemView {
       netTd.textContent = (m.projectedNet >= 0 ? "+" : "") + fmt(m.projectedNet);
       netTd.addClass(m.projectedNet >= 0 ? "ledgr-positive" : "ledgr-negative");
       tr.createEl("td", { text: fmt(m.projectedBalance), cls: "ledgr-text-right" });
+      tr.createEl("td", { text: fmt(m.confidenceLow), cls: "ledgr-text-right ledgr-text-faint" });
+      tr.createEl("td", { text: fmt(m.confidenceHigh), cls: "ledgr-text-right ledgr-text-faint" });
       const flagTd = tr.createEl("td");
       if (m.belowReserveFloor) flagTd.createSpan({ text: "▼ reserve", cls: "ledgr-text-red ledgr-meta" });
     });
@@ -580,7 +582,7 @@ export class StatementsView extends ItemView {
     }
 
     parent.createEl("p", {
-      text: "Projection uses trailing 3-month average. 3M: high confidence · 6M: medium · 12M: directional.",
+      text: "Projection uses trailing 3-month average. Low / High band widens by 8% per month from historical variance. 3M: high confidence · 6M: medium · 12M: directional.",
       cls: "ledgr-stmt-footnote",
     });
   }
