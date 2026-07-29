@@ -480,7 +480,7 @@ export class DashboardView extends ItemView {
         input.type = "number";
         input.placeholder = `Target (${this.viewCurrency})`;
         input.className = "ledgr-inline-input ledgr-cf-commitment-input";
-        input.style.width = "140px";
+        input.setCssStyles({ width: "140px" });
         const saveBtn = commitRow.createEl("button", { text: "Set", cls: "ledgr-budget-btn" });
         const cancel = commitRow.createEl("button", { text: "Cancel", cls: "ledgr-budget-btn" });
 

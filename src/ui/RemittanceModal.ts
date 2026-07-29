@@ -76,7 +76,7 @@ export class RemittanceModal extends Modal {
     new Setting(contentEl)
       .setName("Service")
       .addDropdown((d): void => {
-        services.forEach((s) => d.addOption(s, s));
+        services.forEach((s): void => { d.addOption(s, s); });
         void d.setValue(this.service).onChange((v): void => {
           this.service = v;
           this.fee = this.plugin.settings.transferServiceFees[v] ?? 0;

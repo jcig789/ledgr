@@ -50,7 +50,7 @@ export class GoalModal extends Modal {
       .addText((t) => t.setPlaceholder("0").setValue(this.targetAmount).onChange((v) => (this.targetAmount = v)))
       .addDropdown((d): void => {
         [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies]
-          .forEach((c) => d.addOption(c, c));
+          .forEach((c): void => { d.addOption(c, c); });
         void d.setValue(this.currency).onChange((v) => (this.currency = v));
       });
 
@@ -67,7 +67,7 @@ export class GoalModal extends Modal {
         .setDesc("Optional — track goal from a specific account balance")
         .addDropdown((d): void => {
           d.addOption("", "None");
-          accounts.forEach((a) => d.addOption(a.id, `${a.name} (${a.currency})`));
+          accounts.forEach((a): void => { d.addOption(a.id, `${a.name} (${a.currency})`); });
           void d.setValue(this.linkedAccountId).onChange((v) => (this.linkedAccountId = v));
         });
     }

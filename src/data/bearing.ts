@@ -296,7 +296,7 @@ export async function calculateBearing(
 
   // Net worth series — prefer real snapshots, fall back to delta approximation
   const nwNow = totalAssets - totalLiabilities;
-  const snapshotEntries = Object.entries(nwHistory.snapshots)
+  const snapshotEntries = (Object.entries(nwHistory.snapshots) as [string, number][])
     .sort((a, b) => a[0].localeCompare(b[0]))
     .slice(-12); // up to 12 months of real data
 
@@ -333,7 +333,7 @@ export async function calculateBearing(
     calcDiscipline(expenseByCategory, budgetConfig.limits, budgetConfig.currency, base, rates, PILLAR_BASE_MAX),
     calcBallast(totalLiabilities, totalAssets, PILLAR_BASE_MAX),
     calcProvision(goalsStore.goals, accountBalances, firstTxDate, today, PILLAR_BASE_MAX),
-    calcComposure(monthlyExpenses.filter((e, i) => allMonthTxs[i].length > 0), PILLAR_BASE_MAX),
+    calcComposure(monthlyExpenses.filter((e, i) => (allMonthTxs[i]?.length ?? 0) > 0), PILLAR_BASE_MAX),
     calcMomentum(nonZeroNwSeries.length >= 2 ? nonZeroNwSeries : [], PILLAR_BASE_MAX),
     calcReserve(liquidAssets, monthlyExpenses, PILLAR_BASE_MAX),
   ];

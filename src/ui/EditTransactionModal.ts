@@ -58,14 +58,14 @@ export class EditTransactionModal extends Modal {
       )
       .addDropdown((d): void => {
         const currencies = [this.plugin.settings.baseCurrency, ...this.plugin.settings.secondaryCurrencies];
-        currencies.forEach((c) => d.addOption(c, c));
+        currencies.forEach((c): void => { d.addOption(c, c); });
         void d.setValue(this.currency).onChange((v) => (this.currency = v));
       });
 
     new Setting(contentEl)
       .setName("Category")
       .addDropdown((d): void => {
-        Object.keys(catMap).forEach((c) => d.addOption(c, c));
+        Object.keys(catMap).forEach((c): void => { d.addOption(c, c); });
         void d.setValue(this.category).onChange((v): void => {
           this.category = v;
           this.subcategory = catMap[v]?.[0] ?? "Other";
@@ -77,7 +77,7 @@ export class EditTransactionModal extends Modal {
     new Setting(contentEl)
       .setName("Subcategory")
       .addDropdown((d): void => {
-        subs.forEach((s) => d.addOption(s, s));
+        subs.forEach((s): void => { d.addOption(s, s); });
         void d.setValue(this.subcategory).onChange((v) => (this.subcategory = v));
       });
 

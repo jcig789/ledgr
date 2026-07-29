@@ -410,7 +410,8 @@ export class StandingView extends ItemView {
     if (!this.result?.hasEnoughData) return;
     const result = this.result;
 
-    // Render card to canvas
+    // Render card to canvas — Canvas 2D API has no Obsidian alternative
+    // eslint-disable-next-line no-restricted-globals
     const canvas = document.createElement("canvas");
     const W = 400, H = 500;
     canvas.width = W;
@@ -495,10 +496,13 @@ export class StandingView extends ItemView {
     ctx.fillText(`Index  ·  ${result.score}`, W / 2, 350);
 
     try {
-      canvas.toBlob(async (blob) => {
+      canvas.toBlob((blob) => {
         if (!blob) return;
-        await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        new Notice("Bearing card copied to clipboard.");
+        void navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]).then(() => {
+          new Notice("Bearing card copied to clipboard.");
+        }).catch(() => {
+          new Notice("Could not copy to clipboard — try a different browser.");
+        });
       });
     } catch {
       new Notice("Could not copy to clipboard — try a different browser.");

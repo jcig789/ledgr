@@ -167,10 +167,9 @@ export class NetWorthView extends ItemView {
         currentMonth,
         this.plugin.settings.baseCurrency,
         this.plugin.settings.nwChartRange,
-        async (r) => {
+        (r) => {
           this.plugin.settings.nwChartRange = r;
-          await this.plugin.saveSettings();
-          void this.render();
+          void this.plugin.saveSettings().then(() => this.render());
         }
       );
     }

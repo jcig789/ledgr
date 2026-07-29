@@ -88,9 +88,9 @@ export class TemplatesModal extends Modal {
     // Month picker
     const monthRow = parent.createDiv("ledgr-month-row ledgr-row-spaced");
     monthRow.createEl("span", { text: "Apply to:", cls: "ledgr-meta" });
-    const monthInput = monthRow.createEl("input");
-    monthInput.type = "month"; monthInput.value = this.selectedMonth;
-    monthInput.className = "ledgr-inline-input";
+    const monthInput = monthRow.createEl("input", {
+      attr: { type: "month", value: this.selectedMonth, class: "ledgr-inline-input" },
+    });
     monthInput.onchange = (e) => { this.selectedMonth = (e.target as HTMLInputElement).value; };
 
     parent.createEl("p", { text: "Select templates to log as transactions:", cls: "ledgr-meta" });
