@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf, Events, Notice } from "obsidian";
 import LedgrPlugin from "../main";
-import { calculateBearing, loadBearingHistory, saveBearingHistory, BearingResult, PillarResult } from "../data/bearing";
+import { calculateBearing, loadBearingHistory, saveBearingHistory, BearingResult, PillarResult, projectTierAttainment, BearingMonthRecord } from "../data/bearing";
 import { renderAssaySeal } from "./charts";
 
 export const STANDING_VIEW_TYPE = "ledgr-standing";
@@ -60,11 +60,16 @@ export class StandingView extends ItemView {
       // ── Calculate ──
       this.result = await calculateBearing(this.app, this.plugin.settings);
 
-      // Save to history
+      // Save to history — store per-pillar scores for accurate projection
       const month = window.moment().format("YYYY-MM");
       const history = await loadBearingHistory(this.app, this.plugin.settings);
       if (this.result.hasEnoughData) {
-        history.history[month] = this.result.score;
+        const record: BearingMonthRecord = {
+          score: this.result.score,
+          pillars: Object.fromEntries(this.result.pillars.filter((p) => p.hasData).map((p) => [p.name, Math.round(p.score)])),
+          activePillars: this.result.pillars.filter((p) => p.hasData).map((p) => p.name),
+        };
+        history.history[month] = record;
         history.lastCalculated = window.moment().format("YYYY-MM-DD");
         await saveBearingHistory(this.app, this.plugin.settings, history);
       }
@@ -99,6 +104,12 @@ export class StandingView extends ItemView {
       }
 
       if (this.result.hasEnoughData) {
+        // Bearing forward projection
+        const projection = projectTierAttainment(history, this.result.score);
+        if (projection) {
+          this.renderProjectionStrip(contentEl, projection, this.result.score);
+        }
+
         this.renderPillars(contentEl, this.result.pillars);
         this.renderTrend(contentEl, history.history);
         this.renderGuidance(contentEl, this.result.pillars);
@@ -229,6 +240,34 @@ export class StandingView extends ItemView {
     Reserve:    "Compares your liquid assets to three months of average expenses. Indicates how long you could sustain current spending without income.",
   };
 
+  renderProjectionStrip(parent: HTMLElement, projection: ReturnType<typeof projectTierAttainment>, currentScore: number) {
+    if (!projection) return;
+    const strip = parent.createDiv("ledgr-bearing-projection-strip");
+
+    if (projection.direction === "flat" || projection.monthsEstimate === null) {
+      if (projection.direction === "flat") {
+        strip.createSpan({ text: "Trajectory is stable.", cls: "ledgr-bearing-projection-text" });
+      } else if (projection.direction === "down") {
+        strip.createSpan({ text: `Bearing is declining. Review weakest pillars to reverse course.`, cls: "ledgr-bearing-projection-text ledgr-text-red" });
+      } else {
+        strip.createSpan({ text: `Already at ${projection.targetTier} — sustain current patterns.`, cls: "ledgr-bearing-projection-text ledgr-bearing-strong" });
+      }
+    } else if (projection.direction === "up") {
+      strip.createSpan({ text: `At current trajectory, `, cls: "ledgr-bearing-projection-text" });
+      strip.createSpan({ text: projection.targetTier, cls: "ledgr-bearing-projection-tier" });
+      strip.createSpan({ text: ` in ~${projection.monthsEstimate} month${projection.monthsEstimate > 1 ? "s" : ""}.`, cls: "ledgr-bearing-projection-text" });
+    } else {
+      strip.createSpan({ text: `At current trajectory, dropping to `, cls: "ledgr-bearing-projection-text" });
+      strip.createSpan({ text: projection.targetTier, cls: "ledgr-bearing-projection-tier ledgr-text-red" });
+      strip.createSpan({ text: ` in ~${projection.monthsEstimate} month${projection.monthsEstimate > 1 ? "s" : ""}.`, cls: "ledgr-bearing-projection-text" });
+    }
+
+    strip.createEl("p", {
+      text: "Based on linear trend. Adding new pillars or major life changes will reset this estimate.",
+      cls: "ledgr-bearing-projection-note",
+    });
+  }
+
   renderPillars(parent: HTMLElement, pillars: PillarResult[]) {
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Pillars" });
@@ -281,7 +320,7 @@ export class StandingView extends ItemView {
 
   // ── Trend ─────────────────────────────────────────────────────────────────
 
-  renderTrend(parent: HTMLElement, history: Record<string, number>) {
+  renderTrend(parent: HTMLElement, history: Record<string, BearingMonthRecord | number>) {
     const entries = Object.entries(history).sort((a, b) => a[0].localeCompare(b[0])).slice(-6);
     if (entries.length < 2) return;
 
@@ -289,7 +328,8 @@ export class StandingView extends ItemView {
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Trend" });
 
     const labels = entries.map(([m]) => window.moment(m).format("MMM"));
-    const values = entries.map(([, v]) => v);
+    // Handle both legacy number and new BearingMonthRecord format
+    const values = entries.map(([, v]) => typeof v === "number" ? v : v.score);
 
     // Simple dot chart using SVG
     const svgH = 60;
@@ -354,13 +394,13 @@ export class StandingView extends ItemView {
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "Guidance" });
 
-    const guidanceMap: Record<string, { text: string; tab: string; tabLabel: string }> = {
+    const guidanceMap: Record<string, { text: string; tab: string; tabLabel: string; anchor?: string }> = {
       Discipline: { text: "Your spending has exceeded budget in some categories. Review your category limits to bring Discipline into alignment.", tab: "ledgr-dashboard", tabLabel: "Dashboard" },
-      Ballast:    { text: "Your liabilities are elevated relative to your assets. Reducing outstanding balances will improve your Ballast over time.", tab: "ledgr-networth", tabLabel: "Net Worth" },
-      Provision:  { text: "Your savings goals have room for progress. Link accounts to goals and review deadlines to sharpen your Provision score.", tab: "ledgr-networth", tabLabel: "Net Worth" },
+      Ballast:    { text: "Your liabilities are elevated relative to your assets. Reducing outstanding balances will improve your Ballast over time.", tab: "ledgr-networth", tabLabel: "Net Worth", anchor: "liabilities" },
+      Provision:  { text: "Your savings goals have room for progress. Link accounts to goals and review deadlines to sharpen your Provision score.", tab: "ledgr-networth", tabLabel: "Net Worth", anchor: "goals" },
       Composure:  { text: "Your spending shows notable variation month to month. Smoothing discretionary expenses will strengthen Composure.", tab: "ledgr-dashboard", tabLabel: "Dashboard" },
       Momentum:   { text: "Your net worth trend has been flat or declining. Consistent saving and liability reduction will improve Momentum.", tab: "ledgr-networth", tabLabel: "Net Worth" },
-      Reserve:    { text: "Your liquid reserves cover less than three months of expenses. Building this buffer is a foundational step.", tab: "ledgr-networth", tabLabel: "Net Worth" },
+      Reserve:    { text: "Your liquid reserves cover less than three months of expenses. Building this buffer is a foundational step.", tab: "ledgr-networth", tabLabel: "Net Worth", anchor: "primary-accounts" },
     };
 
     // T2-2: Weak active pillars with gap numbers
@@ -380,7 +420,7 @@ export class StandingView extends ItemView {
       }
       item.createEl("p", { text: g.text, cls: "ledgr-bearing-guidance-text" });
       const link = item.createEl("a", { text: `Review in ${g.tabLabel} →`, cls: "ledgr-bearing-guidance-link" });
-      link.onclick = (e) => { e.preventDefault(); void this.plugin.openView(g.tab); };
+      link.onclick = (e) => { e.preventDefault(); void this.plugin.openView(g.tab, g.anchor); };
     });
 
     // T1-3: Setup items for pillars with no data

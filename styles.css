@@ -3533,3 +3533,46 @@ button.ledgr-del-confirm,
   gap: var(--ledgr-spacing-sm);
   padding: 4px 0;
 }
+
+/* ─── Bearing forward projection strip ──────────────────────────────────── */
+
+.ledgr-bearing-projection-strip {
+  margin: var(--ledgr-spacing-sm) 0 var(--ledgr-spacing-md);
+  padding: var(--ledgr-spacing-sm) 0;
+  border-top: 1px solid var(--ledgr-rule);
+  border-bottom: 1px solid var(--ledgr-rule);
+}
+
+.ledgr-bearing-projection-text {
+  font-size: var(--ledgr-font-body);
+  color: var(--ledgr-text-secondary);
+}
+
+.ledgr-bearing-projection-tier {
+  font-variant: small-caps;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--ledgr-accent);
+}
+
+.ledgr-bearing-projection-note {
+  font-size: var(--ledgr-font-sm);
+  color: var(--ledgr-text-faint);
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
+/* Section deep-link highlight */
+.ledgr-section-highlight {
+  outline: 1px solid var(--ledgr-accent-muted);
+  outline-offset: 4px;
+  border-radius: var(--ledgr-radius-md);
+}
+
+/* Empty state CTA */
+.ledgr-empty-cta-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ledgr-spacing-xs);
+  padding: var(--ledgr-spacing-sm) 0;
+}

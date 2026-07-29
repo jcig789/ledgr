@@ -50,6 +50,17 @@ export class NetWorthView extends ItemView {
         void this.render();
       })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:focus-section", (payload: { viewType: string; anchor: string }) => {
+        if (payload.viewType !== NETWORTH_VIEW_TYPE) return;
+        const el = this.contentEl.querySelector(`[data-anchor="${payload.anchor}"]`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "start" });
+          el.addClass("ledgr-section-highlight");
+          window.setTimeout(() => (el as HTMLElement).removeClass("ledgr-section-highlight"), 2000);
+        }
+      })
+    );
   }
 
   toBase(amount: number, currency: string) {
@@ -277,7 +288,10 @@ export class NetWorthView extends ItemView {
     section.createEl("h3", { text: title });
 
     if (accounts.length === 0) {
-      section.createEl("p", { text: "No accounts. Click Edit to add.", cls: "ledgr-empty" });
+      const emptyWrap = section.createDiv("ledgr-empty-cta-wrap");
+      emptyWrap.createEl("p", { text: `No ${title.toLowerCase()} yet.`, cls: "ledgr-empty" });
+      const addBtn = emptyWrap.createEl("button", { text: "+ Add account", cls: "ledgr-budget-btn" });
+      addBtn.onclick = () => { this.editMode = true; void this.render(); };
       return;
     }
 
@@ -415,12 +429,14 @@ export class NetWorthView extends ItemView {
 
   renderLiabilities(parent: HTMLElement) {
     const allLiabilities = this.data.accounts.filter((a) => a.isLiability);
+
     const liabilities = allLiabilities.filter((a) => !a.liabilityDetails?.closedAt);
     const closedLiabilities = allLiabilities.filter((a) => a.liabilityDetails?.closedAt);
 
     if (allLiabilities.length === 0 && !this.editMode) return;
 
     const section = parent.createDiv("ledgr-section");
+    section.setAttribute("data-anchor", "liabilities");
     const hdr = section.createDiv("ledgr-section-header");
     hdr.createEl("h3", { text: "Liabilities" });
     if (closedLiabilities.length > 0 && !this.editMode) {
@@ -787,6 +803,7 @@ export class NetWorthView extends ItemView {
 
   async renderGoals(parent: HTMLElement) {
     const section = parent.createDiv("ledgr-section");
+    section.setAttribute("data-anchor", "goals");
     const hdr = section.createDiv("ledgr-section-header");
     hdr.createEl("h3", { text: "Savings Goals" });
     const addBtn = hdr.createEl("button", { text: "+ Add Goal", cls: "ledgr-budget-btn ledgr-goal-add-btn" });

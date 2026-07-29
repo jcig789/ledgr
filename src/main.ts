@@ -188,10 +188,15 @@ export default class LedgrPlugin extends Plugin {
     await this.openView(DASHBOARD_VIEW_TYPE);
   }
 
-  async openView(viewType: string) {
+  async openView(viewType: string, anchor?: string) {
     const existing = this.app.workspace.getLeavesOfType(viewType);
     if (existing.length > 0) {
       this.app.workspace.setActiveLeaf(existing[0], { focus: true });
+      if (anchor) {
+        window.setTimeout(() => {
+          (this.app.workspace as import("obsidian").Events).trigger("ledgr:focus-section", { viewType, anchor });
+        }, 150);
+      }
       return;
     }
     // On mobile, use the active leaf instead of opening a new tab
@@ -199,6 +204,11 @@ export default class LedgrPlugin extends Plugin {
       ? this.app.workspace.getLeaf(false)
       : this.app.workspace.getLeaf("tab");
     await leaf.setViewState({ type: viewType, active: true });
+    if (anchor) {
+      window.setTimeout(() => {
+        (this.app.workspace as import("obsidian").Events).trigger("ledgr:focus-section", { viewType, anchor });
+      }, 300);
+    }
     this.app.workspace.setActiveLeaf(leaf, { focus: true });
   }
 

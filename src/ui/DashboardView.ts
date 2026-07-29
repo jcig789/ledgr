@@ -28,6 +28,7 @@ export class DashboardView extends ItemView {
   private pendingDelete: { month: string; lineIndex: number; timer: number } | null = null;
   private isLiveMonth = true;
   private isRendering = false;
+  private showAllTransactions = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -243,11 +244,23 @@ export class DashboardView extends ItemView {
 
     // Recent transactions
     const txSection = contentEl.createDiv("ledgr-section");
-    txSection.createDiv("ledgr-section-header").createEl("h3", { text: "Recent Transactions" });
+    const txHeader = txSection.createDiv("ledgr-section-header");
+    txHeader.createEl("h3", { text: "Recent Transactions" });
+    if (transactions.length > 10) {
+      const viewAllLink = txHeader.createEl("a", {
+        text: this.showAllTransactions ? "Show recent only ←" : `View all (${transactions.length}) →`,
+        cls: "ledgr-bearing-guidance-link",
+      });
+      viewAllLink.onclick = () => { this.showAllTransactions = !this.showAllTransactions; void this.render(); };
+    }
 
-    const recent = [...transactions].reverse().slice(0, 10);
+    const displayTxs = [...transactions].reverse();
+    const recent = this.showAllTransactions ? displayTxs : displayTxs.slice(0, 10);
     if (recent.length === 0) {
-      txSection.createEl("p", { text: "No transactions this month.", cls: "ledgr-empty-state" });
+      const emptyWrap = txSection.createDiv("ledgr-empty-cta-wrap");
+      emptyWrap.createEl("p", { text: "No transactions this month.", cls: "ledgr-empty" });
+      const addBtn = emptyWrap.createEl("button", { text: "+ Add transaction", cls: "ledgr-budget-btn" });
+      addBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings, this.currentMonth).open();
     } else {
       const tableWrap = txSection.createDiv("ledgr-tx-table-wrap");
       const table = tableWrap.createEl("table", { cls: "ledgr-tx-table" });
@@ -257,7 +270,7 @@ export class DashboardView extends ItemView {
       const tbody = table.createEl("tbody");
 
       recent.forEach((tx, idx) => {
-        const actualIndex = transactions.length - 1 - idx;
+        const actualIndex = transactions.length - 1 - (this.showAllTransactions ? idx : idx);
         const tr = tbody.createEl("tr");
         tr.createEl("td", { text: tx.date });
         const typeTd = tr.createEl("td");

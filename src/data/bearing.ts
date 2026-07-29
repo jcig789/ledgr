@@ -24,9 +24,77 @@ export interface BearingResult {
   hasEnoughData: boolean;
 }
 
+export interface BearingMonthRecord {
+  score: number;
+  pillars: Record<string, number>;    // pillar name → score
+  activePillars: string[];            // which pillars had hasData: true
+}
+
 export interface BearingHistory {
-  history: Record<string, number>;  // "YYYY-MM": score
+  history: Record<string, BearingMonthRecord | number>;  // number = legacy format
   lastCalculated: string;
+}
+
+export interface BearingProjection {
+  targetTier: string;
+  targetGrade: string;
+  monthsEstimate: number | null;   // null = stable or cannot project
+  direction: "up" | "flat" | "down";
+}
+
+/** Normalise a history entry — handles both legacy number and new record format */
+export function getBearingScore(entry: BearingMonthRecord | number): number {
+  return typeof entry === "number" ? entry : entry.score;
+}
+
+/** Project tier attainment from score history (needs ≥3 months, stable active-pillar set) */
+export function projectTierAttainment(
+  history: BearingHistory,
+  currentScore: number
+): BearingProjection | null {
+  const entries = Object.entries(history.history)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .slice(-6);
+
+  if (entries.length < 3) return null;
+
+  // Gate on stable pillar set: only use contiguous tail where activePillars matches
+  const newest = entries[entries.length - 1][1];
+  const newestPillars = typeof newest === "number" ? null : newest.activePillars.join(",");
+  const stableEntries = newestPillars
+    ? entries.filter(([, v]) => typeof v !== "number" && v.activePillars.join(",") === newestPillars)
+    : entries;
+
+  if (stableEntries.length < 3) return null;
+
+  const scores = stableEntries.map(([, v]) => getBearingScore(v));
+  const slope = linearRegressionSlope(scores);
+
+  // Below 0.3 pts/month = effectively stable
+  if (Math.abs(slope) < 0.3) return { targetTier: getTier(currentScore).tier, targetGrade: getTier(currentScore).grade, monthsEstimate: null, direction: "flat" };
+
+  const direction: "up" | "down" = slope > 0 ? "up" : "down";
+
+  if (direction === "up") {
+    // Find next tier threshold above current
+    const nextThresholds = [25, 40, 55, 70, 85].filter((t) => t > currentScore);
+    if (nextThresholds.length === 0) return { targetTier: "Distinguished", targetGrade: "I", monthsEstimate: null, direction };
+    const next = nextThresholds[0];
+    // Apply ceiling compression: scores slow near tier ceilings
+    const compressionFactor = currentScore > 75 ? 0.5 : 1.0;
+    const effectiveSlope = slope * compressionFactor;
+    const months = Math.round((next - currentScore) / effectiveSlope);
+    if (months < 1 || months > 24) return { ...getTier(next), monthsEstimate: null, direction };
+    return { ...getTier(next), monthsEstimate: months, direction };
+  } else {
+    // Find tier below current
+    const prevThresholds = [85, 70, 55, 40, 25].filter((t) => t < currentScore);
+    if (prevThresholds.length === 0) return { ...getTier(0), monthsEstimate: null, direction };
+    const prev = prevThresholds[0];
+    const months = Math.round((currentScore - prev) / Math.abs(slope));
+    if (months < 1 || months > 24) return { ...getTier(prev), monthsEstimate: null, direction };
+    return { ...getTier(prev), monthsEstimate: months, direction };
+  }
 }
 
 // ── Tier lookup ───────────────────────────────────────────────────────────────
@@ -371,7 +439,9 @@ export async function loadBearingHistory(app: App, settings: LedgrSettings): Pro
   const file = app.vault.getAbstractFileByPath(filePath);
   if (!(file instanceof TFile)) return { history: {}, lastCalculated: "" };
   try {
-    return JSON.parse(await app.vault.read(file)) as BearingHistory;
+    const data = JSON.parse(await app.vault.read(file)) as BearingHistory;
+    if (!data.history) data.history = {};
+    return data;
   } catch {
     return { history: {}, lastCalculated: "" };
   }
