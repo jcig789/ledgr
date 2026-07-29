@@ -141,7 +141,7 @@ export class LiabilityPaymentModal extends Modal {
       this.app.workspace.trigger("ledgr:networth-updated");
       this.close();
     };
-    const keepBtn = btnRow.createEl("button", { text: "Keep Open", cls: "ledgr-budget-btn" });
+    const keepBtn = btnRow.createEl("button", { text: "Dismiss", cls: "ledgr-budget-btn" });
     keepBtn.onclick = () => this.close();
   }
 

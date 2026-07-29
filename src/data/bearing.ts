@@ -58,12 +58,22 @@ export function projectTierAttainment(
 
   if (entries.length < 3) return null;
 
-  // Gate on stable pillar set: only use contiguous tail where activePillars matches
+  // Gate on contiguous stable tail — walk backwards until pillar set changes
   const newest = entries[entries.length - 1][1];
   const newestPillars = typeof newest === "number" ? null : newest.activePillars.join(",");
-  const stableEntries = newestPillars
-    ? entries.filter(([, v]) => typeof v !== "number" && v.activePillars.join(",") === newestPillars)
-    : entries;
+  let stableEntries = entries;
+  if (newestPillars) {
+    let cutIdx = entries.length;
+    for (let i = entries.length - 1; i >= 0; i--) {
+      const v = entries[i][1];
+      if (typeof v === "number" || v.activePillars.join(",") !== newestPillars) {
+        cutIdx = i + 1;
+        break;
+      }
+      cutIdx = i;
+    }
+    stableEntries = entries.slice(cutIdx);
+  }
 
   if (stableEntries.length < 3) return null;
 
@@ -403,7 +413,13 @@ export async function calculateBearing(
     calcDiscipline(expenseByCategory, budgetConfig.limits, budgetConfig.currency, base, rates, PILLAR_BASE_MAX),
     calcBallast(totalLiabilities, totalAssets, PILLAR_BASE_MAX),
     calcProvision(goalsStore.goals, accountBalances, firstTxDate, today, PILLAR_BASE_MAX),
-    calcComposure(monthlyExpenses.filter((e, i) => (allMonthTxs[i]?.length ?? 0) > 0), PILLAR_BASE_MAX),
+    (() => {
+      const result = calcComposure(monthlyExpenses.filter((e, i) => (allMonthTxs[i]?.length ?? 0) > 0), PILLAR_BASE_MAX);
+      if (composureExcluded.size > 0) {
+        result.note = `${composureExcluded.size} categor${composureExcluded.size > 1 ? "ies" : "y"} excluded (business mode).`;
+      }
+      return result;
+    })(),
     calcMomentum(nonZeroNwSeries.length >= 2 ? nonZeroNwSeries : [], PILLAR_BASE_MAX),
     calcReserve(liquidAssets, monthlyExpenses, PILLAR_BASE_MAX),
   ];

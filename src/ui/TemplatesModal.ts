@@ -177,8 +177,9 @@ export class TemplatesModal extends Modal {
     const typeToggleRow = typeRow.createDiv("ledgr-btn-row");
     const expenseBtn = typeToggleRow.createEl("button", { text: "Expense", cls: "ledgr-budget-btn active" });
     const incomeBtn = typeToggleRow.createEl("button", { text: "Income", cls: "ledgr-budget-btn" });
-    expenseBtn.onclick = () => { newType = "expense"; expenseBtn.addClass("active"); incomeBtn.removeClass("active"); };
-    incomeBtn.onclick = () => { newType = "income"; incomeBtn.addClass("active"); expenseBtn.removeClass("active"); };
+    const incomeNote = form.createEl("p", { text: "Income templates do not affect the Forecast projection until real transactions are recorded.", cls: "ledgr-empty ledgr-hidden" });
+    expenseBtn.onclick = () => { newType = "expense"; expenseBtn.addClass("active"); incomeBtn.removeClass("active"); incomeNote.addClass("ledgr-hidden"); };
+    incomeBtn.onclick = () => { newType = "income"; incomeBtn.addClass("active"); expenseBtn.removeClass("active"); incomeNote.removeClass("ledgr-hidden"); };
 
     const nameInput = form.createEl("input", { attr: { type: "text", placeholder: "Name (e.g. Rent or Salary)" } }) as HTMLInputElement;
     nameInput.className = "ledgr-inline-input";
@@ -206,7 +207,6 @@ export class TemplatesModal extends Modal {
       await saveTemplates(this.app, this.plugin.settings, this.store);
       this.render();
     };
-    parent.createEl("p", { text: "Income templates do not affect the Forecast projection until real transactions are recorded.", cls: "ledgr-empty" });
   }
 
   onClose() { this.contentEl.empty(); }

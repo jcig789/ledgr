@@ -118,7 +118,6 @@ export class DebtCostModal extends Modal {
     contentEl.createDiv("ledgr-bearing-rule-thin");
     contentEl.createEl("p", { text: "Priority Order", cls: "ledgr-bearing-section-label" });
 
-    const allLiabilities = this.plugin.settings ? [] : [];
     try {
       const nwData = await loadNetWorth(this.app, this.plugin.settings);
       const aprDebts = nwData.accounts

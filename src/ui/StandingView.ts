@@ -372,10 +372,11 @@ export class StandingView extends ItemView {
       });
     }
 
-    // Dots
+    // Dots — use getBearingScore to handle both legacy number and BearingMonthRecord
     entries.forEach(([, v], i) => {
       const x = padL + (i / (entries.length - 1)) * chartW;
-      const y = padT + chartH - (v / 100) * chartH;
+      const score = typeof v === "number" ? v : v.score;
+      const y = padT + chartH - (score / 100) * chartH;
       svg.createSvg("circle", {
         attr: { cx: String(x), cy: String(y), r: "3", fill: "currentColor", class: "ledgr-bearing-trend-dot" },
       });

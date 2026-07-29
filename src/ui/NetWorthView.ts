@@ -318,6 +318,11 @@ export class NetWorthView extends ItemView {
 
         const removeBtn = card.createEl("button", { text: "Remove", cls: "ledgr-remove-btn" });
         removeBtn.onclick = () => {
+          // Clear any back-reference on linked liability before removing asset
+          if (acc.linkedLiabilityId) {
+            const linked = this.data.accounts.find((a) => a.id === acc.linkedLiabilityId);
+            if (linked) linked.linkedAssetId = undefined;
+          }
           this.data.accounts = this.data.accounts.filter((a) => a.id !== acc.id);
           void this.render();
         };
@@ -455,7 +460,11 @@ export class NetWorthView extends ItemView {
     }
 
     if (allLiabilities.length === 0) {
-      section.createEl("p", { text: "No liabilities. Click Edit to add.", cls: "ledgr-empty" });
+      const emptyWrap = section.createDiv("ledgr-empty-cta-wrap");
+      emptyWrap.createEl("p", { text: "No liabilities tracked.", cls: "ledgr-empty" });
+      emptyWrap.createEl("p", { text: "Accurate liability data is required for the Ballast pillar.", cls: "ledgr-empty" });
+      const addBtn = emptyWrap.createEl("button", { text: "+ Add Liability", cls: "ledgr-budget-btn" });
+      addBtn.onclick = () => { this.editMode = true; void this.render(); };
       return;
     }
 

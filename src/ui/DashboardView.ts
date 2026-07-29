@@ -145,6 +145,7 @@ export class DashboardView extends ItemView {
     prevBtn.setAttribute("aria-label", "Previous month");
     prevBtn.onclick = async () => {
       this.isLiveMonth = false;
+      this.showAllTransactions = false;
       this.currentMonth = window.moment(this.currentMonth).subtract(1, "month").format("YYYY-MM");
       await this.render();
     };
@@ -162,6 +163,7 @@ export class DashboardView extends ItemView {
         const next = window.moment(this.currentMonth).add(1, "month").format("YYYY-MM");
         this.currentMonth = next;
         this.isLiveMonth = next >= window.moment().format("YYYY-MM");
+        this.showAllTransactions = false;
         await this.render();
       };
     }
