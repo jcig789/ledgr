@@ -66,6 +66,7 @@ export class StatementsView extends ItemView {
       { key: "networth",   label: "Net Worth",   viewType: "ledgr-networth" },
       { key: "statements", label: "Statements",  viewType: "ledgr-statements" },
       { key: "standing",   label: "Standing",    viewType: "ledgr-standing" },
+      { key: "calendar",   label: "Calendar",    viewType: "ledgr-calendar" },
     ].forEach(({ key, label, viewType }) => {
       const isActive = key === "statements";
       const btn = tabNav.createEl("button", {

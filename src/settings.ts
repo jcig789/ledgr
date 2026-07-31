@@ -24,6 +24,7 @@ export interface LedgrSettings {
   ocfCommitments: Record<string, number>;  // "YYYY-MM": target OCF amount
   forecastDefaultHorizon: 3 | 6 | 12;
   composureExcludedCategories: string[];   // categories excluded from Composure volatility
+  calendarWeekStart: "monday" | "sunday";
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -53,4 +54,5 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   ocfCommitments: {},
   forecastDefaultHorizon: 6,
   composureExcludedCategories: [],
+  calendarWeekStart: "monday",
 };
