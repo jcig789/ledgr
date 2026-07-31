@@ -46,6 +46,7 @@ export class StandingView extends ItemView {
         { key: "networth",   label: "Net Worth",   viewType: "ledgr-networth" },
         { key: "statements", label: "Statements",  viewType: "ledgr-statements" },
         { key: "standing",   label: "Standing",    viewType: STANDING_VIEW_TYPE },
+        { key: "calendar",   label: "Calendar",    viewType: "ledgr-calendar" },
       ].forEach(({ key, label, viewType }) => {
         const isActive = key === "standing";
         const btn = tabNav.createEl("button", {
