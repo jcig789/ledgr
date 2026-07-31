@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Events } from "obsidian";
+import { ItemView, WorkspaceLeaf, Events, setIcon } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions } from "../data/reader";
 import { loadNetWorth } from "../data/networth";
@@ -66,7 +66,12 @@ export class CalendarView extends ItemView {
           text: label,
           cls: `ledgr-top-tab${isActive ? " active" : ""}`,
         });
-        if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+        if (isActive) {
+          // Scroll active tab into view on mobile where 5 tabs may overflow
+          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 50);
+        } else {
+          btn.onclick = () => void this.plugin.openView(viewType);
+        }
       });
       stickyZone.createDiv("ledgr-header");
 
@@ -208,7 +213,9 @@ export class CalendarView extends ItemView {
           cell.createDiv({ text: fmt(entry.spend), cls: "ledgr-cal-cell-spend" });
         }
         if (entry.income > 0) {
-          cell.createDiv({ text: `+${fmt(entry.income)}`, cls: "ledgr-cal-cell-income" });
+          const incDiv = cell.createDiv({ cls: "ledgr-cal-cell-income" });
+          incDiv.createSpan({ text: "+" });
+          incDiv.createSpan({ text: fmt(entry.income) });
         }
       }
       if (isBill) {
@@ -315,14 +322,13 @@ export class CalendarView extends ItemView {
         catTxs.forEach((tx, idx) => {
           const row = section.createDiv("ledgr-cal-detail-tx-row");
           row.createSpan({ text: tx.note || tx.subcategory, cls: "ledgr-cal-detail-tx-note" });
-          const amtEl = row.createSpan({
+          row.createSpan({
             text: formatCurrency(tx.amount, tx.currency),
             cls: `ledgr-cal-detail-tx-amount ${tx.type === "income" ? "ledgr-positive" : "ledgr-expense"}`,
           });
-          // Edit button
+          // Edit button — use setIcon (Obsidian API, no raw unicode)
           const editBtn = row.createEl("button", { cls: "ledgr-edit-btn" });
-          // Use setIcon equivalent — simple pencil text for now
-          editBtn.textContent = "✎";
+          setIcon(editBtn, "pencil");
           editBtn.setAttribute("aria-label", "Edit");
           editBtn.onclick = () => {
             const allTxs = [...expenses, ...income];
