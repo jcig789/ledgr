@@ -2586,12 +2586,11 @@ button.ledgr-del-confirm,
     gap: var(--ledgr-spacing-xs);
   }
 
+  /* Currency buttons inherit from .ledgr-sticky-zone .ledgr-currency-btn above —
+     only reset the generic 44px touch target to match Statements size */
   .ledgr-controls-row .ledgr-currency-btn {
-    flex: 0 0 auto;
-    padding: 2px 10px;
-    font-size: 0.72em;
-    min-height: 28px;
-    min-width: 0;
+    min-height: 22px;
+    min-width: 28px;
   }
 
   .ledgr-controls-row .ledgr-btn-row {
@@ -2602,20 +2601,12 @@ button.ledgr-del-confirm,
     margin-left: 0;
   }
 
-  /* Match Statements currency button size — override generic 44px touch target */
-  .ledgr-controls-row .ledgr-currency-row .ledgr-currency-btn {
-    padding: 2px 10px;
-    font-size: 0.72em;
-    min-height: 28px;
-    min-width: 0;
-  }
-
-  .ledgr-controls-row .ledgr-btn-row .ledgr-budget-btn,
-  .ledgr-controls-row .ledgr-btn-row .ledgr-log-btn,
-  .ledgr-controls-row .ledgr-btn-row .ledgr-icon-btn {
+  .ledgr-sticky-zone .ledgr-controls-row .ledgr-btn-row .ledgr-budget-btn,
+  .ledgr-sticky-zone .ledgr-controls-row .ledgr-btn-row .ledgr-log-btn,
+  .ledgr-sticky-zone .ledgr-controls-row .ledgr-btn-row .ledgr-icon-btn {
     padding: 2px 8px;
-    font-size: 0.7em;
-    min-height: 28px;
+    font-size: 0.68em;
+    min-height: 22px;
   }
 
   .ledgr-summary-row {
