@@ -2515,20 +2515,7 @@ button.ledgr-del-confirm,
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Controls row: currency left, actions right — maintain on mobile */
-  .ledgr-controls-row {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--ledgr-spacing-xs);
-  }
-
-  .ledgr-controls-row .ledgr-btn-row {
-    margin-left: auto;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
+  /* Controls row: two rows on mobile — currencies top, actions bottom */
 
   .ledgr-breakdown-row {
     grid-template-columns: 1fr auto;
@@ -2586,39 +2573,34 @@ button.ledgr-del-confirm,
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Consolidated controls-row for mobile — keep row layout, never stack */
+  /* Two-row controls layout on mobile */
   .ledgr-controls-row {
-    flex-direction: row;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: var(--ledgr-spacing-xs);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
   }
 
   .ledgr-controls-row .ledgr-currency-row {
-    flex-shrink: 1;
-    min-width: 0;
+    display: flex;
     flex-wrap: nowrap;
-    gap: 2px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    max-width: 50%;
+    gap: var(--ledgr-spacing-xs);
   }
 
-  .ledgr-controls-row .ledgr-currency-row::-webkit-scrollbar { display: none; }
-
   .ledgr-controls-row .ledgr-currency-btn {
-    padding: 8px 8px;
-    min-width: 34px;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 4px;
     font-size: 0.72em;
-    flex-shrink: 0;
+    min-height: 36px;
+    text-align: center;
   }
 
   .ledgr-controls-row .ledgr-btn-row {
-    flex-shrink: 0;
-    margin-left: auto;
+    display: flex;
     flex-wrap: nowrap;
-    overflow: hidden;
+    justify-content: flex-end;
+    gap: 3px;
+    margin-left: 0;
   }
 
   .ledgr-summary-row {
