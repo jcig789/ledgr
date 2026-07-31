@@ -43,7 +43,7 @@
 .theme-dark .ledgr-networth,
 .theme-dark .ledgr-statements,
 .theme-dark .ledgr-standing,
-.ledgr-calendar,
+.theme-dark .ledgr-calendar,
 .theme-dark .ledgr-quick-capture,
 .theme-dark .ledgr-config-modal,
 .theme-dark .modal-content {
@@ -2600,18 +2600,25 @@ button.ledgr-del-confirm,
     min-width: 0;
     flex-wrap: nowrap;
     gap: 2px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 50%;
   }
+
+  .ledgr-controls-row .ledgr-currency-row::-webkit-scrollbar { display: none; }
 
   .ledgr-controls-row .ledgr-currency-btn {
     padding: 8px 8px;
-    min-width: 36px;
-    font-size: 0.75em;
+    min-width: 34px;
+    font-size: 0.72em;
+    flex-shrink: 0;
   }
 
   .ledgr-controls-row .ledgr-btn-row {
     flex-shrink: 0;
     margin-left: auto;
     flex-wrap: nowrap;
+    overflow: hidden;
   }
 
   .ledgr-summary-row {
