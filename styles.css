@@ -2587,12 +2587,10 @@ button.ledgr-del-confirm,
   }
 
   .ledgr-controls-row .ledgr-currency-btn {
-    flex: 1;
-    min-width: 0;
-    padding: 8px 4px;
+    flex: 0 0 auto;
+    padding: 6px 12px;
     font-size: 0.72em;
-    min-height: 36px;
-    text-align: center;
+    min-height: 32px;
   }
 
   .ledgr-controls-row .ledgr-btn-row {
