@@ -3652,8 +3652,8 @@ button.ledgr-del-confirm,
 }
 .ledgr-cal-cell--today .ledgr-cal-day-num { font-weight: 600; color: var(--ledgr-accent); }
 
-.ledgr-cal-cell-spend  { font-size: 0.72em; font-variant-numeric: tabular-nums; color: var(--ledgr-red); line-height: 1.3; }
-.ledgr-cal-cell-income { font-size: 0.72em; font-variant-numeric: tabular-nums; color: var(--ledgr-green); line-height: 1.3; }
+.ledgr-cal-cell-spend  { font-size: 0.72em; font-variant-numeric: tabular-nums; color: var(--ledgr-red); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ledgr-cal-cell-income { font-size: 0.72em; font-variant-numeric: tabular-nums; color: var(--ledgr-green); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ledgr-cal-bill-marker { font-size: 0.68em; color: var(--ledgr-text-faint); display: block; }
 
 /* Legend */

@@ -68,7 +68,7 @@ export class CalendarView extends ItemView {
         });
         if (isActive) {
           // Scroll active tab into view on mobile where 5 tabs may overflow
-          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 50);
+          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 150);
         } else {
           btn.onclick = () => void this.plugin.openView(viewType);
         }
@@ -213,9 +213,7 @@ export class CalendarView extends ItemView {
           cell.createDiv({ text: fmt(entry.spend), cls: "ledgr-cal-cell-spend" });
         }
         if (entry.income > 0) {
-          const incDiv = cell.createDiv({ cls: "ledgr-cal-cell-income" });
-          incDiv.createSpan({ text: "+" });
-          incDiv.createSpan({ text: fmt(entry.income) });
+          cell.createDiv({ text: `+${fmt(entry.income)}`, cls: "ledgr-cal-cell-income" });
         }
       }
       if (isBill) {
@@ -324,7 +322,7 @@ export class CalendarView extends ItemView {
           row.createSpan({ text: tx.note || tx.subcategory, cls: "ledgr-cal-detail-tx-note" });
           row.createSpan({
             text: formatCurrency(tx.amount, tx.currency),
-            cls: `ledgr-cal-detail-tx-amount ${tx.type === "income" ? "ledgr-positive" : "ledgr-expense"}`,
+            cls: `ledgr-cal-detail-tx-amount ${tx.type === "income" ? "ledgr-income" : "ledgr-expense"}`,
           });
           // Edit button — use setIcon (Obsidian API, no raw unicode)
           const editBtn = row.createEl("button", { cls: "ledgr-edit-btn" });
