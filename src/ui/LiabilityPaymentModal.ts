@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice } from "obsidian";
+import { App, Modal, Setting, Notice, Platform } from "obsidian";
 import LedgrPlugin from "../main";
 import { Account, saveNetWorth, loadNetWorth } from "../data/networth";
 import { saveTransaction } from "../data/transactions";
@@ -42,12 +42,19 @@ export class LiabilityPaymentModal extends Modal {
     };
     updatePreview();
 
-    new Setting(contentEl).setName("Amount").addText((t) =>
+    new Setting(contentEl).setName("Amount").addText((t) => {
       t.setValue(String(this.amount)).onChange((v) => {
         this.amount = parseFloat(v) || 0;
         updatePreview();
-      })
-    );
+      });
+      t.inputEl.setAttribute("inputmode", "decimal");
+      t.inputEl.setAttribute("enterkeyhint", "done");
+      if (Platform.isMobile) {
+        t.inputEl.addEventListener("focus", () => {
+          window.setTimeout(() => t.inputEl.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+        });
+      }
+    });
 
     new Setting(contentEl).setName("Date").addText((t) =>
       t.setValue(this.date).onChange((v) => (this.date = v))

@@ -1,4 +1,4 @@
-import { App, Modal, Setting, Notice } from "obsidian";
+import { App, Modal, Setting, Notice, Platform } from "obsidian";
 import LedgrPlugin from "../main";
 import { Account, saveNetWorth, loadNetWorth } from "../data/networth";
 import { calcAmortization, calcExtraPayment, rankDebts } from "../data/debtCost";
@@ -56,7 +56,7 @@ export class DebtCostModal extends Modal {
 
     if (ld.apr === undefined) {
       contentEl.createEl("p", { text: "Enter APR to calculate interest cost and payoff schedule.", cls: "ledgr-empty" });
-      window.setTimeout(() => aprInput.focus(), 50);
+      if (!Platform.isMobile) window.setTimeout(() => aprInput.focus(), 50);
       return;
     }
 

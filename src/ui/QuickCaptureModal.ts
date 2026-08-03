@@ -54,8 +54,11 @@ export class QuickCaptureModal extends Modal {
         }
       });
     }
-    // Auto-focus amount field
-    window.setTimeout(() => this.amtInput?.focus(), 50);
+    // Auto-focus amount field — desktop only; on mobile the keyboard fires before
+    // the user sees the form, obscuring it before they can orient themselves
+    if (!Platform.isMobile) {
+      window.setTimeout(() => this.amtInput?.focus(), 50);
+    }
   }
 
   render() {
@@ -87,6 +90,15 @@ export class QuickCaptureModal extends Modal {
       .addText((t) => {
         t.setPlaceholder("0").setValue(this.amount).onChange((v) => (this.amount = v));
         this.amtInput = t.inputEl;
+        // Numeric keyboard on mobile, enterKeyHint for better UX
+        t.inputEl.setAttribute("inputmode", "decimal");
+        t.inputEl.setAttribute("enterkeyhint", "next");
+        // Scroll field into view after keyboard opens (300ms = keyboard animation duration)
+        if (Platform.isMobile) {
+          t.inputEl.addEventListener("focus", () => {
+            window.setTimeout(() => t.inputEl.scrollIntoView({ behavior: "smooth", block: "center" }), 300);
+          });
+        }
         return t;
       })
       .addDropdown((d): void => {

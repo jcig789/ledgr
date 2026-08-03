@@ -3746,3 +3746,37 @@ button.ledgr-del-confirm,
   .ledgr-cal-cell { min-height: 52px; }
   .ledgr-cal-cell-spend, .ledgr-cal-cell-income { font-size: 0.65em; }
 }
+
+/* ─── Mobile keyboard / modal scroll fixes ──────────────────────────────── */
+/*
+ * When the virtual keyboard appears, it reduces window.innerHeight but
+ * Obsidian's .modal stays the same height (position: fixed). Without
+ * overflow-y: auto + scroll-padding, fields below the keyboard are
+ * unreachable. dvh = dynamic viewport height — shrinks when keyboard opens.
+ */
+
+@media (max-width: 500px) {
+  /* Make every modal content area scrollable and keyboard-aware */
+  .modal-content,
+  .ledgr-quick-capture.modal-content,
+  .modal .modal-content {
+    max-height: 80dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-padding-bottom: 280px;
+    overscroll-behavior: contain;
+  }
+
+  /* Pad the bottom so Save button is never flush against the keyboard edge */
+  .ledgr-quick-capture,
+  .modal-content .ledgr-quick-capture {
+    padding-bottom: 260px;
+  }
+
+  /* Prevent iOS auto-zoom (fires when input font-size < 16px) */
+  .modal-content input,
+  .modal-content select,
+  .modal-content textarea {
+    font-size: 16px !important;
+  }
+}
