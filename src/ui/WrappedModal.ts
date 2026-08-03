@@ -199,15 +199,16 @@ export class WrappedModal extends Modal {
     if (goalsStore.goals.length > 0) {
       lines.push(`## Savings Goals`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
       const accountMap = new Map((netWorthData.accounts ?? []).map((a: Account) => [a.id, a]));
+      const totalNonLiability = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
+        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
-        // Use linked account balance if set, otherwise total non-liability assets
+        // Use linked account if set and exists; fall back to total net worth if deleted or unset
         let current = 0;
         if (g.linkedAccountId) {
           const linked = accountMap.get(g.linkedAccountId);
-          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : 0;
+          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : totalNonLiability;
         } else {
-          current = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
-            .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+          current = totalNonLiability;
         }
         const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);

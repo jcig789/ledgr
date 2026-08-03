@@ -175,14 +175,15 @@ export class MonthlyReviewModal extends Modal {
     if (goalsStore.goals.length > 0) {
       lines.push(`## Goals Progress`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
       const accountMap = new Map((netWorth.accounts ?? []).map((a: Account) => [a.id, a]));
+      const totalNonLiability = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
+        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
         let current = 0;
         if (g.linkedAccountId) {
           const linked = accountMap.get(g.linkedAccountId);
-          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : 0;
+          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : totalNonLiability;
         } else {
-          current = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
-            .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+          current = totalNonLiability;
         }
         const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);
