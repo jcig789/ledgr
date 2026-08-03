@@ -64,6 +64,10 @@ export async function loadNetWorth(app: App, settings: LedgrSettings): Promise<N
     // Migrate old loan type to personal_loan
     for (const acc of data.accounts ?? []) {
       if ((acc.type as string) === "loan") acc.type = "personal_loan";
+      // Migrate legacy records missing the payments array — prevents TypeError on push()
+      if (acc.liabilityDetails && !acc.liabilityDetails.payments) {
+        acc.liabilityDetails.payments = [];
+      }
     }
     return data;
   } catch {

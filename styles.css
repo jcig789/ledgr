@@ -525,10 +525,11 @@
 }
 
 /* ─── Color utility classes ─────────────────────────────────────────── */
-.ledgr-income  { color: var(--ledgr-green); }
-.ledgr-expense { color: var(--ledgr-red); }
+.ledgr-income   { color: var(--ledgr-green); }
+.ledgr-expense  { color: var(--ledgr-red); }
 .ledgr-positive { color: var(--ledgr-green); }
 .ledgr-negative { color: var(--ledgr-red); }
+.ledgr-neutral  { color: var(--ledgr-text); }
 
 /* ─── Buttons ────────────────────────────────────────────────────────── */
 .ledgr-btn-row {

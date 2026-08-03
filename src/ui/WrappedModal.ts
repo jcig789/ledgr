@@ -50,7 +50,7 @@ export class WrappedModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-wrapped ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Generate Wrapped").setCta().onClick(() => this.generate(false))
+      btn.setButtonText("Generate Wrapped").setCta().onClick(() => { void this.generate(false); })
     );
   }
 
@@ -95,10 +95,14 @@ export class WrappedModal extends Modal {
     const netWorthData = await loadNetWorth(this.app, this.plugin.settings);
     const goalsStore = await loadGoals(this.app, this.plugin.settings);
 
-    // Best/worst months
+    // Best/worst months — guard empty array (year with no income)
     const withIncome = monthlySummaries.filter((m) => m.totalIncome > 0);
-    const bestMonth = withIncome.reduce((best, m) => m.savingsRate > best.savingsRate ? m : best, withIncome[0]);
-    const worstMonth = withIncome.reduce((worst, m) => m.savingsRate < worst.savingsRate ? m : worst, withIncome[0]);
+    const bestMonth = withIncome.length > 0
+      ? withIncome.reduce((best, m) => m.savingsRate > best.savingsRate ? m : best, withIncome[0])
+      : null;
+    const worstMonth = withIncome.length > 0
+      ? withIncome.reduce((worst, m) => m.savingsRate < worst.savingsRate ? m : worst, withIncome[0])
+      : null;
 
     // Most improved
     let mostImproved: { month: string; delta: number } | null = null;
@@ -194,10 +198,18 @@ export class WrappedModal extends Modal {
     // Goals
     if (goalsStore.goals.length > 0) {
       lines.push(`## Savings Goals`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
-      const bankTotal = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
-        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+      const accountMap = new Map((netWorthData.accounts ?? []).map((a: Account) => [a.id, a]));
       goalsStore.goals.forEach((g) => {
-        const pct = Math.min(100, Math.round((bankTotal / g.targetAmount) * 100));
+        // Use linked account balance if set, otherwise total non-liability assets
+        let current = 0;
+        if (g.linkedAccountId) {
+          const linked = accountMap.get(g.linkedAccountId);
+          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : 0;
+        } else {
+          current = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
+            .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+        }
+        const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);
       });
       lines.push(``, `---`, ``);

@@ -67,9 +67,7 @@ export class LiabilityPaymentModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-lpay ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Confirm Payment").setCta().onClick(async () => {
-        await this.confirm();
-      })
+      btn.setButtonText("Confirm Payment").setCta().onClick(() => { void this.confirm(); })
     );
   }
 

@@ -52,11 +52,13 @@ export class BudgetModal extends Modal {
       btn
         .setButtonText("Save Budgets")
         .setCta()
-        .onClick(async () => {
-          await saveBudgets(this.app, this.plugin.settings, this.budgets);
-          this.app.workspace.trigger("ledgr:transaction-saved");
-          new Notice("Budgets saved");
-          this.close();
+        .onClick(() => {
+          void (async () => {
+            await saveBudgets(this.app, this.plugin.settings, this.budgets);
+            this.app.workspace.trigger("ledgr:transaction-saved");
+            new Notice("Budgets saved");
+            this.close();
+          })();
         })
     );
   }

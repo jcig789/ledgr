@@ -39,6 +39,9 @@ export class CalendarView extends ItemView {
       (this.app.workspace as Events).on("ledgr:transaction-saved", async () => { await this.render(); })
     );
     this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:categories-updated", async () => { await this.render(); })
+    );
+    this.registerEvent(
       (this.app.workspace as Events).on("ledgr:networth-updated", async () => { await this.render(); })
     );
   }

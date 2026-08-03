@@ -118,12 +118,14 @@ export class ConfigModal extends Modal {
     });
 
     new Setting(parent).addButton((btn) =>
-      btn.setButtonText("Save").setCta().onClick(async () => {
-        this.plugin.settings.exchangeRates.updatedAt = new Date().toISOString();
-        await this.plugin.saveSettings();
-        this.app.workspace.trigger("ledgr:transaction-saved"); this.app.workspace.trigger("ledgr:settings-changed");
-        new Notice("Settings saved");
-        this.render();
+      btn.setButtonText("Save").setCta().onClick(() => {
+        void (async () => {
+          this.plugin.settings.exchangeRates.updatedAt = new Date().toISOString();
+          await this.plugin.saveSettings();
+          this.app.workspace.trigger("ledgr:transaction-saved"); this.app.workspace.trigger("ledgr:settings-changed");
+          new Notice("Settings saved");
+          this.render();
+        })();
       })
     );
 
@@ -162,11 +164,13 @@ export class ConfigModal extends Modal {
       btn
         .setButtonText("Save Categories")
         .setCta()
-        .onClick(async () => {
-          await saveCategories(this.app, this.plugin.settings, this.categories!);
-          this.app.workspace.trigger("ledgr:categories-updated");
-          new Notice("Categories saved");
-          this.close();
+        .onClick(() => {
+          void (async () => {
+            await saveCategories(this.app, this.plugin.settings, this.categories!);
+            this.app.workspace.trigger("ledgr:categories-updated");
+            new Notice("Categories saved");
+            this.close();
+          })();
         })
     );
   }
@@ -190,10 +194,7 @@ export class ConfigModal extends Modal {
       const subList = catBlock.createDiv("ledgr-sub-list");
       subs.forEach((sub, idx) => {
         const subRow = subList.createDiv("ledgr-sub-row");
-        const input = subRow.createEl("input");
-        input.type = "text";
-        input.value = sub;
-        input.className = "ledgr-inline-input";
+        const input = subRow.createEl("input", { attr: { type: "text", value: sub, class: "ledgr-inline-input" } }) as HTMLInputElement;
         input.oninput = (e) => { group[cat][idx] = (e.target as HTMLInputElement).value; };
 
         const delSubBtn = subRow.createEl("button", { text: "✕", cls: "ledgr-del-btn" });
@@ -205,10 +206,7 @@ export class ConfigModal extends Modal {
 
       // Add subcategory input
       const addSubRow = catBlock.createDiv("ledgr-sub-row");
-      const subInput = addSubRow.createEl("input");
-      subInput.type = "text";
-      subInput.placeholder = "New subcategory...";
-      subInput.className = "ledgr-inline-input";
+      const subInput = addSubRow.createEl("input", { attr: { type: "text", placeholder: "New subcategory...", class: "ledgr-inline-input" } }) as HTMLInputElement;
       subInput.value = this.newSubInputs[cat] ?? "";
       subInput.oninput = (e) => { this.newSubInputs[cat] = (e.target as HTMLInputElement).value; };
 
@@ -226,10 +224,7 @@ export class ConfigModal extends Modal {
     // Add new category
     if (type === "expense") {
       const addCatRow = parent.createDiv("ledgr-sub-row ledgr-row-spaced");
-      const catInput = addCatRow.createEl("input");
-      catInput.type = "text";
-      catInput.placeholder = "New category name...";
-      catInput.className = "ledgr-inline-input";
+      const catInput = addCatRow.createEl("input", { attr: { type: "text", placeholder: "New category name...", class: "ledgr-inline-input" } }) as HTMLInputElement;
       catInput.value = this.newCatName;
       catInput.oninput = (e) => { this.newCatName = (e.target as HTMLInputElement).value; };
 

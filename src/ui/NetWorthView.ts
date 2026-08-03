@@ -67,6 +67,11 @@ export class NetWorthView extends ItemView {
     return convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
   }
 
+  // Helper: create input with type set at creation time (Obsidian checker compliance)
+  mkInput(parent: HTMLElement, type: string, cls = "ledgr-inline-input"): HTMLInputElement {
+    return parent.createEl("input", { attr: { type, class: cls } }) as HTMLInputElement;
+  }
+
   fmt(n: number) {
     return formatCurrency(n, this.viewCurrency);
   }
@@ -129,17 +134,17 @@ export class NetWorthView extends ItemView {
         await saveNetWorth(this.app, this.plugin.settings, this.data);
         this.isDirty = false;
         new Notice("Net worth saved");
-        // Snapshot net worth total for Momentum pillar + history chart
+        // Snapshot net worth in BASE currency (not viewCurrency) for Momentum pillar accuracy
         const base = this.plugin.settings.baseCurrency;
         const rates = this.plugin.settings.exchangeRates;
-        const totalAssets = [
-          ...this.data.accounts.filter((a) => !a.isLiability).map((a) => this.toBase(a.balance, a.currency)),
-          ...this.data.brokerages.map((b) => this.toBase(b.value, b.currency)),
+        const snapAssets = [
+          ...this.data.accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
+          ...this.data.brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
         ].reduce((s, v) => s + v, 0);
-        const totalLiabilities = this.data.accounts
+        const snapLiabilities = this.data.accounts
           .filter((a) => a.isLiability)
-          .reduce((s, a) => s + this.toBase(a.balance, a.currency), 0);
-        void recordNwSnapshot(this.app, this.plugin.settings, totalAssets - totalLiabilities);
+          .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+        void recordNwSnapshot(this.app, this.plugin.settings, snapAssets - snapLiabilities);
       }
       this.editMode = !this.editMode;
       void this.render();
@@ -301,19 +306,15 @@ export class NetWorthView extends ItemView {
       accounts.forEach((acc) => {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
-        const nameInput = row1.createEl("input");
-        nameInput.type = "text";
+        const nameInput = this.mkInput(row1, "text", "ledgr-inline-input ledgr-edit-card-name");
         nameInput.value = acc.name;
-        nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
         nameInput.placeholder = "Account name";
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
-        const balInput = row2.createEl("input");
-        balInput.type = "number";
+        const balInput = this.mkInput(row2, "number", "ledgr-inline-input ledgr-edit-card-balance");
         balInput.value = String(acc.balance);
-        balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
         balInput.placeholder = "Balance";
         balInput.oninput = (e) => { this.isDirty = true; acc.balance = parseFloat((e.target as HTMLInputElement).value) || 0; };
 
@@ -357,7 +358,7 @@ export class NetWorthView extends ItemView {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
         const nameInput = row1.createEl("input");
-        nameInput.type = "text"; nameInput.value = b.name;
+        nameInput.setAttribute("type", "text"); nameInput.value = b.name;
         nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
         nameInput.placeholder = "Account name";
         nameInput.oninput = (e) => { this.isDirty = true; b.name = (e.target as HTMLInputElement).value; };
@@ -365,7 +366,7 @@ export class NetWorthView extends ItemView {
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createSpan({ text: `investment · ${b.currency}`, cls: "ledgr-meta" });
         const valInput = row2.createEl("input");
-        valInput.type = "number"; valInput.value = String(b.value);
+        valInput.setAttribute("type", "number"); valInput.value = String(b.value);
         valInput.className = "ledgr-inline-input ledgr-edit-card-balance";
         valInput.placeholder = "Value";
         valInput.oninput = (e) => { this.isDirty = true; b.value = parseFloat((e.target as HTMLInputElement).value) || 0; };
@@ -491,7 +492,7 @@ export class NetWorthView extends ItemView {
         const card = section.createDiv("ledgr-edit-card");
         const row1 = card.createDiv("ledgr-edit-card-row");
         const nameInput = row1.createEl("input");
-        nameInput.type = "text"; nameInput.value = acc.name;
+        nameInput.setAttribute("type", "text"); nameInput.value = acc.name;
         nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
         nameInput.placeholder = "Name";
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
@@ -499,7 +500,7 @@ export class NetWorthView extends ItemView {
         const row2 = card.createDiv("ledgr-edit-card-row");
         row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
         const balInput = row2.createEl("input");
-        balInput.type = "number"; balInput.value = String(acc.balance);
+        balInput.setAttribute("type", "number"); balInput.value = String(acc.balance);
         balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
         balInput.placeholder = "Balance";
         balInput.oninput = (e) => { this.isDirty = true; acc.balance = parseFloat((e.target as HTMLInputElement).value) || 0; };
@@ -510,7 +511,7 @@ export class NetWorthView extends ItemView {
           const row3 = card.createDiv("ledgr-edit-card-row");
           row3.createSpan({ text: "Monthly", cls: "ledgr-meta" });
           const monthlyInput = row3.createEl("input");
-          monthlyInput.type = "number"; monthlyInput.value = String(ld.monthlyPayment);
+          monthlyInput.setAttribute("type", "number"); monthlyInput.value = String(ld.monthlyPayment);
           monthlyInput.className = "ledgr-inline-input";
           monthlyInput.placeholder = "0";
           monthlyInput.oninput = (e) => { this.isDirty = true; ld.monthlyPayment = parseFloat((e.target as HTMLInputElement).value) || 0; };
@@ -518,7 +519,7 @@ export class NetWorthView extends ItemView {
           const row4 = card.createDiv("ledgr-edit-card-row");
           row4.createSpan({ text: "Due day", cls: "ledgr-meta" });
           const dueDayInput = row4.createEl("input");
-          dueDayInput.type = "number"; dueDayInput.value = String(ld.paymentDueDay);
+          dueDayInput.setAttribute("type", "number"); dueDayInput.value = String(ld.paymentDueDay);
           dueDayInput.min = "1"; dueDayInput.max = "28";
           dueDayInput.className = "ledgr-inline-input";
           dueDayInput.oninput = (e) => { this.isDirty = true; ld.paymentDueDay = Math.min(28, Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1)); };
@@ -526,7 +527,7 @@ export class NetWorthView extends ItemView {
           const row5 = card.createDiv("ledgr-edit-card-row");
           row5.createSpan({ text: "Reminder days", cls: "ledgr-meta" });
           const reminderInput = row5.createEl("input");
-          reminderInput.type = "number"; reminderInput.value = String(ld.reminderDaysAhead);
+          reminderInput.setAttribute("type", "number"); reminderInput.value = String(ld.reminderDaysAhead);
           reminderInput.min = "0"; reminderInput.max = "14";
           reminderInput.className = "ledgr-inline-input";
           reminderInput.oninput = (e) => { this.isDirty = true; ld.reminderDaysAhead = Math.min(14, Math.max(0, parseInt((e.target as HTMLInputElement).value) || 3)); };
@@ -671,7 +672,7 @@ export class NetWorthView extends ItemView {
     // Name
     const nameRow = form.createDiv("ledgr-edit-card-row");
     const nameInput = nameRow.createEl("input");
-    nameInput.type = "text"; nameInput.placeholder = "Account name";
+    nameInput.setAttribute("type", "text"); nameInput.placeholder = "Account name";
     nameInput.className = "ledgr-inline-input ledgr-edit-card-name";
 
     // Currency + Type row
@@ -718,28 +719,28 @@ export class NetWorthView extends ItemView {
       const origRow = form.createDiv("ledgr-edit-card-row");
       origRow.createSpan({ text: "Original amount", cls: "ledgr-meta" });
       const origInput = origRow.createEl("input");
-      origInput.type = "number"; origInput.placeholder = "0";
+      origInput.setAttribute("type", "number"); origInput.placeholder = "0";
       origInput.className = "ledgr-inline-input";
 
       // Monthly payment
       const monthlyRow = form.createDiv("ledgr-edit-card-row");
       monthlyRow.createSpan({ text: "Monthly payment", cls: "ledgr-meta" });
       const monthlyInput = monthlyRow.createEl("input");
-      monthlyInput.type = "number"; monthlyInput.placeholder = "0";
+      monthlyInput.setAttribute("type", "number"); monthlyInput.placeholder = "0";
       monthlyInput.className = "ledgr-inline-input";
 
       // Due day
       const dueDayRow = form.createDiv("ledgr-edit-card-row");
       dueDayRow.createSpan({ text: "Due day (1–28)", cls: "ledgr-meta" });
       const dueDayInput = dueDayRow.createEl("input");
-      dueDayInput.type = "number"; dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "28";
+      dueDayInput.setAttribute("type", "number"); dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "28";
       dueDayInput.className = "ledgr-inline-input";
 
       // Reminder days ahead
       const reminderDaysRow = form.createDiv("ledgr-edit-card-row");
       reminderDaysRow.createSpan({ text: "Remind N days before", cls: "ledgr-meta" });
       const reminderDaysInput = reminderDaysRow.createEl("input");
-      reminderDaysInput.type = "number"; reminderDaysInput.placeholder = "3"; reminderDaysInput.value = "3";
+      reminderDaysInput.setAttribute("type", "number"); reminderDaysInput.placeholder = "3"; reminderDaysInput.value = "3";
       reminderDaysInput.min = "0"; reminderDaysInput.max = "14";
       reminderDaysInput.className = "ledgr-inline-input";
 
@@ -747,7 +748,7 @@ export class NetWorthView extends ItemView {
       const reminderRow = form.createDiv("ledgr-edit-card-row");
       reminderRow.createSpan({ text: "Reminder", cls: "ledgr-meta" });
       const reminderCheck = reminderRow.createEl("input");
-      reminderCheck.type = "checkbox"; reminderCheck.checked = true;
+      reminderCheck.setAttribute("type", "checkbox"); (reminderCheck as HTMLInputElement).checked = true;
 
       const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
       addBtn.onclick = () => {
@@ -782,19 +783,15 @@ export class NetWorthView extends ItemView {
 
   addEditCell(tr: HTMLElement, value: string, onChange: (v: string) => void) {
     const td = tr.createEl("td");
-    const input = td.createEl("input");
-    input.type = "text";
+    const input = this.mkInput(td, "text");
     input.value = value;
-    input.className = "ledgr-inline-input";
     input.oninput = (e) => { this.isDirty = true; onChange((e.target as HTMLInputElement).value); };
   }
 
   addNumberCell(tr: HTMLElement, value: number, onChange: (v: number) => void) {
     const td = tr.createEl("td");
-    const input = td.createEl("input");
-    input.type = "number";
+    const input = this.mkInput(td, "number");
     input.value = String(value);
-    input.className = "ledgr-inline-input";
     input.oninput = (e) => { this.isDirty = true; onChange(parseFloat((e.target as HTMLInputElement).value) || 0); };
   }
 

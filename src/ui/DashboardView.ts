@@ -55,6 +55,11 @@ export class DashboardView extends ItemView {
       })
     );
     this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:categories-updated", async () => {
+        await this.render();
+      })
+    );
+    this.registerEvent(
       (this.app.workspace as Events).on("ledgr:networth-updated", async () => {
         await this.render();
       })
@@ -492,10 +497,7 @@ export class DashboardView extends ItemView {
       const setBtn = commitRow.createEl("a", { text: "Set OCF target →", cls: "ledgr-bearing-guidance-link" });
       setBtn.onclick = () => {
         commitRow.empty();
-        const input = commitRow.createEl("input");
-        input.type = "number";
-        input.placeholder = `Target (${this.viewCurrency})`;
-        input.className = "ledgr-inline-input ledgr-cf-commitment-input";
+        const input = commitRow.createEl("input", { attr: { type: "number", placeholder: `Target (${this.viewCurrency})`, class: "ledgr-inline-input ledgr-cf-commitment-input" } }) as HTMLInputElement;
         input.setCssStyles({ width: "140px" });
         const saveBtn = commitRow.createEl("button", { text: "Set", cls: "ledgr-budget-btn" });
         const cancel = commitRow.createEl("button", { text: "Cancel", cls: "ledgr-budget-btn" });
@@ -616,7 +618,7 @@ export class DashboardView extends ItemView {
       const nameWrap = row.createDiv("ledgr-cat-name-wrap");
       // Color dot matching donut
       const dot = nameWrap.createSpan({ cls: "ledgr-cat-dot" });
-      dot.style.backgroundColor = catColor; // dynamic value — cannot use static CSS class
+      dot.setCssStyles({ backgroundColor: catColor }); // dynamic color — setCssStyles required
       nameWrap.createSpan({ text: cat, cls: "ledgr-cat-name" });
       if (catType === "fixed") {
         nameWrap.createSpan({ text: "fixed", cls: "ledgr-cat-type-tag ledgr-cat-type-fixed" });

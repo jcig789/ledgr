@@ -44,6 +44,11 @@ export class StatementsView extends ItemView {
         await this.render();
       })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:categories-updated", async () => {
+        await this.render();
+      })
+    );
   }
 
   async render() {
@@ -416,7 +421,12 @@ export class StatementsView extends ItemView {
         text: h === 3 ? "3M" : h === 6 ? "6M" : "12M",
         cls: `ledgr-nw-history-range-btn${this.forecastHorizon === h ? " active" : ""}`,
       });
-      btn.onclick = async () => { this.forecastHorizon = h; await this.render(); };
+      btn.onclick = async () => {
+        this.forecastHorizon = h;
+        this.plugin.settings.forecastDefaultHorizon = h;
+        await this.plugin.saveSettings();
+        await this.render();
+      };
     });
 
     // Build projection input from history
@@ -556,11 +566,12 @@ export class StatementsView extends ItemView {
       } else {
         // Inline form
         const form = sec.createDiv("ledgr-proj-scenario-form");
-        const labelInput = form.createEl("input"); labelInput.type = "text"; labelInput.placeholder = "Description (e.g. new venture)"; labelInput.className = "ledgr-inline-input";
-        const amtInput = form.createEl("input"); amtInput.type = "number"; amtInput.placeholder = "Monthly amount"; amtInput.className = "ledgr-inline-input";
+        const labelInput = form.createEl("input", { attr: { type: "text", placeholder: "Description (e.g. new venture)", class: "ledgr-inline-input" } }) as HTMLInputElement;
+        const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Monthly amount", class: "ledgr-inline-input" } }) as HTMLInputElement;
         const typeSelect = form.createEl("select", { cls: "ledgr-inline-input" });
         ["Expense", "Income"].forEach((t) => typeSelect.createEl("option", { text: t, value: t.toLowerCase() }));
-        const startInput = form.createEl("input"); startInput.type = "month"; startInput.value = window.moment().add(1, "month").format("YYYY-MM"); startInput.className = "ledgr-inline-input";
+        const startInput = form.createEl("input", { attr: { type: "month", class: "ledgr-inline-input" } }) as HTMLInputElement;
+        startInput.value = window.moment().add(1, "month").format("YYYY-MM");
 
         const btnRow = form.createDiv("ledgr-btn-row");
         const applyBtn = btnRow.createEl("button", { text: "Apply", cls: "ledgr-log-btn mod-cta" });

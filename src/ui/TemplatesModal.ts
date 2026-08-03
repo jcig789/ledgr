@@ -89,7 +89,7 @@ export class TemplatesModal extends Modal {
     const monthRow = parent.createDiv("ledgr-month-row ledgr-row-spaced");
     monthRow.createSpan({ text: "Apply to:", cls: "ledgr-meta" });
     new Setting(monthRow).addText((t): void => {
-      t.inputEl.type = "month";
+      t.inputEl.setAttribute("type", "month");
       t.inputEl.value = this.selectedMonth;
       t.inputEl.addClass("ledgr-inline-input");
       t.onChange((v) => { this.selectedMonth = v; });
@@ -116,9 +116,7 @@ export class TemplatesModal extends Modal {
     };
 
     new Setting(parent).addButton((btn) =>
-      btn.setButtonText("Apply Selected").setCta().onClick(async () => {
-        await this.applyTemplates();
-      })
+      btn.setButtonText("Apply Selected").setCta().onClick(() => { void this.applyTemplates(); })
     );
   }
 

@@ -164,7 +164,7 @@ export function renderDonutChart(
     const item = legend.createDiv("ledgr-legend-item");
 
     const swatch = item.createSpan({ cls: "ledgr-legend-swatch" });
-    swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+    swatch.setCssStyles({ backgroundColor: color }); // dynamic color — setCssStyles required
 
     item.createSpan({ text: seg.label, cls: "ledgr-legend-label" });
     item.createSpan({
@@ -234,8 +234,8 @@ export function renderCompositionBar(
     const pct = (Math.abs(seg.value) / total) * 100;
     const color = seg.color ?? categoryColor(seg.label, i);
     const segEl = bar.createDiv("ledgr-comp-seg");
-    segEl.style.flexBasis = `${pct}%`; // dynamic value — cannot use static CSS class
-    segEl.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+    segEl.setCssStyles({ flexBasis: `${pct}%` }); // dynamic value — setCssStyles required
+    segEl.setCssStyles({ backgroundColor: color }); // dynamic color — setCssStyles required
 
     // Tooltip
     segEl.setAttribute("title",
@@ -253,7 +253,7 @@ export function renderCompositionBar(
     const item = legendRow.createDiv("ledgr-comp-legend-item");
 
     const swatch = item.createSpan({ cls: "ledgr-comp-legend-swatch" });
-    swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+    swatch.setCssStyles({ backgroundColor: color }); // dynamic color — setCssStyles required
 
     item.createSpan({ text: seg.label, cls: "ledgr-comp-legend-label" });
     if (seg.displayValue) {
@@ -584,7 +584,7 @@ export function renderTrendLine(
       const color = s.color ?? defaultColors[si % defaultColors.length];
       const item = legend.createDiv("ledgr-trend-legend-item");
       const swatch = item.createSpan({ cls: "ledgr-trend-legend-swatch" });
-      swatch.style.backgroundColor = color; // dynamic value — cannot use static CSS class
+      swatch.setCssStyles({ backgroundColor: color }); // dynamic color — setCssStyles required
       if (s.dashed) swatch.addClass("ledgr-trend-legend-swatch-dashed");
       item.createSpan({ text: s.label, cls: "ledgr-trend-legend-label" });
     });
@@ -617,7 +617,7 @@ export function renderBudgetScale(
   });
 
   const indicator = wrap.createDiv("ledgr-scale-indicator");
-  indicator.style.left = `${clamped}%`; // dynamic value — cannot use static CSS class
+  indicator.setCssStyles({ left: `${clamped}%` }); // dynamic value — setCssStyles required
   indicator.createDiv("ledgr-scale-arrow");
 
   const zoneRow = wrap.createDiv("ledgr-scale-zones");

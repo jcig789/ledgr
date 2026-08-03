@@ -23,13 +23,13 @@ export async function readMonthTransactions(
       ? rawStream
       : getDefaultStream(subcategory);
     return {
-      date: cols[0],
-      type: cols[1] as Transaction["type"],
-      amount: parseFloat(cols[2]),
-      currency: cols[3],
-      category: cols[4],
+      date: cols[0] ?? "",
+      type: (cols[1] === "income" ? "income" : "expense") as Transaction["type"],
+      amount: parseFloat(cols[2]) || 0,  // guard NaN — malformed rows default to 0
+      currency: cols[3] ?? "USD",
+      category: cols[4] ?? "Other",
       subcategory,
-      note: cols[6] === "-" ? "" : cols[6],
+      note: cols[6] === "-" ? "" : (cols[6] ?? ""),
       stream,
     };
   });

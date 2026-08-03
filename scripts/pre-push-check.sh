@@ -38,16 +38,17 @@ if [ -n "$MATCHES" ]; then
   ERRORS=$((ERRORS+1))
 fi
 
-# 3. window.prompt
-MATCHES=$(grep -rn "window\.prompt(" "$SRC" 2>/dev/null || true)
+# 3. window.prompt — skip lines that are comments explaining why we avoid it
+MATCHES=$(grep -rn "window\.prompt(" "$SRC" 2>/dev/null | grep -v "^\s*//" | grep -v "//.*window\.prompt" || true)
 if [ -n "$MATCHES" ]; then
   red "ERROR: window.prompt() found (use inline input or Modal instead)"
   echo "$MATCHES"
   ERRORS=$((ERRORS+1))
 fi
 
-# 4. input.type = x after creation (not inside attr:{})
-MATCHES=$(grep -rn "\.type\s*=\s*[\"']" "$SRC" 2>/dev/null | grep -v "attr.*type\|//.*type" || true)
+# 4. input.type = x after creation (not inside attr:{}, not comments, not data type migrations)
+MATCHES=$(grep -rn "\.type\s*=\s*[\"']" "$SRC" 2>/dev/null \
+  | grep -v "attr.*type\|//.*type\|acc\.type\s*=\|a\.type\s*=\|AccountType" || true)
 if [ -n "$MATCHES" ]; then
   red "ERROR: input.type = 'x' after creation found (use createEl('input', { attr: { type: 'x' } }))"
   echo "$MATCHES"

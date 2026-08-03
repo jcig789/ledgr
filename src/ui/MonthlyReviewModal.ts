@@ -60,7 +60,7 @@ export class MonthlyReviewModal extends Modal {
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-review ledgr-hidden", text: "" });
 
     new Setting(contentEl).addButton((btn) =>
-      btn.setButtonText("Generate").setCta().onClick(() => this.generate(false))
+      btn.setButtonText("Generate").setCta().onClick(() => { void this.generate(false); })
     );
   }
 
@@ -174,10 +174,16 @@ export class MonthlyReviewModal extends Modal {
     // Goals
     if (goalsStore.goals.length > 0) {
       lines.push(`## Goals Progress`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
-      const bankTotal = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
-        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+      const accountMap = new Map((netWorth.accounts ?? []).map((a: Account) => [a.id, a]));
       goalsStore.goals.forEach((g) => {
-        const current = bankTotal;
+        let current = 0;
+        if (g.linkedAccountId) {
+          const linked = accountMap.get(g.linkedAccountId);
+          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : 0;
+        } else {
+          current = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
+            .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+        }
         const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);
       });
