@@ -38,6 +38,9 @@ export class NetWorthView extends ItemView {
     this.containerEl.addClass("ledgr-view-active");
     this.data = await loadNetWorth(this.app, this.plugin.settings);
     this.goalsStore = await loadGoals(this.app, this.plugin.settings);
+    // Auto-snapshot on open — records once per month passively so history builds
+    // without requiring the user to click Save. Only writes if month not yet recorded.
+    void this.autoSnapshot();
     void this.render();
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:settings-changed", () => {
@@ -61,6 +64,25 @@ export class NetWorthView extends ItemView {
         }
       })
     );
+  }
+
+  async autoSnapshot() {
+    try {
+      const history = await loadNwHistory(this.app, this.plugin.settings);
+      const currentMonth = window.moment().format("YYYY-MM");
+      // Skip if already recorded this month
+      if (history.snapshots[currentMonth] !== undefined) return;
+      const base = this.plugin.settings.baseCurrency;
+      const rates = this.plugin.settings.exchangeRates;
+      const snapAssets = [
+        ...this.data.accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
+        ...this.data.brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
+      ].reduce((s, v) => s + v, 0);
+      const snapLiabilities = this.data.accounts
+        .filter((a) => a.isLiability)
+        .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+      await recordNwSnapshot(this.app, this.plugin.settings, snapAssets - snapLiabilities);
+    } catch { /* silent — snapshot is best-effort */ }
   }
 
   toBase(amount: number, currency: string) {
