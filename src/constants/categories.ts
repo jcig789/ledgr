@@ -9,6 +9,19 @@ export const CATEGORIES: Record<string, string[]> = {
   "Travel": ["Flights", "Hotel", "Activities"],
   "Subscriptions": ["Streaming", "Software", "Other subscription"],
   "Family": ["Remittance", "International travel"],
+  // Investing: capital deployed for future value (worldwide — not country-specific)
+  // Pension contribution covers NISA/iDeCo (JP), 401k (US), ISA (UK), RRSP (CA), Super (AU), SSS (PH)
+  "Investing": [
+    "ETF / Index fund",
+    "Stock purchase",
+    "Crypto",
+    "Bond / Fixed income",
+    "Pension contribution",
+    "Property purchase",
+    "Education / Course",
+    "Work tool",
+    "Other investment",
+  ],
   "Other": ["Other"],
 };
 
@@ -94,6 +107,17 @@ export const CASHFLOW_TYPE_DEFAULTS: Record<string, CashFlowStream> = {
   // Other
   "Other": "ocf",
 
+  // Investing — ICF (worldwide subcategories, country-agnostic labels)
+  "ETF / Index fund": "icf",
+  "Stock purchase": "icf",
+  "Crypto": "icf",
+  "Bond / Fixed income": "icf",
+  "Pension contribution": "icf",   // NISA/iDeCo/JP, 401k/US, ISA/UK, RRSP/CA, Super/AU, SSS/PH
+  "Property purchase": "icf",
+  "Education / Course": "icf",     // ambiguous — stream confirm fires at save
+  "Work tool": "icf",              // ambiguous — stream confirm fires at save
+  "Other investment": "icf",
+
   // Financing — auto-tagged by liability payment modal
   "Loan payment": "fcf", "Mortgage payment": "fcf",
 };
@@ -101,9 +125,11 @@ export const CASHFLOW_TYPE_DEFAULTS: Record<string, CashFlowStream> = {
 // Subcategories where the user should be asked to confirm the stream
 // (12+ month useful life and potentially income-enabling)
 export const AMBIGUOUS_STREAM_SUBCATEGORIES = new Set([
-  "Software",        // could be tool (ICF) or subscription (OCF)
-  "Other",           // catch-all — ambiguous by definition
-  "Hobbies",         // could be skill-building (ICF) or recreation (OCF)
+  "Software",           // could be tool (ICF) or subscription (OCF)
+  "Other",              // catch-all — ambiguous by definition
+  "Hobbies",            // could be skill-building (ICF) or recreation (OCF)
+  "Education / Course", // small course = OCF, university tuition = ICF
+  "Work tool",          // cheap cable = OCF, professional camera = ICF
 ]);
 
 export function getDefaultStream(subcategory: string): CashFlowStream {

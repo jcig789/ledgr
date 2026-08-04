@@ -46,9 +46,12 @@ export class QuickCaptureModal extends Modal {
     if (!Platform.isMobile) {
       this.contentEl.addEventListener("keydown", (e) => {
         const target = e.target as HTMLElement;
-        const isTextInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
-        // Only save on Enter if focus is NOT in a text field (e.g. on the modal itself)
-        if (e.key === "Enter" && !e.shiftKey && !isTextInput) {
+        const isAmountInput = target === this.amtInput;
+        const isOtherTextInput = (target.tagName === "INPUT" || target.tagName === "TEXTAREA") && !isAmountInput;
+        const hasValidAmount = parseFloat(this.amount) > 0 && !isNaN(parseFloat(this.amount));
+        // Save on Enter if: focus outside text inputs, OR focus is in amount field with valid value
+        // Do NOT save if focus is in Note or Date (user may be mid-input)
+        if (e.key === "Enter" && !e.shiftKey && !isOtherTextInput && hasValidAmount) {
           e.preventDefault();
           void this.save();
         }

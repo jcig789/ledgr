@@ -2882,6 +2882,14 @@ button.ledgr-del-confirm,
 }
 
 
+.ledgr-bearing-assessment-date { margin-bottom: 4px; }
+.ledgr-bearing-assessment-date-text {
+  font-size: 0.55em;
+  letter-spacing: 0.2em;
+  opacity: 0.45;
+  font-variant: small-caps;
+}
+
 .ledgr-bearing-index-row {
   display: flex;
   justify-content: center;

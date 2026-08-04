@@ -78,7 +78,11 @@ export class StatementsView extends ItemView {
         text: label,
         cls: `ledgr-top-tab${isActive ? " active" : ""}`,
       });
-      if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+      if (isActive) {
+          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 150);
+        } else {
+          btn.onclick = () => void this.plugin.openView(viewType);
+        }
     });
 
     // Header
@@ -439,14 +443,32 @@ export class StatementsView extends ItemView {
       return { month: historyMonths[i], income: s.ocfIncome, expenses: s.ocfExpenses };
     }).filter((h) => h.income > 0 || h.expenses > 0);
 
-    // Fixed commitments and liquid balance from net worth
+    // Fixed commitments, liquid balance, and liability payoff events from net worth
     let fixedCommitments = 0;
     let currentLiquidBalance = 0;
+    const liabilityPayoffEvents: import("../data/projection").LiabilityPayoffEvent[] = [];
     try {
       const nwData = await loadNetWorth(this.app, this.plugin.settings);
-      fixedCommitments = nwData.accounts
-        .filter((a) => a.isLiability && a.liabilityDetails)
+      const activeLiabilities = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails && !a.liabilityDetails.closedAt);
+      fixedCommitments = activeLiabilities
         .reduce((s, a) => s + convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+
+      // Compute payoff events for liabilities with known balance and monthly payment
+      activeLiabilities.forEach((a) => {
+        const ld = a.liabilityDetails!;
+        if (ld.monthlyPayment > 0 && a.balance > 0) {
+          const monthsToPayoff = Math.ceil(a.balance / ld.monthlyPayment);
+          if (monthsToPayoff <= this.forecastHorizon) {
+            const payoffMonth = window.moment(today).add(monthsToPayoff, "months").format("YYYY-MM");
+            liabilityPayoffEvents.push({
+              month: payoffMonth,
+              label: a.name,
+              freedCash: convertToBase(ld.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates),
+            });
+          }
+        }
+      });
+
       // Liquid assets: bank, ewallet, cash accounts only
       const liquidTypes = new Set(["bank", "ewallet", "cash"]);
       currentLiquidBalance = nwData.accounts
@@ -461,6 +483,7 @@ export class StatementsView extends ItemView {
       reserveFloorMonths: 3,
       ocfCommitment: this.plugin.settings.ocfCommitments[today],
       scenarios: this.forecastScenarios,
+      liabilityPayoffEvents,
     }, this.forecastHorizon);
 
     if (result.dataQuality === "insufficient") {
@@ -534,6 +557,18 @@ export class StatementsView extends ItemView {
       parent.createEl("p", {
         text: "This commitment is not supported within the projection horizon at current income and expense levels.",
         cls: "ledgr-bearing-guidance-text",
+      });
+    }
+
+    // Liability payoff events
+    if (result.payoffEvents.length > 0) {
+      const payoffEl = parent.createDiv("ledgr-proj-runway");
+      payoffEl.createSpan({ text: "Upcoming Payoffs", cls: "ledgr-bearing-guidance-pillar" });
+      result.payoffEvents.forEach((evt) => {
+        payoffEl.createEl("p", {
+          text: `${evt.label} pays off in ${window.moment(evt.month).format("MMMM YYYY")} — releases ${fmt(evt.freedCash)}/month.`,
+          cls: "ledgr-bearing-guidance-text",
+        });
       });
     }
 

@@ -22,6 +22,7 @@ export interface ProjectionInput {
   reserveFloorMonths: number;      // default 3 (months of avg expenses)
   ocfCommitment?: number;          // user's monthly OCF commitment target
   scenarios: ScenarioItem[];
+  liabilityPayoffEvents?: LiabilityPayoffEvent[];  // months when liabilities pay off
 }
 
 export interface ProjectedMonth {
@@ -51,6 +52,7 @@ export interface ProjectionResult {
   baselineMonthlyNet: number;
   avgMonthlyIncome: number;
   avgMonthlyExpenses: number;
+  payoffEvents: LiabilityPayoffEvent[];
 }
 
 // ── Math helpers ──────────────────────────────────────────────────────────────
@@ -93,6 +95,7 @@ export function buildProjection(
       months: [], commitmentFloor: fixedCommitments,
       reserveFloor: 0, runwayMonth: null, runwayConditions: [],
       dataQuality, baselineMonthlyNet: 0, avgMonthlyIncome: 0, avgMonthlyExpenses: 0,
+      payoffEvents: [],
     };
   }
 
@@ -116,8 +119,20 @@ export function buildProjection(
   let runningBalance = currentLiquidBalance;
   let runwayMonth: string | null = null;
 
+  // Track cumulative freed cash from liability payoffs
+  const payoffEventsByMonth = new Map<string, LiabilityPayoffEvent[]>();
+  for (const evt of (input.liabilityPayoffEvents ?? [])) {
+    if (!payoffEventsByMonth.has(evt.month)) payoffEventsByMonth.set(evt.month, []);
+    payoffEventsByMonth.get(evt.month)!.push(evt);
+  }
+  let cumulativeFreedCash = 0;
+
   for (let i = 1; i <= horizonMonths; i++) {
     const month = window.moment(currentMonth).add(i, "months").format("YYYY-MM");
+
+    // Add freed cash from liabilities that pay off this month
+    const payoffsThisMonth = payoffEventsByMonth.get(month) ?? [];
+    cumulativeFreedCash += payoffsThisMonth.reduce((s, e) => s + e.freedCash, 0);
 
     // Scenario deltas for this month
     const activeScenarios = scenarios.filter((s) => {
@@ -131,7 +146,8 @@ export function buildProjection(
     const uncertaintyFactor = 1 + (i - 1) * 0.08;
     const confidenceSpread = Math.sqrt(incomeSD ** 2 + expenseSD ** 2) * uncertaintyFactor;
 
-    const projectedNet = baselineNet + scenarioDelta;
+    // Freed cash from payoffs increases projected net from that month forward
+    const projectedNet = baselineNet + scenarioDelta + cumulativeFreedCash;
     const confidenceLow = projectedNet - confidenceSpread;
     const confidenceHigh = projectedNet + confidenceSpread;
 
@@ -196,5 +212,6 @@ export function buildProjection(
     baselineMonthlyNet: baselineNet,
     avgMonthlyIncome: avgIncome,
     avgMonthlyExpenses: avgExpenses,
+    payoffEvents: input.liabilityPayoffEvents ?? [],
   };
 }

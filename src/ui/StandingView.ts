@@ -53,7 +53,11 @@ export class StandingView extends ItemView {
           text: label,
           cls: `ledgr-top-tab${isActive ? " active" : ""}`,
         });
-        if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+        if (isActive) {
+          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 150);
+        } else {
+          btn.onclick = () => void this.plugin.openView(viewType);
+        }
       });
       // Empty header row keeps sticky zone height consistent with other tabs
       stickyZone.createDiv("ledgr-header");
@@ -86,10 +90,10 @@ export class StandingView extends ItemView {
       } else {
         const cardHeader = cardSection.createDiv("ledgr-section-header");
         cardHeader.createEl("h3", { text: "The Bearing" });
-        const copyBtn = cardHeader.createEl("button", { text: "Copy Card", cls: "ledgr-budget-btn" });
+        const copyBtn = cardHeader.createEl("button", { text: "Copy as Image", cls: "ledgr-budget-btn" });
         copyBtn.onclick = () => void this.copyCardToClipboard();
 
-        this.renderCard(cardSection, this.result);
+        this.renderCard(cardSection, this.result, history.lastCalculated);
 
         // T2-1: Active pillar count + T2-3: Last assessed
         const activePillars = this.result.pillars.filter((p) => p.hasData).length;
@@ -152,7 +156,7 @@ export class StandingView extends ItemView {
 
   // ── Card ──────────────────────────────────────────────────────────────────
 
-  renderCard(parent: HTMLElement, result: BearingResult) {
+  renderCard(parent: HTMLElement, result: BearingResult, lastCalculated?: string) {
     const card = parent.createDiv("ledgr-bearing-card");
 
     // Corner marks
@@ -183,7 +187,15 @@ export class StandingView extends ItemView {
     // Thin rule
     card.createDiv("ledgr-bearing-rule-thin");
 
-    // Tier (T1-4: CLASS IV removed)
+    // Assessment date — "August 2026" format
+    if (lastCalculated) {
+      card.createDiv("ledgr-bearing-assessment-date").createSpan({
+        text: window.moment(lastCalculated).format("MMMM YYYY"),
+        cls: "ledgr-bearing-assessment-date-text",
+      });
+    }
+
+    // Tier
     card.createDiv("ledgr-bearing-tier").createSpan({
       text: result.tier.toUpperCase().split("").join(" "),
       cls: "ledgr-bearing-tier-label",
@@ -451,6 +463,10 @@ export class StandingView extends ItemView {
   async copyCardToClipboard() {
     if (!this.result?.hasEnoughData) return;
     const result = this.result;
+    const history = await loadBearingHistory(this.app, this.plugin.settings);
+    const assessmentDate = history.lastCalculated
+      ? window.moment(history.lastCalculated).format("MMMM YYYY")
+      : "";
 
     // Render card to canvas using Obsidian's createEl — returns HTMLCanvasElement directly
     const canvas = this.contentEl.createEl("canvas");
@@ -536,6 +552,14 @@ export class StandingView extends ItemView {
     ctx.letterSpacing = "2px";
     ctx.fillStyle = fg;
     ctx.fillText(`Index  ·  ${result.score}`, W / 2, 350);
+
+    // Assessment date — "August 2026"
+    if (assessmentDate) {
+      ctx.font = "300 9px 'Georgia', serif";
+      ctx.letterSpacing = "3px";
+      ctx.fillStyle = fgFaint;
+      ctx.fillText(assessmentDate, W / 2, 370);
+    }
 
     try {
       canvas.toBlob((blob) => {

@@ -125,7 +125,11 @@ export class NetWorthView extends ItemView {
         text: label,
         cls: `ledgr-top-tab${isActive ? " active" : ""}`,
       });
-      if (!isActive) btn.onclick = () => void this.plugin.openView(viewType);
+      if (isActive) {
+          window.setTimeout(() => btn.scrollIntoView({ behavior: "instant", block: "nearest", inline: "nearest" }), 150);
+        } else {
+          btn.onclick = () => void this.plugin.openView(viewType);
+        }
     });
 
     // ── Controls bar ──
