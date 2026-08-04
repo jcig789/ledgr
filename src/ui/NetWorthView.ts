@@ -91,7 +91,7 @@ export class NetWorthView extends ItemView {
 
   // Helper: create input with type set at creation time (Obsidian checker compliance)
   mkInput(parent: HTMLElement, type: string, cls = "ledgr-inline-input"): HTMLInputElement {
-    return parent.createEl("input", { attr: { type, class: cls } }) as HTMLInputElement;
+    return parent.createEl("input", { attr: { type, class: cls } });
   }
 
   fmt(n: number) {
@@ -415,7 +415,7 @@ export class NetWorthView extends ItemView {
 
   renderPropertyEquity(parent: HTMLElement) {
     // Find linked asset+liability pairs
-    const pairs: { asset: typeof this.data.accounts[0]; mortgage: typeof this.data.accounts[0] }[] = [];
+    const pairs: { asset: import("../data/networth").Account; mortgage: import("../data/networth").Account }[] = [];
     this.data.accounts.forEach((acc) => {
       if (!acc.isLiability && acc.linkedLiabilityId) {
         const mortgage = this.data.accounts.find((a) => a.id === acc.linkedLiabilityId && a.isLiability);
@@ -556,13 +556,13 @@ export class NetWorthView extends ItemView {
 
           const row6 = card.createDiv("ledgr-edit-card-row");
           row6.createSpan({ text: "Reminder", cls: "ledgr-meta" });
-          const reminderCheck = row6.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+          const reminderCheck = row6.createEl("input", { attr: { type: "checkbox" } });
           reminderCheck.checked = ld.reminderEnabled;
           reminderCheck.onchange = () => { this.isDirty = true; ld.reminderEnabled = reminderCheck.checked; };
 
           const row7 = card.createDiv("ledgr-edit-card-row");
           row7.createSpan({ text: "APR (%)", cls: "ledgr-meta" });
-          const aprInput = row7.createEl("input", { attr: { type: "number", placeholder: "e.g. 18.0", step: "0.1", min: "0" } }) as HTMLInputElement;
+          const aprInput = row7.createEl("input", { attr: { type: "number", placeholder: "e.g. 18.0", step: "0.1", min: "0" } });
           aprInput.className = "ledgr-inline-input";
           if (ld.apr !== undefined) aprInput.value = String(ld.apr);
           aprInput.oninput = () => { this.isDirty = true; ld.apr = parseFloat(aprInput.value) || undefined; };

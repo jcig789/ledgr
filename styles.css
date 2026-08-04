@@ -3774,10 +3774,11 @@ button.ledgr-del-confirm,
     padding-bottom: 260px;
   }
 
-  /* Prevent iOS auto-zoom (fires when input font-size < 16px) */
-  .modal-content input,
-  .modal-content select,
-  .modal-content textarea {
-    font-size: 16px !important;
+  /* Prevent iOS auto-zoom (fires when input font-size < 16px).
+     Triple selector gives specificity to beat Obsidian's own input overrides. */
+  .modal.mod-overlay .modal-content input,
+  .modal.mod-overlay .modal-content select,
+  .modal.mod-overlay .modal-content textarea {
+    font-size: 16px;
   }
 }

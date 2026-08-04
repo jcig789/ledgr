@@ -24,7 +24,7 @@ export async function readMonthTransactions(
       : getDefaultStream(subcategory);
     return {
       date: cols[0] ?? "",
-      type: (cols[1] === "income" ? "income" : "expense") as Transaction["type"],
+      type: cols[1] === "income" ? "income" : "expense",
       amount: parseFloat(cols[2]) || 0,  // guard NaN — malformed rows default to 0
       currency: cols[3] ?? "USD",
       category: cols[4] ?? "Other",

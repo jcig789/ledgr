@@ -67,7 +67,7 @@ export class StandingView extends ItemView {
       if (this.result.hasEnoughData) {
         const record: BearingMonthRecord = {
           score: this.result.score,
-          pillars: Object.fromEntries(this.result.pillars.filter((p) => p.hasData).map((p) => [p.name, Math.round(p.score)])),
+          pillars: Object.fromEntries(this.result.pillars.filter((p) => p.hasData).map((p) => [p.name, Math.round(p.score)])) as Record<string, number>,
           activePillars: this.result.pillars.filter((p) => p.hasData).map((p) => p.name),
         };
         history.history[month] = record;

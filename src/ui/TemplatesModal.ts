@@ -100,7 +100,7 @@ export class TemplatesModal extends Modal {
     const list = parent.createDiv("ledgr-template-list");
     this.store.templates.forEach((tpl) => {
       const row = list.createDiv("ledgr-template-row");
-      const cb = row.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+      const cb = row.createEl("input", { attr: { type: "checkbox" } });
       cb.checked = this.checked.has(tpl.id);
       cb.onchange = () => { cb.checked ? this.checked.add(tpl.id) : this.checked.delete(tpl.id); };
       row.createSpan({ text: tpl.name, cls: "ledgr-template-name" });
@@ -181,11 +181,11 @@ export class TemplatesModal extends Modal {
 
     const nameInput = form.createEl("input", { attr: { type: "text", placeholder: "Name (e.g. Rent or Salary)" } }) as HTMLInputElement;
     nameInput.className = "ledgr-inline-input";
-    const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Amount" } }) as HTMLInputElement;
+    const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Amount" } });
     amtInput.className = "ledgr-inline-input";
-    const catInput = form.createEl("input", { attr: { type: "text", placeholder: "Category" } }) as HTMLInputElement;
+    const catInput = form.createEl("input", { attr: { type: "text", placeholder: "Category" } });
     catInput.className = "ledgr-inline-input";
-    const subInput = form.createEl("input", { attr: { type: "text", placeholder: "Subcategory" } }) as HTMLInputElement;
+    const subInput = form.createEl("input", { attr: { type: "text", placeholder: "Subcategory" } });
     subInput.className = "ledgr-inline-input";
 
     const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });

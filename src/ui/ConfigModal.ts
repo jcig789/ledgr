@@ -194,7 +194,7 @@ export class ConfigModal extends Modal {
       const subList = catBlock.createDiv("ledgr-sub-list");
       subs.forEach((sub, idx) => {
         const subRow = subList.createDiv("ledgr-sub-row");
-        const input = subRow.createEl("input", { attr: { type: "text", value: sub, class: "ledgr-inline-input" } }) as HTMLInputElement;
+        const input = subRow.createEl("input", { attr: { type: "text", value: sub, class: "ledgr-inline-input" } });
         input.oninput = (e) => { group[cat][idx] = (e.target as HTMLInputElement).value; };
 
         const delSubBtn = subRow.createEl("button", { text: "✕", cls: "ledgr-del-btn" });
@@ -206,7 +206,7 @@ export class ConfigModal extends Modal {
 
       // Add subcategory input
       const addSubRow = catBlock.createDiv("ledgr-sub-row");
-      const subInput = addSubRow.createEl("input", { attr: { type: "text", placeholder: "New subcategory...", class: "ledgr-inline-input" } }) as HTMLInputElement;
+      const subInput = addSubRow.createEl("input", { attr: { type: "text", placeholder: "New subcategory...", class: "ledgr-inline-input" } });
       subInput.value = this.newSubInputs[cat] ?? "";
       subInput.oninput = (e) => { this.newSubInputs[cat] = (e.target as HTMLInputElement).value; };
 
@@ -224,7 +224,7 @@ export class ConfigModal extends Modal {
     // Add new category
     if (type === "expense") {
       const addCatRow = parent.createDiv("ledgr-sub-row ledgr-row-spaced");
-      const catInput = addCatRow.createEl("input", { attr: { type: "text", placeholder: "New category name...", class: "ledgr-inline-input" } }) as HTMLInputElement;
+      const catInput = addCatRow.createEl("input", { attr: { type: "text", placeholder: "New category name...", class: "ledgr-inline-input" } });
       catInput.value = this.newCatName;
       catInput.oninput = (e) => { this.newCatName = (e.target as HTMLInputElement).value; };
 
@@ -255,7 +255,7 @@ export class ConfigModal extends Modal {
       const listWrap = parent.createDiv("ledgr-composure-exclusion-list");
       allCats.forEach((cat) => {
         const row = listWrap.createDiv("ledgr-composure-exclusion-row");
-        const cb = row.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+        const cb = row.createEl("input", { attr: { type: "checkbox" } });
         cb.checked = excluded.has(cat);
         cb.onchange = async () => {
           if (cb.checked) excluded.add(cat);

@@ -85,25 +85,23 @@ export function projectTierAttainment(
 
   const direction: "up" | "down" = slope > 0 ? "up" : "down";
 
+  const toProj = (t: { grade: string; tier: string }, months: number | null, dir: "up" | "down"): BearingProjection =>
+    ({ targetTier: t.tier, targetGrade: t.grade, monthsEstimate: months, direction: dir });
+
   if (direction === "up") {
-    // Find next tier threshold above current
     const nextThresholds = [25, 40, 55, 70, 85].filter((t) => t > currentScore);
-    if (nextThresholds.length === 0) return { targetTier: "Distinguished", targetGrade: "I", monthsEstimate: null, direction };
+    if (nextThresholds.length === 0) return toProj(getTier(85), null, direction);
     const next = nextThresholds[0];
-    // Apply ceiling compression: scores slow near tier ceilings
     const compressionFactor = currentScore > 75 ? 0.5 : 1.0;
     const effectiveSlope = slope * compressionFactor;
     const months = Math.round((next - currentScore) / effectiveSlope);
-    if (months < 1 || months > 24) return { ...getTier(next), monthsEstimate: null, direction };
-    return { ...getTier(next), monthsEstimate: months, direction };
+    return toProj(getTier(next), (months < 1 || months > 24) ? null : months, direction);
   } else {
-    // Find tier below current
     const prevThresholds = [85, 70, 55, 40, 25].filter((t) => t < currentScore);
-    if (prevThresholds.length === 0) return { ...getTier(0), monthsEstimate: null, direction };
+    if (prevThresholds.length === 0) return toProj(getTier(0), null, direction);
     const prev = prevThresholds[0];
     const months = Math.round((currentScore - prev) / Math.abs(slope));
-    if (months < 1 || months > 24) return { ...getTier(prev), monthsEstimate: null, direction };
-    return { ...getTier(prev), monthsEstimate: months, direction };
+    return toProj(getTier(prev), (months < 1 || months > 24) ? null : months, direction);
   }
 }
 

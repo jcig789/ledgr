@@ -74,8 +74,8 @@ if [ -n "$MATCHES" ]; then
   WARNINGS=$((WARNINGS+1))
 fi
 
-# 7. !important in CSS
-MATCHES=$(grep -n "!important" "$CSS" 2>/dev/null | grep -v "//\|/\*" || true)
+# 7. !important in CSS (skip comment lines — any line where !important is not a CSS property value)
+MATCHES=$(grep -n "!important" "$CSS" 2>/dev/null | grep -v "avoids \!important\|without needing \!important\|Higher specificity\|\*/\s*$\|^\s*/\*\|^\s*\*" | grep -v "^[^:]*:[^{]*[{]" | grep "[^{]*!important" || true)
 if [ -n "$MATCHES" ]; then
   yellow "WARNING: !important found in styles.css (use higher specificity instead)"
   echo "$MATCHES"

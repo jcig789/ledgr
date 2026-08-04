@@ -567,10 +567,10 @@ export class StatementsView extends ItemView {
         // Inline form
         const form = sec.createDiv("ledgr-proj-scenario-form");
         const labelInput = form.createEl("input", { attr: { type: "text", placeholder: "Description (e.g. new venture)", class: "ledgr-inline-input" } }) as HTMLInputElement;
-        const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Monthly amount", class: "ledgr-inline-input" } }) as HTMLInputElement;
+        const amtInput = form.createEl("input", { attr: { type: "number", placeholder: "Monthly amount", class: "ledgr-inline-input" } });
         const typeSelect = form.createEl("select", { cls: "ledgr-inline-input" });
         ["Expense", "Income"].forEach((t) => typeSelect.createEl("option", { text: t, value: t.toLowerCase() }));
-        const startInput = form.createEl("input", { attr: { type: "month", class: "ledgr-inline-input" } }) as HTMLInputElement;
+        const startInput = form.createEl("input", { attr: { type: "month", class: "ledgr-inline-input" } });
         startInput.value = window.moment().add(1, "month").format("YYYY-MM");
 
         const btnRow = form.createDiv("ledgr-btn-row");
