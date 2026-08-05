@@ -7,7 +7,7 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 ## Features
 
 ### Core
-- **Quick transaction capture** — log expenses and income in seconds via modal or command palette; Enter to save on desktop
+- **Quick transaction capture** — log expenses and income in seconds; Enter saves from the amount field on desktop
 - **Dashboard** — monthly cash flow summary: income, expenses, savings, savings rate gauge, category donut chart, 6-month trend, per-category budget bars; Cash Flow Health panel (OCF/ICF/FCF)
 - **Budgets** — set per-category monthly limits with over-budget indicators and fixed/variable classification
 - **Net worth tracker** — bank accounts, investment accounts, and liabilities across multiple currencies with allocation chart and history chart
@@ -19,10 +19,11 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 - **Savings goals** — set a target amount, deadline, and linked account; see projected completion date and progress bar
 - **Daily countdown** — budget remaining and daily allowance for the rest of the month
 - **Recurring templates** — save fixed monthly expenses and income; apply in one click at month start
+- **Investing category** — worldwide subcategories for ETF/index funds, stocks, crypto, bonds, pension contributions (covers NISA/iDeCo, 401k, ISA, RRSP, Super, SSS), property, education, and work tools — all correctly classified as ICF
 
 ### Standing — The Bearing
 - **Financial health index** — scored 0–100 from 6 behavioral pillars (Discipline, Ballast, Provision, Composure, Momentum, Reserve)
-- **Shareable card** — old money assay seal design, zero monetary amounts, exportable as PNG
+- **Shareable card** — old money assay seal design, zero monetary amounts, exportable as PNG with assessment date
 - **Forward projection** — "At current trajectory, Established in ~4 months" based on score history
 - **Behavioral guidance** — weakest pillars surface with deep-links to the relevant section
 
@@ -34,8 +35,13 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 - Log international money transfers with fee, exchange rate, and received amount
 - Dashboard widget with monthly and YTD totals, lifetime sent, history with period filter
 
+### Calendar
+- Monthly calendar grid — transaction amounts per day (red = spend, green = income), bill due date markers (★)
+- Click any day to see the full transaction list with category breakdown and Pay button for bills due
+- Mobile: stacked layout with detail panel below the grid
+
 ### Navigation & UX
-- Sticky top tab bar — Dashboard | Net Worth | Statements | Standing — works on mobile and desktop
+- Sticky top tab bar — Dashboard | Net Worth | Statements | Standing | Calendar — works on mobile and desktop
 - Transaction edit and delete (2-step confirm on delete)
 - Currency toggle — switch between base and secondary currencies instantly
 - Old Money design system — charcoal, small caps, tabular numerals
@@ -180,7 +186,7 @@ Create a `.env` file in the repo root with `VAULT_PATH=/path/to/vault` to avoid 
 ## Roadmap
 
 - CSV import / export
-- Recurring transaction templates
+- Monthly close ritual
+- Budget roll-over / carry-forward
 - Historical exchange rate tracking
-- Net worth snapshots over time
 - Multi-household / multi-country view
