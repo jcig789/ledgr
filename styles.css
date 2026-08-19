@@ -61,6 +61,8 @@
 .ledgr-dashboard .mod-cta,
 .ledgr-networth .mod-cta,
 .ledgr-statements .mod-cta,
+.ledgr-standing .mod-cta,
+.ledgr-calendar .mod-cta,
 .ledgr-quick-capture .mod-cta,
 .ledgr-config-modal .mod-cta,
 .modal .ledgr-quick-capture .mod-cta,
@@ -74,6 +76,7 @@
 
 .theme-dark .ledgr-dashboard .mod-cta,
 .theme-dark .ledgr-networth .mod-cta,
+.theme-dark .ledgr-calendar .mod-cta,
 .theme-dark .modal button.mod-cta {
   color: #1a1a1a;
 }
@@ -1519,6 +1522,14 @@ button.ledgr-del-confirm,
   color: var(--ledgr-text-faint);
   white-space: nowrap;
 }
+.ledgr-gauge-subtitle {
+  font-size: 0.6em;
+  color: var(--ledgr-text-faint);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  display: block;
+  margin-top: 1px;
+}
 
 /* ─── Trend line chart ───────────────────────────────────────────────── */
 .ledgr-trend-wrap {
@@ -1853,6 +1864,17 @@ button.ledgr-del-confirm,
   display: flex;
   flex-direction: column;
   gap: var(--ledgr-spacing-xs);
+}
+
+/* Remove button: left-aligned at natural width, not full-width stretch */
+.ledgr-edit-card .ledgr-remove-btn {
+  align-self: flex-start;
+  min-width: 80px;
+}
+
+/* Reminder checkbox: charcoal accent, not Obsidian's default purple */
+.ledgr-edit-card input[type="checkbox"] {
+  accent-color: var(--ledgr-accent);
 }
 
 .ledgr-edit-card-row {
@@ -3688,12 +3710,22 @@ button.ledgr-del-confirm,
   color: var(--ledgr-text-secondary);
   margin-bottom: var(--ledgr-spacing-xs);
 }
+.ledgr-cal-detail-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--ledgr-spacing-xs);
+}
 .ledgr-cal-detail-date {
   font-variant: small-caps;
   letter-spacing: 0.06em;
   font-size: var(--ledgr-font-label);
   color: var(--ledgr-text-secondary);
-  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-cal-add-btn {
+  font-size: 0.72em;
+  padding: 2px 8px;
+  flex-shrink: 0;
 }
 .ledgr-cal-detail-summary { margin: var(--ledgr-spacing-sm) 0; }
 .ledgr-cal-detail-summary-row {
@@ -3782,6 +3814,12 @@ button.ledgr-del-confirm,
     padding-bottom: 260px;
   }
 
+  /* Prevent Amount label from being squeezed to "A." by the two-control row */
+  .ledgr-quick-capture .setting-item-info {
+    min-width: 56px;
+    flex-shrink: 0;
+  }
+
   /* Prevent iOS auto-zoom (fires when input font-size < 16px).
      Triple selector gives specificity to beat Obsidian's own input overrides. */
   .modal.mod-overlay .modal-content input,
@@ -3789,4 +3827,452 @@ button.ledgr-del-confirm,
   .modal.mod-overlay .modal-content textarea {
     font-size: 16px;
   }
+}
+
+/* ─── Delete confirmation countdown (D13) ───────────────────────────────── */
+@keyframes ledgr-del-timeout {
+  from { border-color: var(--ledgr-red); color: var(--ledgr-red); }
+  to   { border-color: transparent;     color: var(--ledgr-text-secondary); }
+}
+button.ledgr-del-confirm {
+  animation: ledgr-del-timeout 3s linear forwards;
+}
+tr.pending-delete {
+  background: rgba(155, 58, 58, 0.10);
+}
+
+/* ─── Transaction table date cells (D10) ──────────────────────────────────── */
+.ledgr-tx-date-short { display: none; }
+.ledgr-tx-date-full  { display: inline; }
+.ledgr-tx-cat { font-size: var(--ledgr-font-sm); }
+.ledgr-tx-subcat {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  margin-top: 1px;
+}
+@media (max-width: 600px) {
+  .ledgr-tx-date-short { display: inline; }
+  .ledgr-tx-date-full  { display: none; }
+}
+
+/* ─── Income nudge (D8) ──────────────────────────────────────────────────── */
+.ledgr-income-nudge {
+  font-size: var(--ledgr-font-label);
+  display: block;
+  text-align: center;
+  padding: var(--ledgr-spacing-sm);
+  color: var(--ledgr-green);
+}
+
+/* ─── Post-first-transaction nudge banner ─────────────────────────────────── */
+.ledgr-nudge-banner { margin-top: var(--ledgr-spacing-sm); }
+
+/* ─── Chip-based category selector (D5) ─────────────────────────────────── */
+.ledgr-cat-selector { margin: var(--ledgr-spacing-sm) 0; }
+
+/* Hierarchy labels — "category" above row 1, "in: Self" above row 2 */
+.ledgr-chip-row-label {
+  display: block;
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ledgr-text-faint);
+  margin-bottom: 3px;
+  padding-top: var(--ledgr-spacing-xs);
+}
+
+/* Subcategory row indent — spatial signal of subordination */
+.ledgr-sub-chip-row-wrap {
+  padding-left: 12px;
+  border-left: 2px solid var(--ledgr-rule);
+  margin-left: 2px;
+}
+
+/* Chip row wrapper — provides the fade-out affordance for overflow */
+.ledgr-cat-chip-row-wrap,
+.ledgr-sub-chip-row-wrap {
+  position: relative;
+  overflow: hidden; /* clips the fade pseudo-element */
+}
+/* Right-edge fade mask — tells users more chips exist beyond the clip edge */
+.ledgr-cat-chip-row-wrap::after,
+.ledgr-sub-chip-row-wrap::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 40px;
+  height: 100%;
+  background: linear-gradient(to right, transparent, var(--background-primary, #fff));
+  pointer-events: none;
+  z-index: 1;
+}
+
+.ledgr-cat-chip-row,
+.ledgr-sub-chip-row {
+  display: flex;
+  gap: var(--ledgr-spacing-xs);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--ledgr-spacing-xs);
+  padding-right: 44px; /* room for the fade so last visible chip isn't obscured */
+  margin-bottom: var(--ledgr-spacing-xs);
+  scrollbar-width: none;
+}
+.ledgr-cat-chip-row::-webkit-scrollbar,
+.ledgr-sub-chip-row::-webkit-scrollbar { display: none; }
+
+/* On desktop (modal >= 560px) wrap chips to show all without scrolling */
+@media (min-width: 560px) {
+  .ledgr-cat-chip-row {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-right: 0;
+  }
+  .ledgr-cat-chip-row-wrap::after { display: none; }
+  /* Sub-chip row: stays scrolling on desktop but suppress the fade mask
+     when all chips fit (prevents permanently obscured last chip) */
+  .ledgr-sub-chip-row-wrap::after { display: none; }
+}
+
+/* Income chip: subtle left margin separator to distinguish type-switch from category */
+.ledgr-cat-chip--income {
+  margin-left: var(--ledgr-spacing-sm);
+  border-left: 1px solid var(--ledgr-rule);
+  padding-left: calc(10px + var(--ledgr-spacing-sm));
+}
+.ledgr-cat-chip,
+.ledgr-sub-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: 0.75em;
+  padding: 3px 10px;
+  border-radius: var(--ledgr-radius-sm);
+  border: 1px solid var(--ledgr-rule);
+  background: transparent;
+  color: var(--ledgr-text-secondary);
+  cursor: pointer;
+}
+.ledgr-cat-chip.active,
+.ledgr-sub-chip.active {
+  border-color: var(--ledgr-accent);
+  color: var(--ledgr-text);
+  font-weight: 500;
+}
+.ledgr-cat-chip--income.active {
+  border-color: var(--ledgr-green);
+  color: var(--ledgr-green);
+}
+
+/* ─── Segmented selector / toggle group ──────────────────────────────────── */
+/*
+ * Use .ledgr-toggle-group on the container div, .ledgr-toggle-btn on each
+ * button (additive — existing classes stay).
+ * DOM: div.ledgr-toggle-group > button.ledgr-toggle-btn[.active]
+ */
+.ledgr-toggle-group {
+  display: inline-flex;
+  gap: 0;
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-sm);
+  overflow: hidden;
+}
+
+.ledgr-toggle-btn {
+  border: none;
+  border-right: 1px solid var(--ledgr-rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ledgr-text-secondary);
+  font-size: var(--ledgr-font-sm);
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  min-height: 26px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  position: relative;
+}
+.ledgr-toggle-btn:last-child {
+  border-right: none;
+}
+.ledgr-toggle-btn:hover:not(.active) {
+  color: var(--ledgr-text);
+}
+.ledgr-toggle-btn.active {
+  background: var(--ledgr-accent);
+  color: #fff;
+  cursor: default;
+  font-weight: 500;
+  z-index: 1;
+}
+.theme-dark .ledgr-toggle-btn.active {
+  color: #1a1a1a;
+}
+
+/* Compact variant for inline/dense table contexts */
+.ledgr-toggle-group--compact .ledgr-toggle-btn {
+  padding: 2px 7px;
+  min-height: 22px;
+  font-size: var(--ledgr-font-label);
+  white-space: nowrap; /* prevent clipping on narrow columns */
+}
+
+/* Mobile touch targets */
+@media (max-width: 500px) {
+  .ledgr-toggle-group:not(.ledgr-toggle-group--compact) .ledgr-toggle-btn {
+    min-height: 36px;
+    padding: 6px 12px;
+  }
+}
+
+/* + New chip — dashed border, muted, visually distinct from regular chips */
+.ledgr-chip-new {
+  border-style: dashed;
+  border-color: var(--ledgr-accent-muted);
+  color: var(--ledgr-text-secondary);
+  opacity: 0.7;
+}
+.ledgr-chip-new:hover { opacity: 1; }
+
+/* Add-input overlay — floats above chip rows, outside scroll container */
+.ledgr-cat-add-overlay {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-xs);
+  padding: var(--ledgr-spacing-xs) 0;
+  border-top: 1px solid var(--ledgr-rule);
+  margin-top: var(--ledgr-spacing-xs);
+}
+.ledgr-cat-add-input {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.85em;
+}
+
+/* ─── Onboarding path cards (RC8) ────────────────────────────────────────── */
+.ledgr-onboarding-path-row {
+  display: flex;
+  gap: var(--ledgr-spacing-md);
+  margin: var(--ledgr-spacing-md) 0;
+}
+.ledgr-onboarding-path-card {
+  flex: 1;
+  border: 1px solid var(--ledgr-rule);
+  border-radius: var(--ledgr-radius-md);
+  padding: var(--ledgr-spacing-md);
+  cursor: pointer;
+  transition: border-color 0.15s;
+  min-height: 80px;
+}
+.ledgr-onboarding-path-card:hover {
+  border-color: var(--ledgr-accent-muted);
+}
+.ledgr-onboarding-path-card.active {
+  border: 2px solid var(--ledgr-accent);
+  background: var(--ledgr-surface-raised);
+}
+.ledgr-onboarding-path-card.active::before {
+  content: "✓";
+  float: right;
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-accent);
+  font-variant-numeric: tabular-nums;
+}
+.ledgr-onboarding-path-title {
+  font-size: var(--ledgr-font-body);
+  font-weight: 600;
+  margin-bottom: var(--ledgr-spacing-xs);
+  color: var(--ledgr-text);
+}
+.ledgr-onboarding-path-desc {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  line-height: 1.5;
+}
+@media (max-width: 480px) {
+  .ledgr-onboarding-path-row { flex-direction: column; }
+}
+
+/* ─── Bulk obligations modal (RC9) ──────────────────────────────────────── */
+.ledgr-bulk-obligations { padding: var(--ledgr-spacing-sm) 0; }
+.ledgr-bulk-header-row {
+  display: grid;
+  /* TYPE column widened to minmax(130px,1.6fr) to fit "Liability" without clipping */
+  grid-template-columns: 2fr 1fr 1fr 1fr minmax(130px, 1.6fr) auto;
+  gap: var(--ledgr-spacing-xs);
+  padding: var(--ledgr-spacing-xs) 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-bulk-col-header {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  color: var(--ledgr-text-secondary);
+  letter-spacing: 0.04em;
+}
+.ledgr-bulk-rows { display: flex; flex-direction: column; gap: var(--ledgr-spacing-xs); }
+.ledgr-bulk-row {
+  display: grid;
+  /* 6 explicit columns — liab-type select placed into col 4 (same as hidden cat col)
+     so it never creates a 7th implicit row that pushes the remove button down */
+  grid-template-columns: 2fr 1fr 1fr 1fr minmax(130px, 1.6fr) auto;
+  gap: var(--ledgr-spacing-xs);
+  align-items: center;
+  padding: 3px 0;
+}
+.ledgr-bulk-name  { min-width: 0; }
+.ledgr-bulk-amount,
+.ledgr-bulk-due,
+.ledgr-bulk-cat   { min-width: 0; }
+.ledgr-bulk-type-toggle { display: flex; gap: 2px; }
+/* Liability sub-type select — col 4 via DOM order (inserted before the toggle) */
+.ledgr-bulk-liab-type {
+  min-width: 0;
+  font-size: 0.8em;
+}
+.ledgr-bulk-remove { min-width: 28px; padding: 2px 6px; }
+.ledgr-bulk-add-row { margin: var(--ledgr-spacing-xs) 0; }
+.ledgr-bulk-help {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  margin: var(--ledgr-spacing-xs) 0;
+  line-height: 1.5;
+}
+/* Mobile: two-line row layout */
+@media (max-width: 500px) {
+  .ledgr-bulk-header-row { display: none; } /* headers redundant at mobile width */
+  .ledgr-bulk-row {
+    display: grid;
+    grid-template-columns: 1fr minmax(120px, auto);
+    grid-template-rows: auto auto;
+    gap: 4px var(--ledgr-spacing-xs);
+    padding: var(--ledgr-spacing-xs) 0;
+    border-bottom: 1px solid var(--ledgr-rule);
+  }
+  .ledgr-bulk-name  { grid-column: 1; grid-row: 1; }
+  .ledgr-bulk-amount { grid-column: 2; grid-row: 1; }
+  .ledgr-bulk-due   { grid-column: 1; grid-row: 2; }
+  .ledgr-bulk-cat   { grid-column: 1; grid-row: 2; display: none; } /* simplified on mobile */
+  .ledgr-bulk-type-toggle { grid-column: 2; grid-row: 2; }
+  .ledgr-bulk-liab-type { display: none; } /* set detail later in NetWorth */
+  .ledgr-bulk-remove { grid-column: 2; grid-row: 1; justify-self: end; }
+}
+
+/* ─── Calendar markers (RC10) ────────────────────────────────────────────── */
+.ledgr-cal-bill-marker {
+  display: inline;
+  font-size: 0.6em;
+  color: var(--ledgr-accent-muted);
+  margin-left: 1px;
+  line-height: 1;
+}
+.ledgr-cal-bill-marker--recurring {
+  color: var(--ledgr-text-secondary);
+  opacity: 0.65;
+}
+.ledgr-cal-legend { margin-top: var(--ledgr-spacing-xs); display: flex; gap: var(--ledgr-spacing-sm); }
+.ledgr-cal-legend-item {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+}
+/* Separate legend items with a middle dot */
+.ledgr-cal-legend-item + .ledgr-cal-legend-item::before {
+  content: " · ";
+  color: var(--ledgr-text-faint);
+}
+
+/* ─── Scheduled This Month section (RC11) ───────────────────────────────── */
+.ledgr-scheduled-section {}
+.ledgr-scheduled-toggle {
+  font-size: var(--ledgr-font-label);
+  margin-left: var(--ledgr-spacing-sm);
+}
+.ledgr-scheduled-list { margin-top: var(--ledgr-spacing-xs); }
+.ledgr-scheduled-week-label {
+  font-size: var(--ledgr-font-label);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--ledgr-text-secondary);
+  padding: var(--ledgr-spacing-xs) 0 2px;
+  border-bottom: 1px solid var(--ledgr-rule);
+  margin-bottom: 2px;
+  margin-top: var(--ledgr-spacing-sm);
+}
+.ledgr-scheduled-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-xs);
+  padding: 5px 0;
+  border-bottom: 1px solid transparent;
+}
+.ledgr-scheduled-row:hover { background: var(--ledgr-surface-raised); }
+.ledgr-scheduled-paid { opacity: 0.55; }
+.ledgr-scheduled-marker {
+  font-size: 0.7em;
+  color: var(--ledgr-accent-muted);
+  flex-shrink: 0;
+  width: 14px;
+  text-align: center;
+}
+.ledgr-scheduled-marker--bill { color: var(--ledgr-text-secondary); opacity: 0.7; }
+.ledgr-scheduled-name {
+  flex: 1;
+  font-size: var(--ledgr-font-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ledgr-scheduled-due {
+  font-size: var(--ledgr-font-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+  flex-shrink: 0;
+  min-width: 72px;
+  text-align: right;
+}
+.ledgr-scheduled-soon { color: #8B6914; }
+.ledgr-scheduled-amount {
+  font-size: var(--ledgr-font-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text);
+  flex-shrink: 0;
+  min-width: 72px;
+  text-align: right;
+}
+
+/* Mobile: reduce fixed columns so name gets enough space on narrow screens */
+@media (max-width: 500px) {
+  .ledgr-scheduled-due,
+  .ledgr-scheduled-amount { min-width: 52px; }
+  .ledgr-scheduled-cta { padding: 2px 6px; font-size: 0.68em; }
+}
+.ledgr-scheduled-cta {
+  flex-shrink: 0;
+  font-size: 0.75em;
+  padding: 2px 8px;
+}
+.ledgr-scheduled-footer {
+  display: flex;
+  gap: var(--ledgr-spacing-xs);
+  padding: var(--ledgr-spacing-xs) 0;
+  border-top: 1px solid var(--ledgr-rule);
+  margin-top: var(--ledgr-spacing-xs);
+  font-size: var(--ledgr-font-label);
+  flex-wrap: wrap;
+}
+.ledgr-scheduled-footer-item { font-variant-numeric: tabular-nums; }
+
+/* ─── Due date type toggle (FIX-C, NetWorthView) ────────────────────────── */
+.ledgr-due-spec-row { flex-wrap: wrap; gap: var(--ledgr-spacing-xs); align-items: center; }
+.ledgr-due-type-btn {
+  font-size: 0.75em;
+  padding: 2px 8px;
+  opacity: 0.6;
+}
+.ledgr-due-type-btn.active { opacity: 1; }
+.ledgr-due-day-wrap, .ledgr-due-nth-wrap {
+  display: flex;
+  gap: var(--ledgr-spacing-xs);
+  align-items: center;
 }

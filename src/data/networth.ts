@@ -12,15 +12,23 @@ export interface LiabilityPayment {
   balanceAfter: number;
 }
 
+export type LiabilityAmountType = "fixed" | "variable" | "estimated";
+export type LiabilityDueDateType = "day_of_month" | "nth_weekday";
+
 export interface LiabilityDetails {
-  originalAmount: number;      // Total loan value at origination
-  monthlyPayment: number;      // Fixed monthly payment
-  paymentDueDay: number;       // Day of month 1-28
-  reminderEnabled: boolean;    // Default true
-  reminderDaysAhead: number;   // Default 3
+  originalAmount: number;              // Total loan value at origination
+  monthlyPayment: number;              // Fixed monthly payment (0 when variable)
+  amountType?: LiabilityAmountType;    // "fixed" (default) | "variable" | "estimated"
+  amountMax?: number;                  // Upper bound for estimated range display
+  paymentDueDay: number;               // Day of month 1–31
+  dueDateType?: LiabilityDueDateType;  // "day_of_month" (default) | "nth_weekday"
+  dueWeekOrdinal?: number;             // 1–4 or -1 (last), used when nth_weekday
+  dueWeekday?: number;                 // 0=Sun … 6=Sat, used when nth_weekday
+  reminderEnabled: boolean;            // Default true
+  reminderDaysAhead: number;           // Default 3
   payments: LiabilityPayment[];
-  apr?: number;                // Annual percentage rate e.g. 15.9 for 15.9%
-  closedAt?: string;           // YYYY-MM-DD — set when balance reaches 0 and archived
+  apr?: number;                        // Annual percentage rate e.g. 15.9 for 15.9%
+  closedAt?: string;                   // YYYY-MM-DD — set when balance reaches 0 and archived
 }
 
 export interface Account {

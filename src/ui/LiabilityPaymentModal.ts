@@ -3,6 +3,8 @@ import LedgrPlugin from "../main";
 import { Account, saveNetWorth, loadNetWorth } from "../data/networth";
 import { saveTransaction } from "../data/transactions";
 import { formatCurrency } from "../constants/currencies";
+import { createDateInput } from "./DatePicker";
+import { getDefaultStream } from "../constants/categories";
 
 export class LiabilityPaymentModal extends Modal {
   plugin: LedgrPlugin;
@@ -17,11 +19,22 @@ export class LiabilityPaymentModal extends Modal {
     this.plugin = plugin;
     this.account = account;
     this.date = window.moment().format("YYYY-MM-DD");
-    this.amount = account.liabilityDetails?.monthlyPayment ?? 0;
+    const ld = account.liabilityDetails;
+    // For variable-amount liabilities, don't pre-fill — user enters actual amount
+    this.amount = (ld?.amountType === "variable") ? 0 : (ld?.monthlyPayment ?? 0);
     this.onPaid = onPaid;
   }
 
-  onOpen() { this.render(); }
+  onOpen() {
+    this.render();
+    // Enter-to-confirm when amount field has a valid value
+    this.contentEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && this.amount > 0) {
+        e.preventDefault();
+        void this.confirm();
+      }
+    });
+  }
 
   render() {
     const { contentEl } = this;
@@ -56,9 +69,8 @@ export class LiabilityPaymentModal extends Modal {
       }
     });
 
-    new Setting(contentEl).setName("Date").addText((t) =>
-      t.setValue(this.date).onChange((v) => (this.date = v))
-    );
+    const dateSetting = new Setting(contentEl).setName("Date");
+    createDateInput(dateSetting.controlEl, this.date, (v) => (this.date = v));
 
     new Setting(contentEl).setName("Note").addText((t) =>
       t.setPlaceholder("Optional").setValue(this.note).onChange((v) => (this.note = v))
@@ -82,7 +94,9 @@ export class LiabilityPaymentModal extends Modal {
     const acc = data.accounts.find((a) => a.id === this.account.id);
     if (!acc || !acc.liabilityDetails) return;
 
-    const newBalance = Math.max(0, acc.balance - this.amount);
+    // Clamp payment to actual balance — prevents phantom expense when user over-enters
+    const actualPayment = Math.min(this.amount, acc.balance > 0 ? acc.balance : this.amount);
+    const newBalance = Math.max(0, acc.balance - actualPayment);
     acc.balance = newBalance;
     acc.liabilityDetails.payments.push({
       id: `lpay_${Date.now()}`,
@@ -95,26 +109,29 @@ export class LiabilityPaymentModal extends Modal {
 
     await saveNetWorth(this.app, this.plugin.settings, data);
 
-    // Map liability type to expense category
+    // Map liability type to expense category.
+    // All debt repayments → Other/Loan payment (FCF stream) except mortgage which
+    // has its own dedicated subcategory.
     const catMap: Record<string, { cat: string; sub: string }> = {
-      mortgage: { cat: "Housing", sub: "Rent" },
-      car_loan: { cat: "Transport", sub: "Other" },
-      credit_card: { cat: "Other", sub: "Other" },
-      personal_loan: { cat: "Family", sub: "Remittance" },
-      student_loan: { cat: "Other", sub: "Other" },
-      installment: { cat: "Other", sub: "Other" },
-      other: { cat: "Other", sub: "Other" },
+      mortgage:      { cat: "Housing",  sub: "Mortgage payment" },
+      car_loan:      { cat: "Other",    sub: "Loan payment" },
+      credit_card:   { cat: "Other",    sub: "Loan payment" },
+      personal_loan: { cat: "Other",    sub: "Loan payment" },
+      student_loan:  { cat: "Other",    sub: "Loan payment" },
+      installment:   { cat: "Other",    sub: "Loan payment" },
+      other:         { cat: "Other",    sub: "Loan payment" },
     };
     const { cat, sub } = catMap[acc.type] ?? { cat: "Other", sub: "Other" };
 
     await saveTransaction(this.app, this.plugin.settings, {
       date: this.date,
       type: "expense",
-      amount: this.amount,
+      amount: actualPayment,
       currency: acc.currency,
       category: cat,
       subcategory: sub,
       note: this.note || `Loan payment — ${acc.name}`,
+      stream: getDefaultStream(sub),  // "Loan payment" → "fcf", "Mortgage payment" → "fcf"
     });
 
     new Notice(`Payment logged: ${formatCurrency(this.amount, acc.currency)} — ${acc.name}`);

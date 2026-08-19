@@ -329,11 +329,18 @@ export async function calculateBearing(
     months.map((m) => readMonthTransactions(app, settings, m))
   );
 
-  // Monthly expense totals — exclude business categories from Composure calculation
+  // Monthly OCF expense totals for Composure — exclude ICF/FCF to prevent lump-sum
+  // investments (e.g. NISA contribution) from artificially inflating volatility.
+  // Also exclude user-defined business categories.
   const composureExcluded = new Set(settings.composureExcludedCategories ?? []);
+  const { getDefaultStream } = await import("../constants/categories");
   const monthlyExpenses = allMonthTxs.map((txs) =>
-    txs.filter((t) => t.type === "expense" && !composureExcluded.has(t.category))
-       .reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0)
+    txs.filter((t) => {
+      if (t.type !== "expense") return false;
+      if (composureExcluded.has(t.category)) return false;
+      const stream = t.stream ?? getDefaultStream(t.subcategory);
+      return stream === "ocf"; // only operating expenses affect volatility
+    }).reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0)
   );
 
   // Current month expenses by category

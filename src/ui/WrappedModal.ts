@@ -136,7 +136,7 @@ export class WrappedModal extends Modal {
     lines.push(`| Total Income | ${fmt(yearSummary.totalIncome)} |`);
     lines.push(`| Total Expenses | ${fmt(yearSummary.totalExpenses)} |`);
     lines.push(`| **Net Savings** | **${fmt(yearSummary.net)}** |`);
-    lines.push(`| Avg Savings Rate | **${yearSummary.savingsRate}%** |`);
+    lines.push(`| Annual Savings Rate | **${yearSummary.savingsRate}%** |`);
     if (yearTransfers.length > 0) {
       lines.push(`| Transfers Sent | ${fmt(yearTransfers.reduce((s, r) => s + r.amountJPY, 0))} |`);
     }

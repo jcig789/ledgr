@@ -300,7 +300,7 @@ export class StatementsView extends ItemView {
 
     // Bottom totals
     const totalEl = parent.createDiv("ledgr-stmt-total");
-    totalEl.createSpan({ text: "Net Savings" });
+    totalEl.createSpan({ text: "Net Period Result" });
     totalEl.createSpan({
       text: fmt(summary.net),
       cls: `ledgr-stmt-amt ${summary.net >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
@@ -385,9 +385,9 @@ export class StatementsView extends ItemView {
     }, {} as Record<string, number>);
     addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFinancingCF, "Net Financing Cash Flow");
 
-    // Net Change in Cash (= OCF + ICF + Financing) — renamed from "Free Cash Flow" per CFA review
+    // Net Cash Flow (Period) = OCF + ICF + Financing — matches DashboardView label
     const totalEl = parent.createDiv("ledgr-stmt-total");
-    totalEl.createSpan({ text: "Net Change in Cash" });
+    totalEl.createSpan({ text: "Net Cash Flow (Period)" });
     totalEl.createSpan({
       text: fmtFlow(s.freeCashFlow),
       cls: `ledgr-stmt-amt ${s.freeCashFlow >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
@@ -771,7 +771,7 @@ export class StatementsView extends ItemView {
     this.stmtSectionLabel(liabSection, "Liabilities");
 
     let totalLiab = 0;
-    const liabilities = netWorthData.accounts?.filter((a: Account) => a.isLiability) ?? [];
+    const liabilities = netWorthData.accounts?.filter((a: Account) => a.isLiability && !a.liabilityDetails?.closedAt) ?? [];
     if (liabilities.length > 0) {
       liabilities.forEach((a: Account) => {
         const amt = toBase(a.balance, a.currency);
@@ -786,11 +786,12 @@ export class StatementsView extends ItemView {
     parent.createDiv({ cls: "ledgr-stmt-spacer" });
 
     // NET WORTH — double-underline bottom total
+    // Use fmtSigned so negative net worth displays as (¥53M), not ¥53M
     const netWorth = totalAssets - totalLiab;
     const totalEl = parent.createDiv("ledgr-stmt-total");
     totalEl.createSpan({ text: "Net Worth" });
     totalEl.createSpan({
-      text: fmt(netWorth),
+      text: fmtSigned(netWorth),
       cls: `ledgr-stmt-amt ${netWorth >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
     });
 
@@ -801,9 +802,12 @@ export class StatementsView extends ItemView {
       renderCompositionBar(barWrap, segs);
     }
 
-    // Accounting equation note
+    // Accounting equation note — uses fmtSigned for net worth to show correct sign
+    const nwFormulaText = netWorth >= 0
+      ? `Assets ${fmt(totalAssets)} = Liabilities ${fmt(totalLiab)} + Net Worth ${fmt(netWorth)}`
+      : `Assets ${fmt(totalAssets)} = Liabilities ${fmt(totalLiab)} − Negative equity ${fmt(Math.abs(netWorth))}`;
     parent.createEl("p", {
-      text: `Assets ${fmt(totalAssets)} = Liabilities ${totalLiab === 0 ? fmt(0) : fmt(totalLiab)} + Net Worth ${fmt(netWorth)}`,
+      text: nwFormulaText,
       cls: "ledgr-stmt-footnote",
     });
 

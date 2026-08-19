@@ -125,7 +125,23 @@ export class TemplatesModal extends Modal {
     if (toApply.length === 0) { new Notice("No templates selected."); return; }
 
     const date = `${this.selectedMonth}-01`;
+
+    // Deduplication: load existing transactions for the selected month
+    const existing = await readMonthTransactions(this.app, this.plugin.settings, this.selectedMonth);
+    // Transactions on the 1st are likely template-applied entries
+    const firstDayTxs = existing.filter((tx) => tx.date === date);
+
+    let applied = 0;
+    let skipped = 0;
     for (const tpl of toApply) {
+      // Skip if a transaction with the same category + subcategory already exists on the 1st
+      // Include amount in dedup key so two different salaries (same category) both apply
+      const alreadyApplied = firstDayTxs.some(
+        (tx) => tx.category === tpl.category && tx.subcategory === tpl.subcategory
+          && tx.type === tpl.type && tx.amount === tpl.amount
+      );
+      if (alreadyApplied) { skipped++; continue; }
+
       await saveTransaction(this.app, this.plugin.settings, {
         date,
         type: tpl.type,
@@ -136,13 +152,17 @@ export class TemplatesModal extends Modal {
         note: tpl.note || `Template: ${tpl.name}`,
         stream: tpl.stream,
       });
+      applied++;
     }
     // Persist seeded templates to disk on first apply confirmation
     if (this.seededThisSession) {
       await saveTemplates(this.app, this.plugin.settings, this.store);
       this.seededThisSession = false;
     }
-    new Notice(`${toApply.length} template${toApply.length > 1 ? "s" : ""} applied to ${this.selectedMonth}.`);
+    const msg = skipped > 0
+      ? `${applied} applied, ${skipped} skipped (already logged this month).`
+      : `${applied} template${applied !== 1 ? "s" : ""} applied to ${this.selectedMonth}.`;
+    new Notice(msg);
     this.checked.clear();
     this.close();
   }
@@ -172,9 +192,9 @@ export class TemplatesModal extends Modal {
     let newType: "expense" | "income" = "expense";
     const typeRow = form.createDiv("ledgr-edit-card-row");
     typeRow.createSpan({ text: "Type", cls: "ledgr-meta" });
-    const typeToggleRow = typeRow.createDiv("ledgr-btn-row");
-    const expenseBtn = typeToggleRow.createEl("button", { text: "Expense", cls: "ledgr-budget-btn active" });
-    const incomeBtn = typeToggleRow.createEl("button", { text: "Income", cls: "ledgr-budget-btn" });
+    const typeToggleRow = typeRow.createDiv("ledgr-btn-row ledgr-toggle-group");
+    const expenseBtn = typeToggleRow.createEl("button", { text: "Expense", cls: "ledgr-budget-btn ledgr-toggle-btn active" });
+    const incomeBtn = typeToggleRow.createEl("button", { text: "Income", cls: "ledgr-budget-btn ledgr-toggle-btn" });
     const incomeNote = form.createEl("p", { text: "Income templates do not affect the Forecast projection until real transactions are recorded.", cls: "ledgr-empty ledgr-hidden" });
     expenseBtn.onclick = () => { newType = "expense"; expenseBtn.addClass("active"); incomeBtn.removeClass("active"); incomeNote.addClass("ledgr-hidden"); };
     incomeBtn.onclick = () => { newType = "income"; incomeBtn.addClass("active"); expenseBtn.removeClass("active"); incomeNote.removeClass("ledgr-hidden"); };

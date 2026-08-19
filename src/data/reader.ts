@@ -169,8 +169,12 @@ export function summarize(
     }
   }
 
-  const savingsRate = totalIncome > 0
-    ? Math.round(((totalIncome - totalExpenses) / totalIncome) * 100)
+  // CFP-standard OCF-basis savings rate: (ocfIncome - ocfExpenses) / ocfIncome
+  // Both numerator and denominator use OCF only — consistent and excludes investments/debt service.
+  // Falls back to totalIncome denominator when ocfIncome is zero (e.g. only dividends logged)
+  const savingsRateDenom = ocfIncome > 0 ? ocfIncome : totalIncome;
+  const savingsRate = savingsRateDenom > 0
+    ? Math.round(((savingsRateDenom - ocfExpenses) / savingsRateDenom) * 100)
     : 0;
 
   const netOCF = ocfIncome - ocfExpenses;

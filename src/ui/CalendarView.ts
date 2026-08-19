@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf, Events, setIcon } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions } from "../data/reader";
 import { loadNetWorth } from "../data/networth";
-import { getUpcomingPayments } from "../data/liabilities";
+import { resolveLiabilityDueDay } from "../data/liabilities";
 import { convertToBase } from "../data/reader";
 import { formatCurrency } from "../constants/currencies";
 import { EditTransactionModal } from "./EditTransactionModal";
@@ -10,6 +10,8 @@ import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 import { QuickCaptureModal } from "./QuickCaptureModal";
 import { Transaction } from "../data/transactions";
 import { Account } from "../data/networth";
+import { loadBills, RecurringBill, resolveBillDueDay, isBillPaymentLogged } from "../data/bills";
+import { BillPaymentModal } from "./BillPaymentModal";
 
 export const CALENDAR_VIEW_TYPE = "ledgr-calendar";
 
@@ -21,6 +23,7 @@ export class CalendarView extends ItemView {
   // Cached data — not re-read on day click
   private calendarTxs: Transaction[] = [];
   private liabilityAccounts: Account[] = [];
+  private recurringBills: RecurringBill[] = [];
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -76,7 +79,12 @@ export class CalendarView extends ItemView {
           btn.onclick = () => void this.plugin.openView(viewType);
         }
       });
-      stickyZone.createDiv("ledgr-header");
+      const calHeader = stickyZone.createDiv("ledgr-header");
+      const calControls = calHeader.createDiv("ledgr-controls-row");
+      calControls.createDiv("ledgr-currency-row"); // placeholder to keep layout balanced
+      const calBtnRow = calControls.createDiv("ledgr-btn-row");
+      const addBtn = calBtnRow.createEl("button", { text: "+ Add", cls: "ledgr-log-btn mod-cta" });
+      addBtn.onclick = () => new QuickCaptureModal(this.app, this.plugin.settings, this.currentMonth).open();
 
       // ── Month navigation ──
       const monthRow = contentEl.createDiv("ledgr-month-row");
@@ -90,8 +98,10 @@ export class CalendarView extends ItemView {
       monthRow.createSpan({ text: window.moment(this.currentMonth).format("MMMM YYYY"), cls: "ledgr-month-label" });
       const nextBtn = monthRow.createEl("button", { text: "→" });
       nextBtn.setAttribute("aria-label", "Next month");
-      const isCurrentMonth = this.currentMonth >= window.moment().format("YYYY-MM");
-      if (isCurrentMonth) {
+      // Allow up to 3 months forward — liabilities and bills are future-oriented
+      const maxForwardMonth = window.moment().add(3, "months").format("YYYY-MM");
+      const atForwardLimit = this.currentMonth >= maxForwardMonth;
+      if (atForwardLimit) {
         nextBtn.setAttribute("disabled", "true");
         nextBtn.addClass("ledgr-btn-disabled");
       } else {
@@ -108,10 +118,14 @@ export class CalendarView extends ItemView {
         const nwData = await loadNetWorth(this.app, this.plugin.settings);
         this.liabilityAccounts = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails && !a.liabilityDetails.closedAt);
       } catch { this.liabilityAccounts = []; }
+      try {
+        const billStore = await loadBills(this.app, this.plugin.settings);
+        this.recurringBills = billStore.bills.filter((b) => !b.closedAt);
+      } catch { this.recurringBills = []; }
 
       // ── Build day map ──
       const dayMap = this.buildDayMap();
-      const billDays = this.buildBillDays();
+      const { liabilityDays, billDays } = this.buildBillDays();
 
       // ── Calendar layout ──
       const layout = contentEl.createDiv("ledgr-cal-layout");
@@ -119,7 +133,7 @@ export class CalendarView extends ItemView {
       const detailPanel = layout.createDiv("ledgr-cal-detail");
       const detailInner = detailPanel.createDiv("ledgr-cal-detail-inner");
 
-      this.renderGrid(gridWrap, dayMap, billDays, detailInner);
+      this.renderGrid(gridWrap, dayMap, liabilityDays, billDays, detailInner);
       this.renderDetailDefault(detailInner, dayMap);
     } finally {
       this.isRendering = false;
@@ -145,16 +159,22 @@ export class CalendarView extends ItemView {
     return map;
   }
 
-  buildBillDays(): Set<number> {
-    const today = window.moment().format("YYYY-MM-DD");
-    const month = window.moment(this.currentMonth);
-    const bills = new Set<number>();
+  buildBillDays(): { liabilityDays: Set<number>; billDays: Set<number> } {
+    const liabilityDays = new Set<number>();
+    const billDays = new Set<number>();
+
     this.liabilityAccounts.forEach((acc) => {
       if (!acc.liabilityDetails) return;
-      const dueDay = Math.min(acc.liabilityDetails.paymentDueDay, month.daysInMonth());
-      bills.add(dueDay);
+      const dueDay = resolveLiabilityDueDay(acc, this.currentMonth);
+      if (dueDay !== null) liabilityDays.add(dueDay);
     });
-    return bills;
+
+    this.recurringBills.forEach((bill) => {
+      const dueDay = resolveBillDueDay(bill, this.currentMonth);
+      if (dueDay !== null) billDays.add(dueDay);
+    });
+
+    return { liabilityDays, billDays };
   }
 
   // ── Grid rendering ───────────────────────────────────────────────────────────
@@ -162,6 +182,7 @@ export class CalendarView extends ItemView {
   renderGrid(
     parent: HTMLElement,
     dayMap: Map<number, { spend: number; income: number; txs: Transaction[] }>,
+    liabilityDays: Set<number>,
     billDays: Set<number>,
     detailEl: HTMLElement
   ) {
@@ -197,6 +218,7 @@ export class CalendarView extends ItemView {
     // Day cells
     for (let d = 1; d <= daysInMonth; d++) {
       const entry = dayMap.get(d);
+      const isLiability = liabilityDays.has(d);
       const isBill = billDays.has(d);
       const isToday = d === todayDay;
       const isSelected = d === this.selectedDay;
@@ -205,7 +227,7 @@ export class CalendarView extends ItemView {
       let cls = "ledgr-cal-cell";
       if (isToday) cls += " ledgr-cal-cell--today";
       if (isSelected) cls += " ledgr-cal-cell--selected";
-      if (isBill) cls += " ledgr-cal-cell--bill";
+      if (isLiability || isBill) cls += " ledgr-cal-cell--bill";
       if (isFuture) cls += " ledgr-cal-cell--future";
 
       const cell = grid.createDiv(cls);
@@ -219,12 +241,11 @@ export class CalendarView extends ItemView {
           cell.createDiv({ text: `+${fmt(entry.income)}`, cls: "ledgr-cal-cell-income" });
         }
       }
-      if (isBill) {
-        cell.createSpan({ text: "★", cls: "ledgr-cal-bill-marker" });
-      }
+      // ★ for formal debt payments, ○ for recurring bills
+      if (isLiability) cell.createSpan({ text: "★", cls: "ledgr-cal-bill-marker" });
+      if (isBill) cell.createSpan({ text: "○", cls: "ledgr-cal-bill-marker ledgr-cal-bill-marker--recurring" });
 
       cell.onclick = () => {
-        // Remove selected from previous cell
         parent.querySelectorAll(".ledgr-cal-cell--selected").forEach((el) => el.removeClass("ledgr-cal-cell--selected"));
         cell.addClass("ledgr-cal-cell--selected");
         this.selectedDay = d;
@@ -234,7 +255,8 @@ export class CalendarView extends ItemView {
 
     // Legend
     const legend = parent.createDiv("ledgr-cal-legend");
-    legend.createSpan({ text: "★ bill due", cls: "ledgr-cal-legend-item" });
+    if (this.liabilityAccounts.length > 0) legend.createSpan({ text: "★ debt payment", cls: "ledgr-cal-legend-item" });
+    if (this.recurringBills.length > 0) legend.createSpan({ text: "○ recurring bill", cls: "ledgr-cal-legend-item" });
   }
 
   // ── Detail panel — no selection ──────────────────────────────────────────────
@@ -258,7 +280,8 @@ export class CalendarView extends ItemView {
     };
     if (totalIncome > 0) addSummaryRow("Income", `+${fmt(totalIncome)}`, "ledgr-positive");
     if (totalSpend > 0) addSummaryRow("Spend", fmt(totalSpend), "ledgr-expense");
-    if (this.liabilityAccounts.length > 0) addSummaryRow("Bills due", String(this.liabilityAccounts.length));
+    const totalDue = this.liabilityAccounts.length + this.recurringBills.length;
+    if (totalDue > 0) addSummaryRow("Obligations due", String(totalDue));
 
     detailEl.createDiv("ledgr-bearing-rule-thin");
     detailEl.createEl("p", { text: "Select a day to see transactions.", cls: "ledgr-cal-detail-empty" });
@@ -269,34 +292,82 @@ export class CalendarView extends ItemView {
   renderDetailDay(detailEl: HTMLElement, day: number, entry: { spend: number; income: number; txs: Transaction[] } | null) {
     detailEl.empty();
     const fmt = (n: number, cur: string) => formatCurrency(n, cur);
-    const dateStr = window.moment(`${this.currentMonth}-${String(day).padStart(2, "0")}`).format("dddd, D MMMM").toUpperCase();
+    const isoDate = `${this.currentMonth}-${String(day).padStart(2, "0")}`;
+    const dateStr = window.moment(isoDate).format("dddd, D MMMM").toUpperCase();
 
-    detailEl.createDiv({ text: dateStr, cls: "ledgr-cal-detail-date" });
+    // Date heading + Add button on same row
+    const dateRow = detailEl.createDiv("ledgr-cal-detail-date-row");
+    dateRow.createDiv({ text: dateStr, cls: "ledgr-cal-detail-date" });
+    const addDayBtn = dateRow.createEl("button", { text: "+ Add", cls: "ledgr-budget-btn ledgr-cal-add-btn" });
+    addDayBtn.onclick = () => new QuickCaptureModal(
+      this.app, this.plugin.settings, this.currentMonth, { date: isoDate }
+    ).open();
+
     detailEl.createDiv("ledgr-bearing-rule-thin");
 
-    // Bills due on this day
-    const billsOnDay = this.liabilityAccounts.filter((acc) => {
+    // Debt payments due on this day (★)
+    const liabilitiesOnDay = this.liabilityAccounts.filter((acc) => {
       if (!acc.liabilityDetails) return false;
-      const month = window.moment(this.currentMonth);
-      return Math.min(acc.liabilityDetails.paymentDueDay, month.daysInMonth()) === day;
+      return resolveLiabilityDueDay(acc, this.currentMonth) === day;
     });
 
-    if (billsOnDay.length > 0) {
-      detailEl.createDiv({ text: "Bills Due", cls: "ledgr-cal-detail-bills-header" });
-      billsOnDay.forEach((acc) => {
+    if (liabilitiesOnDay.length > 0) {
+      detailEl.createDiv({ text: "DEBT PAYMENTS", cls: "ledgr-cal-detail-bills-header" });
+      liabilitiesOnDay.forEach((acc) => {
         const row = detailEl.createDiv("ledgr-cal-detail-bill-row");
         row.createSpan({ text: acc.name, cls: "ledgr-cal-detail-bill-name" });
-        if (acc.liabilityDetails!.monthlyPayment > 0) {
+        const ld = acc.liabilityDetails!;
+        const isVariable = ld.amountType === "variable";
+        if (!isVariable && ld.monthlyPayment > 0) {
           row.createSpan({
-            text: formatCurrency(acc.liabilityDetails!.monthlyPayment, acc.currency),
+            text: formatCurrency(ld.monthlyPayment, acc.currency),
             cls: "ledgr-cal-detail-bill-amount",
           });
+        } else if (isVariable) {
+          row.createSpan({ text: "Varies", cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
         }
-        const payBtn = row.createEl("button", { text: "Pay", cls: "ledgr-cal-pay-btn ledgr-budget-btn" });
+        const payBtn = row.createEl("button", { text: isVariable ? "Log →" : "Pay", cls: "ledgr-cal-pay-btn ledgr-budget-btn" });
         payBtn.onclick = () => new LiabilityPaymentModal(
           this.app, this.plugin, acc, () => { void this.render(); }
         ).open();
       });
+    }
+
+    // Recurring bills due on this day (○)
+    const recurringOnDay = this.recurringBills.filter((bill) => {
+      return resolveBillDueDay(bill, this.currentMonth) === day;
+    });
+
+    if (recurringOnDay.length > 0) {
+      if (liabilitiesOnDay.length > 0) detailEl.createDiv("ledgr-bearing-rule-thin");
+      detailEl.createDiv({ text: "BILLS DUE", cls: "ledgr-cal-detail-bills-header" });
+      const month = window.moment(this.currentMonth).format("YYYY-MM");
+      recurringOnDay.forEach((bill) => {
+        const row = detailEl.createDiv("ledgr-cal-detail-bill-row");
+        row.createSpan({ text: bill.name, cls: "ledgr-cal-detail-bill-name" });
+        const isPaid = isBillPaymentLogged(bill, month);
+        if (isPaid) {
+          row.createSpan({ text: "PAID", cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
+        } else if (bill.amountType === "variable") {
+          row.createSpan({ text: "Varies", cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
+          const logBtn = row.createEl("button", { text: "Log →", cls: "ledgr-cal-pay-btn ledgr-budget-btn" });
+          logBtn.onclick = () => new BillPaymentModal(
+            this.app, this.plugin, bill, () => { void this.render(); }
+          ).open();
+        } else {
+          if (bill.amount > 0) {
+            const amtText = bill.amountMax ? `${formatCurrency(bill.amount, bill.currency)}–${formatCurrency(bill.amountMax, bill.currency)}` : formatCurrency(bill.amount, bill.currency);
+            row.createSpan({ text: amtText, cls: "ledgr-cal-detail-bill-amount" });
+          }
+          const logBtn = row.createEl("button", { text: "Log →", cls: "ledgr-cal-pay-btn ledgr-budget-btn" });
+          logBtn.onclick = () => new BillPaymentModal(
+            this.app, this.plugin, bill, () => { void this.render(); }
+          ).open();
+        }
+      });
+    }
+
+    if (liabilitiesOnDay.length > 0 || recurringOnDay.length > 0) {
       detailEl.createDiv("ledgr-bearing-rule-thin");
     }
 

@@ -9,7 +9,7 @@ import { formatCurrency } from "../constants/currencies";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
-import { LIABILITY_TYPES } from "../data/liabilities";
+import { LIABILITY_TYPES, resolveLiabilityDueDay, formatDueLabel } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 import { DebtCostModal } from "./DebtCostModal";
 import { recordNwSnapshot } from "../data/nwHistory";
@@ -338,7 +338,8 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        const accTypeLabel = acc.type.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+        row2.createSpan({ text: `${accTypeLabel} · ${acc.currency}`, cls: "ledgr-meta" });
         const balInput = this.mkInput(row2, "number", "ledgr-inline-input ledgr-edit-card-balance");
         balInput.value = String(acc.balance);
         balInput.placeholder = "Balance";
@@ -364,7 +365,7 @@ export class NetWorthView extends ItemView {
       accounts.forEach((acc) => {
         const tr = tbody.createEl("tr");
         tr.createEl("td", { text: acc.name });
-        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
+        tr.createEl("td", { text: acc.type.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "), cls: "ledgr-empty" });
         tr.createEl("td", { text: this.fmt(this.toBase(acc.balance, acc.currency)), cls: "ledgr-text-right" });
       });
     }
@@ -390,7 +391,7 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; b.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createSpan({ text: `investment · ${b.currency}`, cls: "ledgr-meta" });
+        row2.createSpan({ text: `Investment · ${b.currency}`, cls: "ledgr-meta" });
         const valInput = row2.createEl("input");
         valInput.setAttribute("type", "number"); valInput.value = String(b.value);
         valInput.className = "ledgr-inline-input ledgr-edit-card-balance";
@@ -508,7 +509,7 @@ export class NetWorthView extends ItemView {
       closedLiabilities.forEach((acc) => {
         const tr = ctbody.createEl("tr", { cls: "ledgr-liability-closed" });
         tr.createEl("td", { text: acc.name, cls: "ledgr-liability-closed-name" });
-        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
+        tr.createEl("td", { text: LIABILITY_TYPES.find((t) => t.key === acc.type)?.label ?? acc.type.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "), cls: "ledgr-empty" });
         tr.createEl("td", { text: acc.liabilityDetails?.closedAt ?? "—", cls: "ledgr-empty" });
       });
     }
@@ -524,7 +525,9 @@ export class NetWorthView extends ItemView {
         nameInput.oninput = (e) => { this.isDirty = true; acc.name = (e.target as HTMLInputElement).value; };
 
         const row2 = card.createDiv("ledgr-edit-card-row");
-        row2.createSpan({ text: `${acc.type} · ${acc.currency}`, cls: "ledgr-meta" });
+        const liabTypeLabel = LIABILITY_TYPES.find((t) => t.key === acc.type)?.label
+          ?? acc.type.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+        row2.createSpan({ text: `${liabTypeLabel} · ${acc.currency}`, cls: "ledgr-meta" });
         const balInput = row2.createEl("input");
         balInput.setAttribute("type", "number"); balInput.value = String(acc.balance);
         balInput.className = "ledgr-inline-input ledgr-edit-card-balance";
@@ -542,13 +545,51 @@ export class NetWorthView extends ItemView {
           monthlyInput.placeholder = "0";
           monthlyInput.oninput = (e) => { this.isDirty = true; ld.monthlyPayment = parseFloat((e.target as HTMLInputElement).value) || 0; };
 
-          const row4 = card.createDiv("ledgr-edit-card-row");
-          row4.createSpan({ text: "Due day", cls: "ledgr-meta" });
-          const dueDayInput = row4.createEl("input");
-          dueDayInput.setAttribute("type", "number"); dueDayInput.value = String(ld.paymentDueDay);
-          dueDayInput.min = "1"; dueDayInput.max = "28";
-          dueDayInput.className = "ledgr-inline-input";
-          dueDayInput.oninput = (e) => { this.isDirty = true; ld.paymentDueDay = Math.min(28, Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1)); };
+          const row4 = card.createDiv("ledgr-edit-card-row ledgr-due-spec-row");
+          row4.createSpan({ text: "Due", cls: "ledgr-meta" });
+          // Due date type toggle — wrapped in segmented selector
+          const isNthWeekday = ld.dueDateType === "nth_weekday";
+          const dueTypeToggle = row4.createDiv("ledgr-toggle-group");
+          const dayBtn = dueTypeToggle.createEl("button", { text: "Date", cls: `ledgr-budget-btn ledgr-due-type-btn ledgr-toggle-btn${!isNthWeekday ? " active" : ""}` });
+          const wdBtn = dueTypeToggle.createEl("button", { text: "Weekday", cls: `ledgr-budget-btn ledgr-due-type-btn ledgr-toggle-btn${isNthWeekday ? " active" : ""}` });
+
+          const dayInputWrap = row4.createDiv(`ledgr-due-day-wrap${isNthWeekday ? " ledgr-hidden" : ""}`);
+          const dueDayInput = dayInputWrap.createEl("input");
+          dueDayInput.setAttribute("type", "number"); dueDayInput.value = String(ld.paymentDueDay || 1);
+          dueDayInput.min = "1"; dueDayInput.max = "31"; dueDayInput.className = "ledgr-inline-input";
+          dueDayInput.setCssStyles({ width: "56px" });
+          dueDayInput.oninput = (e) => { this.isDirty = true; ld.paymentDueDay = Math.min(31, Math.max(1, parseInt((e.target as HTMLInputElement).value) || 1)); };
+
+          const nthWrap = row4.createDiv(`ledgr-due-nth-wrap${!isNthWeekday ? " ledgr-hidden" : ""}`);
+          const ORDINALS = [["1st", 1], ["2nd", 2], ["3rd", 3], ["4th", 4], ["Last", -1]] as const;
+          const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+          const ordSel = nthWrap.createEl("select", { cls: "ledgr-inline-input" });
+          ORDINALS.forEach(([label, val]) => {
+            const o = ordSel.createEl("option"); o.value = String(val); o.textContent = label;
+            if (val === (ld.dueWeekOrdinal ?? 1)) o.selected = true;
+          });
+          ordSel.onchange = () => { this.isDirty = true; ld.dueWeekOrdinal = parseInt(ordSel.value); };
+          const wdSel = nthWrap.createEl("select", { cls: "ledgr-inline-input" });
+          WEEKDAYS.forEach((label, i) => {
+            const o = wdSel.createEl("option"); o.value = String(i); o.textContent = label;
+            if (i === (ld.dueWeekday ?? 1)) o.selected = true;
+          });
+          wdSel.onchange = () => { this.isDirty = true; ld.dueWeekday = parseInt(wdSel.value); };
+
+          dayBtn.onclick = () => {
+            this.isDirty = true;
+            ld.dueDateType = "day_of_month";
+            dayBtn.addClass("active"); wdBtn.removeClass("active");
+            dayInputWrap.removeClass("ledgr-hidden"); nthWrap.addClass("ledgr-hidden");
+          };
+          wdBtn.onclick = () => {
+            this.isDirty = true;
+            ld.dueDateType = "nth_weekday";
+            ld.dueWeekOrdinal = ld.dueWeekOrdinal ?? 1;
+            ld.dueWeekday = ld.dueWeekday ?? 1;
+            wdBtn.addClass("active"); dayBtn.removeClass("active");
+            nthWrap.removeClass("ledgr-hidden"); dayInputWrap.addClass("ledgr-hidden");
+          };
 
           const row5 = card.createDiv("ledgr-edit-card-row");
           row5.createSpan({ text: "Reminder days", cls: "ledgr-meta" });
@@ -627,18 +668,20 @@ export class NetWorthView extends ItemView {
       liabilities.forEach((acc) => {
         const tr = tbody.createEl("tr");
         tr.createEl("td", { text: acc.name });
-        tr.createEl("td", { text: acc.type, cls: "ledgr-empty" });
+        const typeLabel = LIABILITY_TYPES.find((t) => t.key === acc.type)?.label ?? acc.type;
+        tr.createEl("td", { text: typeLabel, cls: "ledgr-empty" });
         const balCell = tr.createEl("td", { cls: "ledgr-text-right" });
         balCell.createDiv({ text: this.fmt(this.toBase(acc.balance, acc.currency)) });
         const schedCell = tr.createEl("td", { cls: "ledgr-liability-schedule-col" });
         if (acc.liabilityDetails) {
           const ld = acc.liabilityDetails;
-          const today = window.moment().format("YYYY-MM-DD");
-          const m = window.moment(today);
-          const dueDay = Math.min(ld.paymentDueDay, m.daysInMonth());
-          const dueDate = m.clone().date(dueDay).format("MMM D");
-          schedCell.createDiv({ text: `Due ${dueDate}`, cls: "ledgr-liability-due" });
-          if (ld.monthlyPayment > 0) {
+          const currentMonth = window.moment().format("YYYY-MM");
+          const dueLabel = formatDueLabel(acc, currentMonth);
+          schedCell.createDiv({ text: `Due ${dueLabel}`, cls: "ledgr-liability-due" });
+          const isVariable = ld.amountType === "variable";
+          if (isVariable) {
+            schedCell.createDiv({ text: "Varies / mo", cls: "ledgr-liability-monthly ledgr-meta" });
+          } else if (ld.monthlyPayment > 0) {
             schedCell.createDiv({
               text: formatCurrency(ld.monthlyPayment, acc.currency) + " / mo",
               cls: "ledgr-liability-monthly",
@@ -756,11 +799,46 @@ export class NetWorthView extends ItemView {
       monthlyInput.className = "ledgr-inline-input";
 
       // Due day
-      const dueDayRow = form.createDiv("ledgr-edit-card-row");
-      dueDayRow.createSpan({ text: "Due day (1–28)", cls: "ledgr-meta" });
-      const dueDayInput = dueDayRow.createEl("input");
-      dueDayInput.setAttribute("type", "number"); dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "28";
-      dueDayInput.className = "ledgr-inline-input";
+      // Due date — type toggle + conditional inputs
+      const dueDayRow = form.createDiv("ledgr-edit-card-row ledgr-due-spec-row");
+      dueDayRow.createSpan({ text: "Due", cls: "ledgr-meta" });
+      let addDueDateType: "day_of_month" | "nth_weekday" = "day_of_month";
+      let addDueDay = 1;
+      let addDueOrdinal = 1;
+      let addDueWeekday = 1;
+
+      const addDueTypeToggle = dueDayRow.createDiv("ledgr-toggle-group");
+      const addDayBtn = addDueTypeToggle.createEl("button", { text: "Date", cls: "ledgr-budget-btn ledgr-due-type-btn ledgr-toggle-btn active" });
+      const addWdBtn = addDueTypeToggle.createEl("button", { text: "Weekday", cls: "ledgr-budget-btn ledgr-due-type-btn ledgr-toggle-btn" });
+
+      const addDayWrap = dueDayRow.createDiv("ledgr-due-day-wrap");
+      const dueDayInput = addDayWrap.createEl("input");
+      dueDayInput.setAttribute("type", "number"); dueDayInput.placeholder = "1"; dueDayInput.min = "1"; dueDayInput.max = "31";
+      dueDayInput.className = "ledgr-inline-input"; dueDayInput.setCssStyles({ width: "56px" });
+      dueDayInput.oninput = () => { addDueDay = Math.min(31, Math.max(1, parseInt(dueDayInput.value) || 1)); };
+
+      const addNthWrap = dueDayRow.createDiv("ledgr-due-nth-wrap ledgr-hidden");
+      const ORDINALS_ADD = [["1st", 1], ["2nd", 2], ["3rd", 3], ["4th", 4], ["Last", -1]] as const;
+      const WEEKDAYS_ADD = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const addOrdSel = addNthWrap.createEl("select", { cls: "ledgr-inline-input" });
+      ORDINALS_ADD.forEach(([label, val]) => {
+        const o = addOrdSel.createEl("option"); o.value = String(val); o.textContent = label;
+      });
+      addOrdSel.onchange = () => { addDueOrdinal = parseInt(addOrdSel.value); };
+      const addWdSel = addNthWrap.createEl("select", { cls: "ledgr-inline-input" });
+      WEEKDAYS_ADD.forEach((label, i) => { const o = addWdSel.createEl("option"); o.value = String(i); o.textContent = label; });
+      addWdSel.onchange = () => { addDueWeekday = parseInt(addWdSel.value); };
+
+      addDayBtn.onclick = () => {
+        addDueDateType = "day_of_month";
+        addDayBtn.addClass("active"); addWdBtn.removeClass("active");
+        addDayWrap.removeClass("ledgr-hidden"); addNthWrap.addClass("ledgr-hidden");
+      };
+      addWdBtn.onclick = () => {
+        addDueDateType = "nth_weekday";
+        addWdBtn.addClass("active"); addDayBtn.removeClass("active");
+        addNthWrap.removeClass("ledgr-hidden"); addDayWrap.addClass("ledgr-hidden");
+      };
 
       // Reminder days ahead
       const reminderDaysRow = form.createDiv("ledgr-edit-card-row");
@@ -779,6 +857,8 @@ export class NetWorthView extends ItemView {
       const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
       addBtn.onclick = () => {
         const originalAmount = parseFloat(origInput.value) || 0;
+        const monthlyAmt = parseFloat(monthlyInput.value) || 0;
+        const isVariableAmt = monthlyInput.value.trim().toLowerCase() === "varies" || monthlyAmt === 0;
         this.data.accounts.push({
           id: `lia_${Date.now()}`,
           name: nameInput.value.trim() || "New Liability",
@@ -789,9 +869,13 @@ export class NetWorthView extends ItemView {
           isLiability: true,
           liabilityDetails: {
             originalAmount,
-            monthlyPayment: parseFloat(monthlyInput.value) || 0,
-            paymentDueDay: Math.min(28, Math.max(1, parseInt(dueDayInput.value) || 1)),
-            reminderEnabled: reminderCheck.checked,
+            monthlyPayment: monthlyAmt,
+            amountType: isVariableAmt ? "variable" : "fixed",
+            paymentDueDay: addDueDateType === "day_of_month" ? Math.min(31, Math.max(1, addDueDay)) : 1,
+            dueDateType: addDueDateType,
+            dueWeekOrdinal: addDueDateType === "nth_weekday" ? addDueOrdinal : undefined,
+            dueWeekday: addDueDateType === "nth_weekday" ? addDueWeekday : undefined,
+            reminderEnabled: (reminderCheck as HTMLInputElement).checked,
             reminderDaysAhead: Math.min(14, Math.max(0, parseInt(reminderDaysInput.value) || 3)),
             payments: [],
           },

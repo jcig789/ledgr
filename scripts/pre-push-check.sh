@@ -48,7 +48,7 @@ fi
 
 # 4. input.type = x after creation (not inside attr:{}, not comments, not data type migrations)
 MATCHES=$(grep -rn "\.type\s*=\s*[\"']" "$SRC" 2>/dev/null \
-  | grep -v "attr.*type\|//.*type\|acc\.type\s*=\|a\.type\s*=\|AccountType" || true)
+  | grep -v "attr.*type\|//.*type\|acc\.type\s*=\|a\.type\s*=\|AccountType\|this\.type\s*=\|newType\s*=\|row\.type\s*=" || true)
 if [ -n "$MATCHES" ]; then
   red "ERROR: input.type = 'x' after creation found (use createEl('input', { attr: { type: 'x' } }))"
   echo "$MATCHES"

@@ -412,23 +412,28 @@ export function renderGauge(
   parent: HTMLElement,
   value: number,
   label: string,
-  opts?: { good?: number; warn?: number },
+  opts?: { good?: number; warn?: number; subtitle?: string },
 ): void {
   parent.empty();
 
-  const clamped = Math.max(0, Math.min(100, value));
+  const isNegative = value < 0;
+  // For the ring arc, use absolute value clamped 0–100
+  const absValue = Math.min(100, Math.abs(value));
   const good = opts?.good ?? 20;
   const warn = opts?.warn ?? 10;
 
-  const color = clamped >= good
-    ? "var(--ledgr-green)"
-    : clamped >= warn
-    ? "var(--ledgr-cat-8)"
-    : "var(--ledgr-red)";
+  // Negative rates always show red; positive rates use the threshold logic
+  const color = isNegative
+    ? "var(--ledgr-red)"
+    : absValue >= good
+      ? "var(--ledgr-green)"
+      : absValue >= warn
+        ? "var(--ledgr-cat-8)"
+        : "var(--ledgr-red)";
 
   const R = 30;
   const C = 2 * Math.PI * R;
-  const arcLen = (clamped / 100) * C;
+  const arcLen = (absValue / 100) * C;
 
   const wrap = parent.createDiv("ledgr-gauge-wrap");
 
@@ -443,9 +448,8 @@ export function renderGauge(
     cls: "ledgr-gauge-track",
   });
 
-  // Fill ring — stroke-dasharray controls how much is filled
-  // rotate -90 so fill starts at the top
-  if (clamped > 0) {
+  // Fill ring — always draw when there's a non-zero value (positive or negative)
+  if (absValue > 0) {
     svg.createSvg("circle", {
       attr: {
         cx: "40",
@@ -460,8 +464,11 @@ export function renderGauge(
   }
 
   const center = wrap.createDiv("ledgr-gauge-center");
-  center.createSpan({ text: `${Math.round(clamped)}%`, cls: "ledgr-gauge-value" });
+  // Show sign for negative rates so 0% and -5% are visually distinct
+  const displayText = isNegative ? `−${Math.round(absValue)}%` : `${Math.round(absValue)}%`;
+  center.createSpan({ text: displayText, cls: `ledgr-gauge-value${isNegative ? " ledgr-negative" : ""}` });
   if (label) center.createSpan({ text: label, cls: "ledgr-gauge-label" });
+  if (opts?.subtitle) center.createSpan({ text: opts.subtitle, cls: "ledgr-gauge-subtitle" });
 }
 
 // ─── renderTrendLine ─────────────────────────────────────────────────────────
