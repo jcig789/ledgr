@@ -270,17 +270,25 @@ export class DashboardView extends ItemView {
       }).length;
       variableCount += activeBills.filter((b) => b.amountType === "variable" && !b.payments.some((p) => p.date.startsWith(month))).length;
 
-      // Sum only unpaid fixed obligations
+      // Sum remaining fixed obligations — deduct partial payments made this month
       const liabilityTotal = liabilities.reduce((sum, a) => {
         const ld = a.liabilityDetails!;
         if (ld.amountType === "variable") return sum;
-        if (ld.payments?.some((p) => p.date.startsWith(month))) return sum; // already paid
-        return sum + convertToBase(ld.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        const paidThisMonth = (ld.payments ?? [])
+          .filter((p) => p.date.startsWith(month))
+          .reduce((s, p) => s + p.amount, 0);
+        const remaining = Math.max(0, ld.monthlyPayment - paidThisMonth);
+        if (remaining === 0) return sum;
+        return sum + convertToBase(remaining, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
       }, 0);
       const billTotal = activeBills.reduce((sum, b) => {
         if (b.amountType === "variable") return sum;
-        if (b.payments.some((p) => p.date.startsWith(month))) return sum; // already paid
-        return sum + convertToBase(b.amount, b.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        const paidThisMonth = b.payments
+          .filter((p) => p.date.startsWith(month))
+          .reduce((s, p) => s + p.amount, 0);
+        const remaining = Math.max(0, b.amount - paidThisMonth);
+        if (remaining === 0) return sum;
+        return sum + convertToBase(remaining, b.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
       }, 0);
       const totalMonthly = liabilityTotal + billTotal;
 
