@@ -204,7 +204,7 @@ export class DashboardView extends ItemView {
       // If so, show a contextual welcome instead of the generic first-run state
       try {
         const billStore = await loadBills(this.app, this.plugin.settings).catch(() => ({ bills: [] }));
-        const nwData = await loadNetWorth(this.app, this.plugin.settings).catch(() => ({ accounts: [], brokerages: [], updatedAt: "" }));
+        const nwData = await loadNetWorth(this.app, this.plugin.settings).catch(() => ({ accounts: [] as import("../data/networth").Account[], brokerages: [], updatedAt: "" }));
         const hasObligations = billStore.bills.filter((b) => !b.closedAt).length > 0
           || nwData.accounts.some((a) => a.isLiability && !a.liabilityDetails?.closedAt);
         if (hasObligations) {

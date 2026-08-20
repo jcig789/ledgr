@@ -739,10 +739,11 @@ button.ledgr-del-confirm,
 /* Danger tab — red label, distinct from other tabs */
 .ledgr-tab-btn--danger { color: var(--ledgr-red); }
 .ledgr-tab-btn--danger.active { color: var(--ledgr-red); border-bottom-color: var(--ledgr-red); }
-.ledgr-danger-btn {
-  background: var(--ledgr-red) !important;
-  border-color: var(--ledgr-red) !important;
-  color: #fff !important;
+/* (0,3,0) specificity beats .ledgr-config-modal .mod-cta at (0,2,0) */
+.ledgr-config-modal .ledgr-config-body .ledgr-danger-btn {
+  background: var(--ledgr-red);
+  border-color: var(--ledgr-red);
+  color: #fff;
   margin-top: var(--ledgr-spacing-sm);
 }
 .ledgr-danger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
@@ -2602,7 +2603,7 @@ button.ledgr-del-confirm,
   .ledgr-tab-row {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
+    scrollbar-width: none; /* paired with ::-webkit-scrollbar below */
     flex-wrap: nowrap;
   }
   .ledgr-tab-row::-webkit-scrollbar { display: none; }

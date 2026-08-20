@@ -851,8 +851,8 @@ export class NetWorthView extends ItemView {
       // Reminder toggle
       const reminderRow = form.createDiv("ledgr-edit-card-row");
       reminderRow.createSpan({ text: "Reminder", cls: "ledgr-meta" });
-      const reminderCheck = reminderRow.createEl("input");
-      reminderCheck.setAttribute("type", "checkbox"); (reminderCheck as HTMLInputElement).checked = true;
+      const reminderCheck = reminderRow.createEl("input", { attr: { type: "checkbox" } }) as HTMLInputElement;
+      reminderCheck.checked = true;
 
       const addBtn = form.createEl("button", { text: "Add", cls: "ledgr-log-btn mod-cta" });
       addBtn.onclick = () => {
@@ -875,7 +875,7 @@ export class NetWorthView extends ItemView {
             dueDateType: addDueDateType,
             dueWeekOrdinal: addDueDateType === "nth_weekday" ? addDueOrdinal : undefined,
             dueWeekday: addDueDateType === "nth_weekday" ? addDueWeekday : undefined,
-            reminderEnabled: (reminderCheck as HTMLInputElement).checked,
+            reminderEnabled: reminderCheck.checked,
             reminderDaysAhead: Math.min(14, Math.max(0, parseInt(reminderDaysInput.value) || 3)),
             payments: [],
           },

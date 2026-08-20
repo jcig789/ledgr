@@ -299,7 +299,7 @@ export class BulkObligationsModal extends Modal {
 
     const liabilityCount = validRows.filter((r) => r.type === "liability").length;
     const billCount = validRows.filter((r) => r.type === "bill").length;
-    const parts = [];
+    const parts: string[] = [];
     if (liabilityCount > 0) parts.push(`${liabilityCount} liabilit${liabilityCount !== 1 ? "ies" : "y"}`);
     if (billCount > 0) parts.push(`${billCount} bill${billCount !== 1 ? "s" : ""}`);
     new Notice(`Added ${parts.join(" and ")}. ${liabilityCount > 0 ? "Go to Net Worth to set balances for your liabilities." : ""}`);

@@ -294,7 +294,7 @@ export class ConfigModal extends Modal {
     // ── New Ledger ───────────────────────────────────────────────────────────
     parent.createEl("h3", { text: "New Ledger" });
     parent.createEl("p", {
-      text: "Start completely fresh. All financial data is deleted. Your settings (currency, folder, exchange rates) are preserved.",
+      text: "Start completely fresh. All financial data below will be moved to trash (or permanently deleted, depending on your Obsidian settings). Your settings — currency, folder, exchange rates — are preserved.",
       cls: "setting-item-description",
     });
 
@@ -316,7 +316,7 @@ export class ConfigModal extends Modal {
     files.forEach((f) => fileList.createEl("li", { text: f, cls: "ledgr-empty" }));
 
     parent.createEl("p", {
-      text: "Categories you created are preserved.",
+      text: "Categories you created are preserved. Monthly OCF targets are cleared. Check Obsidian Settings → Files & Links to control trash behaviour.",
       cls: "ledgr-meta",
     });
 
@@ -369,11 +369,11 @@ export class ConfigModal extends Modal {
       `${folder}/remittances.json`,
     ];
 
-    // Delete individual data files
+    // Delete individual data files — use fileManager.trashFile to respect user's deletion preference
     for (const path of filePaths) {
       try {
         const file = this.app.vault.getAbstractFileByPath(normalizePath(path));
-        if (file instanceof TFile) await this.app.vault.delete(file);
+        if (file instanceof TFile) await this.app.fileManager.trashFile(file);
       } catch { /* file may not exist — continue */ }
     }
 
@@ -382,7 +382,7 @@ export class ConfigModal extends Modal {
       const txFolder = normalizePath(`${folder}/transactions`);
       const txFiles = this.app.vault.getFiles().filter((f) => f.path.startsWith(txFolder) && f.extension === "md");
       for (const file of txFiles) {
-        try { await this.app.vault.delete(file); } catch { /* continue */ }
+        try { await this.app.fileManager.trashFile(file); } catch { /* continue */ }
       }
     } catch { /* folder may not exist */ }
 
@@ -392,14 +392,19 @@ export class ConfigModal extends Modal {
     this.plugin.settings.ocfCommitments = {};
     await this.plugin.saveSettings();
 
-    new Notice("All Ledgr data deleted. Starting your new ledger.");
+    new Notice("All Ledgr data moved to trash. Starting your new ledger.");
     this.close();
 
-    // Open onboarding
+    // Open onboarding via dynamic import (avoids circular dependency and require())
     window.setTimeout(() => {
-      const { OnboardingModal } = require("./OnboardingModal") as { OnboardingModal: new (app: App, plugin: LedgrPlugin) => Modal };
-      new OnboardingModal(this.app, this.plugin).open();
-    }, 300);
+      void import("./OnboardingModal")
+        .then(({ OnboardingModal }) => {
+          new OnboardingModal(this.app, this.plugin).open();
+        })
+        .catch(() => {
+          new Notice("Setup wizard failed to open. Click the wallet icon or restart Obsidian to begin.");
+        });
+    }, 500); // 500ms matches plugin startup delay — ensures ConfigModal fully closes first
   }
 
   onClose() {

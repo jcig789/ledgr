@@ -17,7 +17,7 @@ export class BillsModal extends Modal {
 
   async onOpen() {
     this.billStore = await loadBills(this.app, this.plugin.settings);
-    this.render();
+    void this.render();
   }
 
   async render() {
@@ -96,9 +96,15 @@ export class BillsModal extends Modal {
     addBillBtn.setCssStyles({ marginTop: "var(--ledgr-spacing-md)" });
     addBillBtn.onclick = () => {
       this.close();
-      new BulkObligationsModal(this.app, this.plugin, async () => {
-        this.billStore = await loadBills(this.app, this.plugin.settings);
-        this.open();
+      new BulkObligationsModal(this.app, this.plugin, () => {
+        void loadBills(this.app, this.plugin.settings)
+          .then((store) => {
+            this.billStore = store;
+            this.open();
+          })
+          .catch(() => {
+            new Notice("Failed to reload bills. Please reopen Monthly Obligations.");
+          });
       }).open();
     };
 

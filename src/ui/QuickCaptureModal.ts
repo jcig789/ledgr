@@ -191,33 +191,42 @@ export class QuickCaptureModal extends Modal {
         const newSubChip = subChipRow.createEl("button", { text: "+ New", cls: "ledgr-sub-chip ledgr-chip-new" });
         newSubChip.onclick = () => {
           const cat = this.category;
-          showAddInput("subcategory", `New subcategory in ${cat}...`, async (val) => {
+          showAddInput("subcategory", `New subcategory in ${cat}...`, (val) => { void (async () => {
             if (this.catStore.expense[cat] && !this.catStore.expense[cat].includes(val)) {
+              // Optimistic: add to memory first so chip renders immediately
               this.catStore.expense[cat].push(val);
               this.subcategory = val;
-              await saveCategories(this.app, this.settings, this.catStore);
-              this.app.workspace.trigger("ledgr:categories-updated");
-              // Undo toast — 4s window to remove the new subcategory
-              const undoNotice = new Notice(`Subcategory "${val}" added.`, 4000);
-              const undoLink = (undoNotice as any).noticeEl?.createEl?.("a", { text: " Undo", cls: "ledgr-rate-banner-link" });
-              if (undoLink) {
-                undoLink.onclick = async () => {
-                  this.catStore.expense[cat] = this.catStore.expense[cat].filter((s) => s !== val);
-                  this.subcategory = this.catStore.expense[cat][0] ?? "Other";
-                  await saveCategories(this.app, this.settings, this.catStore);
-                  this.app.workspace.trigger("ledgr:categories-updated");
-                  undoNotice.hide();
-                  void this.render();
-                };
+              try {
+                await saveCategories(this.app, this.settings, this.catStore);
+                this.app.workspace.trigger("ledgr:categories-updated");
+                const undoNotice = new Notice(`Subcategory "${val}" added.`, 4000);
+                const noticeEl = (undoNotice as unknown as { noticeEl: HTMLElement }).noticeEl;
+                const undoLink = noticeEl?.createEl("a", { text: " Undo", cls: "ledgr-rate-banner-link" });
+                if (undoLink) {
+                  undoLink.onclick = async () => {
+                    this.catStore.expense[cat] = this.catStore.expense[cat].filter((s) => s !== val);
+                    this.subcategory = this.catStore.expense[cat][0] ?? "Other";
+                    await saveCategories(this.app, this.settings, this.catStore);
+                    this.app.workspace.trigger("ledgr:categories-updated");
+                    undoNotice.hide();
+                    void this.render();
+                  };
+                }
+                renderSubChips(this.catStore.expense[cat]);
+                window.setTimeout(() => {
+                  const chips = subChipRow.querySelectorAll(".ledgr-sub-chip");
+                  const last = chips[chips.length - 2];
+                  if (last) (last as HTMLElement).scrollIntoView({ behavior: "smooth", inline: "nearest" });
+                }, 50);
+              } catch {
+                // Revert optimistic add — save failed
+                this.catStore.expense[cat] = this.catStore.expense[cat].filter((s) => s !== val);
+                this.subcategory = this.catStore.expense[cat][0] ?? "Other";
+                new Notice("Failed to save subcategory. Check your vault settings.");
+                renderSubChips(this.catStore.expense[cat]);
               }
-              renderSubChips(this.catStore.expense[cat]);
-              window.setTimeout(() => {
-                const chips = subChipRow.querySelectorAll(".ledgr-sub-chip");
-                const last = chips[chips.length - 2];
-                if (last) (last as HTMLElement).scrollIntoView({ behavior: "smooth", inline: "nearest" });
-              }, 50);
             }
-          });
+          })(); });
         };
       }
     };
@@ -246,33 +255,42 @@ export class QuickCaptureModal extends Modal {
     // + New category chip — before Income chip
     const newCatChip = catChipRow.createEl("button", { text: "+ New", cls: "ledgr-cat-chip ledgr-chip-new" });
     newCatChip.onclick = () => {
-      showAddInput("category", "New category name...", async (val) => {
+      showAddInput("category", "New category name...", (val) => { void (async () => {
         if (!this.catStore.expense[val]) {
+          // Optimistic add
           this.catStore.expense[val] = ["Other"];
           this.type = "expense";
           this.category = val;
           this.subcategory = "Other";
-          await saveCategories(this.app, this.settings, this.catStore);
-          this.app.workspace.trigger("ledgr:categories-updated");
-          // Undo toast — 4s window to remove the new category
-          const undoNotice = new Notice(`Category "${val}" added.`, 4000);
-          const undoLink = (undoNotice as any).noticeEl?.createEl?.("a", { text: " Undo", cls: "ledgr-rate-banner-link" });
-          if (undoLink) {
-            undoLink.onclick = async () => {
-              delete this.catStore.expense[val];
-              this.category = Object.keys(this.catStore.expense)[0] ?? "Other";
-              this.subcategory = this.catStore.expense[this.category]?.[0] ?? "Other";
-              await saveCategories(this.app, this.settings, this.catStore);
-              this.app.workspace.trigger("ledgr:categories-updated");
-              undoNotice.hide();
-              void this.render();
-            };
+          try {
+            await saveCategories(this.app, this.settings, this.catStore);
+            this.app.workspace.trigger("ledgr:categories-updated");
+            const undoNotice = new Notice(`Category "${val}" added.`, 4000);
+            const noticeEl = (undoNotice as unknown as { noticeEl: HTMLElement }).noticeEl;
+            const undoLink = noticeEl?.createEl("a", { text: " Undo", cls: "ledgr-rate-banner-link" });
+            if (undoLink) {
+              undoLink.onclick = async () => {
+                delete this.catStore.expense[val];
+                this.category = Object.keys(this.catStore.expense)[0] ?? "Other";
+                this.subcategory = this.catStore.expense[this.category]?.[0] ?? "Other";
+                await saveCategories(this.app, this.settings, this.catStore);
+                this.app.workspace.trigger("ledgr:categories-updated");
+                undoNotice.hide();
+                void this.render();
+              };
+            }
+            void this.render();
+          } catch {
+            // Revert optimistic add — save failed
+            delete this.catStore.expense[val];
+            this.category = Object.keys(this.catStore.expense)[0] ?? "Other";
+            this.subcategory = this.catStore.expense[this.category]?.[0] ?? "Other";
+            new Notice("Failed to save category. Check your vault settings.");
           }
-          void this.render();
         } else {
           new Notice(`Category "${val}" already exists`);
         }
-      });
+      })(); });
     };
 
     // Income chip — always at end

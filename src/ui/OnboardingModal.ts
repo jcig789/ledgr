@@ -172,8 +172,8 @@ export class OnboardingModal extends Modal {
         this.close();
         // Open bulk obligations entry, then land on Calendar
         const { BulkObligationsModal } = await import("./BulkObligationsModal");
-        new BulkObligationsModal(this.app, this.plugin, async () => {
-          await this.plugin.openView("ledgr-dashboard");
+        new BulkObligationsModal(this.app, this.plugin, () => {
+          void this.plugin.openView("ledgr-dashboard");
         }).open();
       };
     }
