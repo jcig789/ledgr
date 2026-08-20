@@ -5,6 +5,8 @@ export type AmountType = "fixed" | "variable" | "estimated";
 
 export type DueDateType = "day_of_month" | "nth_weekday";
 
+export type BillFrequency = "monthly" | "annual" | "once";
+
 export interface BillPayment {
   id: string;
   date: string;       // YYYY-MM-DD
@@ -22,8 +24,10 @@ export interface RecurringBill {
   currency: string;
   category: string;
   subcategory: string;
+  frequency?: BillFrequency; // "monthly" (default) | "annual" | "once"
   dueDateType: DueDateType;
   dueDay?: number;          // 1–31, used when dueDateType === "day_of_month"
+  dueMonth?: number;        // 1–12, used for annual bills (month of year)
   dueWeekOrdinal?: number;  // 1=first, 2=second, 3=third, 4=fourth, -1=last
   dueWeekday?: number;      // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
   reminderEnabled: boolean;
@@ -114,10 +118,31 @@ export function isBillPaymentLogged(bill: RecurringBill, month: string): boolean
   return bill.payments.some((p) => p.date.startsWith(month));
 }
 
+// Returns true if a bill is active in the given month based on frequency
+export function isBillActiveThisMonth(bill: RecurringBill, month: string): boolean {
+  const freq = bill.frequency ?? "monthly";
+  if (freq === "monthly") return true;
+  if (freq === "once") {
+    // One-time: active only in the month matching the first payment or due month
+    if (bill.payments.length > 0) {
+      const firstPayment = bill.payments[0].date.slice(0, 7);
+      return firstPayment === month;
+    }
+    return true; // unpaid once-bill is always surfaced
+  }
+  if (freq === "annual") {
+    const dueMonth = bill.dueMonth ?? 1;
+    const viewMonth = parseInt(month.split("-")[1]);
+    return viewMonth === dueMonth;
+  }
+  return true;
+}
+
 export function getBillsDueThisMonth(bills: RecurringBill[], today: string, month: string): RecurringBill[] {
   return bills.filter((bill) => {
     if (bill.closedAt) return false;
     if (!bill.reminderEnabled) return false;
+    if (!isBillActiveThisMonth(bill, month)) return false;
     const dueDay = resolveBillDueDay(bill, month);
     if (dueDay === null) return false;
     const m = window.moment(today);

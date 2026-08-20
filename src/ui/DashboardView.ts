@@ -19,7 +19,7 @@ import { getUpcomingPayments, getDaysUntilDue } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 import { TemplatesModal } from "./TemplatesModal";
 import { BillsModal } from "./BillsModal";
-import { loadBills, RecurringBill, resolveBillDueDay, isBillPaymentLogged, getDaysUntilBillDue } from "../data/bills";
+import { loadBills, RecurringBill, resolveBillDueDay, isBillPaymentLogged, getDaysUntilBillDue, isBillActiveThisMonth } from "../data/bills";
 import { resolveLiabilityDueDay, formatDueLabel } from "../data/liabilities";
 import { BillPaymentModal } from "./BillPaymentModal";
 
@@ -341,6 +341,30 @@ export class DashboardView extends ItemView {
     const txHeader = txSection.createDiv("ledgr-section-header");
     txHeader.createEl("h3", { text: "Recent Transactions" });
 
+    // Search/filter — only shown when there are enough transactions to warrant it
+    let filterText = "";
+    if (transactions.length <= 10) {
+      // Skip search row for small months — table is scannable without it
+    } else {
+    const searchRow = txSection.createDiv("ledgr-tx-search-row");
+    const searchInput = searchRow.createEl("input", {
+      attr: { type: "text", placeholder: "Search note, category, subcategory…", class: "ledgr-inline-input ledgr-tx-search" },
+    }) as HTMLInputElement;
+    const clearBtn = searchRow.createEl("button", { text: "✕", cls: "ledgr-del-btn ledgr-tx-search-clear ledgr-hidden" });
+
+    const applyFilter = () => {
+      const q = filterText.toLowerCase().trim();
+      txSection.querySelectorAll<HTMLElement>(".ledgr-tx-filterable").forEach((row) => {
+        const match = !q || (row.dataset.search ?? "").includes(q);
+        row.toggleClass("ledgr-hidden", !match);
+      });
+      clearBtn.toggleClass("ledgr-hidden", !q);
+    };
+
+    searchInput.oninput = () => { filterText = searchInput.value; applyFilter(); };
+    clearBtn.onclick = () => { filterText = ""; searchInput.value = ""; applyFilter(); };
+    } // end search row block
+
     if (transactions.length > 10) {
       const viewAllLink = txHeader.createEl("a", {
         text: this.showAllTransactions ? "Show recent only ←" : `View all (${transactions.length}) →`,
@@ -389,11 +413,11 @@ export class DashboardView extends ItemView {
     displayTxs.forEach((tx, idx) => {
       const actualIndex = transactions.length - 1 - idx;
       const isExtra = idx >= 10;
+      const searchKey = [tx.category, tx.subcategory, tx.note].join(" ").toLowerCase();
       const tr = tbody.createEl("tr", {
-        cls: isExtra
-          ? (this.showAllTransactions ? "ledgr-tx-row-extra" : "ledgr-tx-row-hidden ledgr-hidden")
-          : "",
+        cls: `ledgr-tx-filterable${isExtra ? (this.showAllTransactions ? " ledgr-tx-row-extra" : " ledgr-tx-row-hidden ledgr-hidden") : ""}`,
       });
+      tr.dataset.search = searchKey;
 
       // Date: compact on mobile (MMM D), full ISO on desktop
       const dateCell = tr.createEl("td", { cls: "ledgr-tx-date-cell" });
@@ -633,7 +657,7 @@ export class DashboardView extends ItemView {
 
     try {
       const billStore = await loadBills(this.app, this.plugin.settings);
-      bills = billStore.bills.filter((b) => !b.closedAt);
+      bills = billStore.bills.filter((b) => !b.closedAt && isBillActiveThisMonth(b, month));
     } catch { /* no bills */ }
 
     if (liabilities.length === 0 && bills.length === 0) return;
@@ -836,6 +860,18 @@ export class DashboardView extends ItemView {
       for (const item of paidItems) renderRow(item);
     }
 
+    // Inactive bills note — annual/once bills not due this month
+    try {
+      const allBillStore = await loadBills(this.app, this.plugin.settings);
+      const inactiveCount = allBillStore.bills.filter((b) => !b.closedAt && !isBillActiveThisMonth(b, month)).length;
+      if (inactiveCount > 0) {
+        const noteEl = section.createEl("p", { cls: "ledgr-meta" });
+        noteEl.createSpan({ text: `${inactiveCount} bill${inactiveCount !== 1 ? "s" : ""} not due this month (annual or one-time). ` });
+        const manageNote = noteEl.createEl("a", { text: "View all →", cls: "ledgr-bearing-guidance-link" });
+        manageNote.onclick = () => new BillsModal(this.app, this.plugin).open();
+      }
+    } catch { /* no bills */ }
+
     // Footer totals + Manage link
     const footer = section.createDiv("ledgr-scheduled-footer");
     const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
@@ -973,7 +1009,9 @@ export class DashboardView extends ItemView {
 
   renderOpexCapex(parent: HTMLElement, summary: ReturnType<typeof summarize>, budgetConfig: BudgetConfig) {
     const section = parent.createDiv("ledgr-section");
-    section.createDiv("ledgr-section-header").createEl("h3", { text: "Spending by Category" });
+    const spendHdr = section.createDiv("ledgr-section-header");
+    spendHdr.createEl("h3", { text: "Spending by Category" });
+    spendHdr.createSpan({ text: "all outflows incl. debt service", cls: "ledgr-meta" });
 
     const sorted = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]);
     const fmt = (n: number) => formatCurrency(n, this.viewCurrency);

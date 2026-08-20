@@ -1,8 +1,9 @@
-import { App, Modal, Setting, Notice } from "obsidian";
+import { App, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadCategories, saveCategories, CategoryStore } from "../data/categoryStore";
+import { MigrationModal } from "./MigrationModal";
 
-type Tab = "exchange" | "categories" | "features";
+type Tab = "exchange" | "categories" | "features" | "advanced" | "danger";
 
 export class ConfigModal extends Modal {
   plugin: LedgrPlugin;
@@ -31,15 +32,17 @@ export class ConfigModal extends Modal {
 
     // Tabs
     const tabRow = contentEl.createDiv("ledgr-tab-row");
-    const tabs: { key: Tab; label: string }[] = [
+    const tabs: { key: Tab; label: string; danger?: boolean }[] = [
       { key: "exchange", label: "Exchange Rates" },
       { key: "categories", label: "Categories" },
       { key: "features", label: "Features" },
+      { key: "advanced", label: "Advanced" },
+      { key: "danger", label: "New Ledger", danger: true },
     ];
-    tabs.forEach(({ key, label }) => {
+    tabs.forEach(({ key, label, danger }) => {
       const btn = tabRow.createEl("button", {
         text: label,
-        cls: `ledgr-tab-btn ${this.activeTab === key ? "active" : ""}`,
+        cls: `ledgr-tab-btn ${this.activeTab === key ? "active" : ""}${danger ? " ledgr-tab-btn--danger" : ""}`,
       });
       btn.onclick = () => { this.activeTab = key; this.render(); };
     });
@@ -50,8 +53,12 @@ export class ConfigModal extends Modal {
       this.renderExchangeTab(body);
     } else if (this.activeTab === "categories") {
       this.renderCategoriesTab(body);
-    } else {
+    } else if (this.activeTab === "features") {
       this.renderFeaturesTab(body);
+    } else if (this.activeTab === "advanced") {
+      this.renderAdvancedTab(body);
+    } else {
+      this.renderDangerTab(body);
     }
   }
 
@@ -266,6 +273,133 @@ export class ConfigModal extends Modal {
         row.createEl("label", { text: cat, cls: "ledgr-meta" });
       });
     }
+  }
+
+  renderAdvancedTab(parent: HTMLElement) {
+    parent.createEl("h3", { text: "Fix Legacy Transactions" });
+    parent.createEl("p", {
+      text: "Before v0.3.3, loan and mortgage payments were classified as Operating cash flow instead of Financing. Run this scan to correct the history.",
+      cls: "setting-item-description",
+    });
+    const migrateBtn = parent.createEl("button", { text: "Scan & Fix loan history", cls: "ledgr-log-btn mod-cta" });
+    migrateBtn.onclick = () => new MigrationModal(this.app, this.plugin).open();
+
+    parent.createEl("p", {
+      text: "This is safe to run multiple times. It only rewrites rows that are still incorrect.",
+      cls: "ledgr-meta",
+    });
+  }
+
+  renderDangerTab(parent: HTMLElement) {
+    // ── New Ledger ───────────────────────────────────────────────────────────
+    parent.createEl("h3", { text: "New Ledger" });
+    parent.createEl("p", {
+      text: "Start completely fresh. All financial data is deleted. Your settings (currency, folder, exchange rates) are preserved.",
+      cls: "setting-item-description",
+    });
+
+    // File list preview
+    const folder = this.plugin.settings.financeFolder;
+    const files = [
+      `${folder}/transactions/  (all monthly files)`,
+      `${folder}/networth.json`,
+      `${folder}/goals.json`,
+      `${folder}/budgets.json`,
+      `${folder}/ledgr-bills.json`,
+      `${folder}/ledgr-bearing.json`,
+      `${folder}/ledgr-templates.json`,
+      `${folder}/ledgr-nw-history.json`,
+      `${folder}/remittances.json`,
+    ];
+
+    const fileList = parent.createEl("ul", { cls: "ledgr-danger-file-list" });
+    files.forEach((f) => fileList.createEl("li", { text: f, cls: "ledgr-empty" }));
+
+    parent.createEl("p", {
+      text: "Categories you created are preserved.",
+      cls: "ledgr-meta",
+    });
+
+    parent.createDiv("ledgr-bearing-rule-thin");
+
+    // Confirmation — case-insensitive, mobile-safe
+    parent.createEl("p", { text: 'Type "NEW LEDGER" to confirm:', cls: "ledgr-meta" });
+    const confirmInput = parent.createEl("input", {
+      attr: {
+        type: "text",
+        placeholder: "NEW LEDGER",
+        class: "ledgr-inline-input",
+        autocapitalize: "characters",
+        autocorrect: "off",
+        spellcheck: "false",
+      },
+    }) as HTMLInputElement;
+    confirmInput.setCssStyles({ width: "140px", marginBottom: "var(--ledgr-spacing-sm)" });
+
+    const resetBtn = parent.createEl("button", {
+      text: "Begin New Ledger",
+      cls: "ledgr-log-btn mod-cta ledgr-danger-btn",
+    });
+    resetBtn.setAttribute("disabled", "true");
+
+    confirmInput.oninput = () => {
+      // Case-insensitive comparison — defensive against iOS auto-capitalise
+      if (confirmInput.value.trim().toUpperCase() === "NEW LEDGER") {
+        resetBtn.removeAttribute("disabled");
+      } else {
+        resetBtn.setAttribute("disabled", "true");
+      }
+    };
+
+    resetBtn.onclick = () => { void this.executeReset(); };
+  }
+
+  async executeReset() {
+    const folder = this.plugin.settings.financeFolder;
+
+    // Files to delete
+    const filePaths = [
+      `${folder}/networth.json`,
+      `${folder}/goals.json`,
+      `${folder}/budgets.json`,
+      `${folder}/ledgr-bills.json`,
+      `${folder}/ledgr-bearing.json`,
+      `${folder}/ledgr-templates.json`,
+      `${folder}/ledgr-nw-history.json`,
+      `${folder}/remittances.json`,
+    ];
+
+    // Delete individual data files
+    for (const path of filePaths) {
+      try {
+        const file = this.app.vault.getAbstractFileByPath(normalizePath(path));
+        if (file instanceof TFile) await this.app.vault.delete(file);
+      } catch { /* file may not exist — continue */ }
+    }
+
+    // Delete all transaction files in the transactions folder
+    try {
+      const txFolder = normalizePath(`${folder}/transactions`);
+      const txFiles = this.app.vault.getFiles().filter((f) => f.path.startsWith(txFolder) && f.extension === "md");
+      for (const file of txFiles) {
+        try { await this.app.vault.delete(file); } catch { /* continue */ }
+      }
+    } catch { /* folder may not exist */ }
+
+    // Reset firstRun to trigger onboarding
+    this.plugin.settings.firstRun = true;
+    // Clear session-specific settings that don't belong to the new ledger
+    this.plugin.settings.ocfCommitments = {};
+    await this.plugin.saveSettings();
+
+    new Notice("All Ledgr data deleted. Starting your new ledger.");
+    this.close();
+
+    // Open onboarding
+    window.setTimeout(() => {
+      const { OnboardingModal } = require("./OnboardingModal") as { OnboardingModal: new (app: App, plugin: LedgrPlugin) => Modal };
+      new OnboardingModal(this.app, this.plugin).open();
+    }, 300);
   }
 
   onClose() {

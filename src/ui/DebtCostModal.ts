@@ -22,6 +22,7 @@ export class DebtCostModal extends Modal {
   async render() {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.addClass("ledgr-config-modal");
     const ld = this.account.liabilityDetails;
     if (!ld) return;
 

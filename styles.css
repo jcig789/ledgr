@@ -688,7 +688,8 @@ button.ledgr-del-confirm,
   transition: border-color 0.15s ease;
 }
 
-.ledgr-inline-input:focus {
+.ledgr-inline-input:focus,
+.ledgr-inline-input:focus-visible {
   border-bottom-color: var(--ledgr-accent);
   outline: none;
 }
@@ -733,6 +734,24 @@ button.ledgr-del-confirm,
 
 .ledgr-config-body {
   padding-top: var(--ledgr-spacing-sm);
+}
+
+/* Danger tab — red label, distinct from other tabs */
+.ledgr-tab-btn--danger { color: var(--ledgr-red); }
+.ledgr-tab-btn--danger.active { color: var(--ledgr-red); border-bottom-color: var(--ledgr-red); }
+.ledgr-danger-btn {
+  background: var(--ledgr-red) !important;
+  border-color: var(--ledgr-red) !important;
+  color: #fff !important;
+  margin-top: var(--ledgr-spacing-sm);
+}
+.ledgr-danger-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ledgr-danger-file-list {
+  font-size: var(--ledgr-font-label);
+  color: var(--ledgr-text-secondary);
+  padding-left: var(--ledgr-spacing-md);
+  margin: var(--ledgr-spacing-sm) 0;
+  line-height: 1.8;
 }
 
 .ledgr-cat-block {
@@ -1872,8 +1891,13 @@ button.ledgr-del-confirm,
   min-width: 80px;
 }
 
-/* Reminder checkbox: charcoal accent, not Obsidian's default purple */
-.ledgr-edit-card input[type="checkbox"] {
+/* Charcoal accent for all Ledgr checkboxes — overrides Obsidian's default purple.
+   Covers: edit cards (modal + ItemView), Settings composure exclusions, all modals.
+   .ledgr-networth needed because NetWorthView is an ItemView, not a modal. */
+.ledgr-edit-card input[type="checkbox"],
+.ledgr-networth input[type="checkbox"],
+.ledgr-composure-exclusion-row input[type="checkbox"],
+.modal-content input[type="checkbox"] {
   accent-color: var(--ledgr-accent);
 }
 
@@ -2569,10 +2593,24 @@ button.ledgr-del-confirm,
   .ledgr-budget-btn,
   .ledgr-log-btn,
   .ledgr-del-btn,
-  .ledgr-remove-btn,
-  .ledgr-tab-btn {
+  .ledgr-remove-btn {
     min-height: 44px;
     min-width: 44px;
+  }
+
+  /* Tab row: horizontal scroll so labels are never clipped on narrow screens */
+  .ledgr-tab-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .ledgr-tab-row::-webkit-scrollbar { display: none; }
+  .ledgr-tab-btn {
+    min-height: 44px;
+    min-width: 0;       /* allow natural content width, not forced 44px */
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 
   .ledgr-currency-btn,
@@ -2779,6 +2817,8 @@ button.ledgr-del-confirm,
 .ledgr-lpay-preview {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;   /* wraps on narrow modals — never overflows */
+  row-gap: 2px;
   gap: 4px;
   font-variant-numeric: tabular-nums;
   font-size: var(--ledgr-font-body);
@@ -2787,6 +2827,9 @@ button.ledgr-del-confirm,
   background: var(--color-base-10, var(--ledgr-rule));
   border-radius: var(--ledgr-radius-sm);
 }
+.ledgr-lpay-balance,
+.ledgr-lpay-payment,
+.ledgr-lpay-remaining { white-space: nowrap; } /* each value stays on one line */
 .ledgr-lpay-balance { color: var(--ledgr-text-secondary); }
 .ledgr-lpay-arrow { color: var(--ledgr-text-faint); }
 .ledgr-lpay-payment { color: var(--ledgr-red); font-weight: 500; }
@@ -3814,8 +3857,9 @@ button.ledgr-del-confirm,
     padding-bottom: 260px;
   }
 
-  /* Prevent Amount label from being squeezed to "A." by the two-control row */
-  .ledgr-quick-capture .setting-item-info {
+  /* Prevent Setting labels from being squeezed (e.g. "A." in QuickCapture, "T.. a.." in GoalModal) */
+  .ledgr-quick-capture .setting-item-info,
+  .modal-content .setting-item-info {
     min-width: 56px;
     flex-shrink: 0;
   }
@@ -3828,6 +3872,19 @@ button.ledgr-del-confirm,
     font-size: 16px;
   }
 }
+
+/* ─── Transaction search/filter ──────────────────────────────────────────── */
+.ledgr-tx-search-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ledgr-spacing-xs);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-tx-search {
+  flex: 1;
+  font-size: var(--ledgr-font-sm);
+}
+.ledgr-tx-search-clear { flex-shrink: 0; }
 
 /* ─── Delete confirmation countdown (D13) ───────────────────────────────── */
 @keyframes ledgr-del-timeout {

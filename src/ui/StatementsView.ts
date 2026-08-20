@@ -518,8 +518,9 @@ export class StatementsView extends ItemView {
       }
     }
 
-    // Projection table
-    const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
+    // Projection table — wrapped for horizontal scroll on narrow mobile screens
+    const tableWrap = parent.createDiv("ledgr-tx-table-wrap");
+    const table = tableWrap.createEl("table", { cls: "ledgr-stmt-cf-table" });
     const thead = table.createEl("thead").createEl("tr");
     ["Month", "Proj. OCF", "Balance", "Low", "High", ""].forEach((h) => {
       const th = thead.createEl("th");
@@ -643,7 +644,8 @@ export class StatementsView extends ItemView {
   async renderCashFlow(parent: HTMLElement, fmt: (n: number) => string, fmtSigned: (n: number) => string) {
     this.stmtDocHeader(parent, "Statement of Cash Flows", this.selectedYear);
 
-    const table = parent.createEl("table", { cls: "ledgr-stmt-cf-table" });
+    const gridWrap = parent.createDiv("ledgr-tx-table-wrap");
+    const table = gridWrap.createEl("table", { cls: "ledgr-stmt-cf-table" });
     const thead = table.createEl("thead");
     const hrow = thead.createEl("tr");
     [

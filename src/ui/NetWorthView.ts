@@ -842,7 +842,7 @@ export class NetWorthView extends ItemView {
 
       // Reminder days ahead
       const reminderDaysRow = form.createDiv("ledgr-edit-card-row");
-      reminderDaysRow.createSpan({ text: "Remind N days before", cls: "ledgr-meta" });
+      reminderDaysRow.createSpan({ text: "Days before", cls: "ledgr-meta" });
       const reminderDaysInput = reminderDaysRow.createEl("input");
       reminderDaysInput.setAttribute("type", "number"); reminderDaysInput.placeholder = "3"; reminderDaysInput.value = "3";
       reminderDaysInput.min = "0"; reminderDaysInput.max = "14";

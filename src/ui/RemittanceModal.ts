@@ -46,7 +46,7 @@ export class RemittanceModal extends Modal {
   async render() {
     const { contentEl } = this;
     contentEl.empty();
-
+    contentEl.addClass("ledgr-config-modal");
     contentEl.createEl("h2", { text: "Log Transfer" });
     contentEl.createEl("p", {
       text: this.fxRate > 0

@@ -39,6 +39,7 @@ export class GoalModal extends Modal {
   async render() {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.addClass("ledgr-config-modal"); // ensures token variables + mobile label sizing
     contentEl.createEl("h2", { text: this.editGoal ? "Edit Goal" : "New Savings Goal" });
 
     new Setting(contentEl)

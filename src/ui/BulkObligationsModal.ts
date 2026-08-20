@@ -7,7 +7,7 @@ import { LIABILITY_TYPES } from "../data/liabilities";
 type ObligationType = "bill" | "liability";
 
 // Quick-select categories covering common real-world bills
-const BILL_CATEGORIES: { label: string; category: string; subcategory: string }[] = [
+export const BILL_CATEGORIES: { label: string; category: string; subcategory: string }[] = [
   { label: "Rent",           category: "Housing",       subcategory: "Rent" },
   { label: "Utilities",      category: "Housing",       subcategory: "Utilities" },
   { label: "Mobile / Internet", category: "Housing",    subcategory: "Internet" },
@@ -24,6 +24,7 @@ interface ObligationRow {
   type: ObligationType;
   liabType: string;     // key from LIABILITY_TYPES, used when type === "liability"
   categoryIdx: number;  // index into BILL_CATEGORIES
+  frequency: "monthly" | "annual" | "once";
 }
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -71,7 +72,7 @@ export class BulkObligationsModal extends Modal {
   }
 
   blankRow(): ObligationRow {
-    return { name: "", amount: "", dueDay: "", type: "bill", liabType: "personal_loan", categoryIdx: 0 };
+    return { name: "", amount: "", dueDay: "", type: "bill", liabType: "personal_loan", categoryIdx: 0, frequency: "monthly" };
   }
 
   onOpen() { this.render(); }
@@ -190,6 +191,16 @@ export class BulkObligationsModal extends Modal {
     billBtn.onclick = () => { row.type = "bill"; this.render(); };
     liabBtn.onclick = () => { row.type = "liability"; this.render(); };
 
+    // Frequency select — bills only, compact
+    if (row.type === "bill") {
+      const freqSelect = rowEl.createEl("select", { cls: "ledgr-inline-input ledgr-bulk-freq" });
+      [["Monthly", "monthly"], ["Annual", "annual"], ["Once", "once"]].forEach(([label, val]) => {
+        const opt = freqSelect.createEl("option"); opt.value = val; opt.textContent = label;
+        if (val === row.frequency) opt.selected = true;
+      });
+      freqSelect.onchange = () => { row.frequency = freqSelect.value as "monthly" | "annual" | "once"; };
+    }
+
     // Remove row (col 6 — auto)
     const removeBtn = rowEl.createEl("button", { text: "✕", cls: "ledgr-del-btn ledgr-bulk-remove" });
     removeBtn.onclick = () => { this.rows.splice(idx, 1); this.render(); };
@@ -228,6 +239,7 @@ export class BulkObligationsModal extends Modal {
           currency,
           category: cat.category,
           subcategory: cat.subcategory,
+          frequency: row.frequency,
           dueDateType: dueParsed?.type ?? "day_of_month",
           dueDay: dueParsed?.type === "day_of_month" ? dueParsed.day : undefined,
           dueWeekOrdinal: dueParsed?.type === "nth_weekday" ? dueParsed.nth : undefined,

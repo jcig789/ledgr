@@ -25,6 +25,7 @@ export class MonthlyReviewModal extends Modal {
   render() {
     const { contentEl } = this;
     contentEl.empty();
+    contentEl.addClass("ledgr-config-modal");
     contentEl.createEl("h2", { text: "Generate Monthly Review" });
 
     // Month selector

@@ -25,6 +25,7 @@ export interface LedgrSettings {
   forecastDefaultHorizon: 3 | 6 | 12;
   composureExcludedCategories: string[];   // categories excluded from Composure volatility
   calendarWeekStart: "monday" | "sunday";
+  dataVersion: number;  // tracks migrations; 0 = pre-v0.3.3
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -55,4 +56,5 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   forecastDefaultHorizon: 6,
   composureExcludedCategories: [],
   calendarWeekStart: "monday",
+  dataVersion: 0,
 };

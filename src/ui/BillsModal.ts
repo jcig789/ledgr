@@ -46,7 +46,8 @@ export class BillsModal extends Modal {
         cls: "ledgr-empty-state",
       });
     } else {
-      const table = contentEl.createEl("table", { cls: "ledgr-tx-table" });
+      const billsTableWrap = contentEl.createDiv("ledgr-tx-table-wrap");
+      const table = billsTableWrap.createEl("table", { cls: "ledgr-tx-table" });
       const hrow = table.createEl("thead").createEl("tr");
       ["Name", "Amount", "Due", ""].forEach((h) => hrow.createEl("th", { text: h }));
       const tbody = table.createEl("tbody");
@@ -187,7 +188,7 @@ export class BillsModal extends Modal {
     };
   }
 
-  renderInlineEditRow(originalRow: HTMLElement, bill: RecurringBill) {
+  async renderInlineEditRow(originalRow: HTMLElement, bill: RecurringBill) {
     // Replace the table row with an inline edit form, restore on cancel
     const editRow = originalRow.createEl("tr", { cls: "ledgr-bill-edit-row" });
     originalRow.replaceWith(editRow);
@@ -212,13 +213,64 @@ export class BillsModal extends Modal {
     }) as HTMLInputElement;
     amtInput.value = bill.amountType === "variable" ? "Varies" : String(bill.amount);
 
-    // Due day
-    const dueRow = form.createDiv("ledgr-edit-card-row");
-    dueRow.createSpan({ text: "Due day", cls: "ledgr-meta" });
-    const dueInput = dueRow.createEl("input", {
-      attr: { type: "text", placeholder: "e.g. 15 or 2nd Wed", class: "ledgr-inline-input" },
-    }) as HTMLInputElement;
-    dueInput.value = bill.dueDay ? String(bill.dueDay) : "";
+    // Frequency
+    const freqRow = form.createDiv("ledgr-edit-card-row");
+    freqRow.createSpan({ text: "Frequency", cls: "ledgr-meta" });
+    const freqSelect = freqRow.createEl("select", { cls: "ledgr-inline-input" });
+    const currentFreq = bill.frequency ?? "monthly";
+    [["Monthly", "monthly"], ["Annual", "annual"], ["Once", "once"]].forEach(([label, val]) => {
+      const opt = freqSelect.createEl("option"); opt.value = val; opt.textContent = label;
+      if (val === currentFreq) opt.selected = true;
+    });
+    // Show dueMonth input when annual
+    const dueMonthRow = form.createDiv(`ledgr-edit-card-row${currentFreq !== "annual" ? " ledgr-hidden" : ""}`);
+    dueMonthRow.createSpan({ text: "Due month", cls: "ledgr-meta" });
+    const dueMonthInput = dueMonthRow.createEl("input") as HTMLInputElement;
+    dueMonthInput.setAttribute("type", "number"); dueMonthInput.min = "1"; dueMonthInput.max = "12";
+    dueMonthInput.className = "ledgr-inline-input"; dueMonthInput.setCssStyles({ width: "56px" });
+    dueMonthInput.value = String(bill.dueMonth ?? 1);
+    freqSelect.onchange = () => { dueMonthRow.toggleClass("ledgr-hidden", freqSelect.value !== "annual"); };
+
+    // Category — quick-select same as BulkObligationsModal
+    const { BILL_CATEGORIES } = await import("./BulkObligationsModal");
+    const catRow = form.createDiv("ledgr-edit-card-row");
+    catRow.createSpan({ text: "Category", cls: "ledgr-meta" });
+    const catSelect = catRow.createEl("select", { cls: "ledgr-inline-input" });
+    let currentCatIdx = BILL_CATEGORIES.findIndex((c) => c.category === bill.category && c.subcategory === bill.subcategory);
+    if (currentCatIdx < 0) currentCatIdx = BILL_CATEGORIES.length - 1;
+    BILL_CATEGORIES.forEach((c, i) => {
+      const opt = catSelect.createEl("option"); opt.value = String(i); opt.textContent = c.label;
+      if (i === currentCatIdx) opt.selected = true;
+    });
+
+    // Due date — Date/Weekday segmented toggle
+    const dueRow = form.createDiv("ledgr-edit-card-row ledgr-due-spec-row");
+    dueRow.createSpan({ text: "Due", cls: "ledgr-meta" });
+    const isNthWeekday = bill.dueDateType === "nth_weekday";
+    const dueTypeToggle = dueRow.createDiv("ledgr-toggle-group");
+    const dayBtn = dueTypeToggle.createEl("button", { text: "Date", cls: `ledgr-budget-btn ledgr-toggle-btn${!isNthWeekday ? " active" : ""}` });
+    const wdBtn = dueTypeToggle.createEl("button", { text: "Weekday", cls: `ledgr-budget-btn ledgr-toggle-btn${isNthWeekday ? " active" : ""}` });
+
+    const dayInputWrap = dueRow.createDiv(`ledgr-due-day-wrap${isNthWeekday ? " ledgr-hidden" : ""}`);
+    const dueInput = dayInputWrap.createEl("input") as HTMLInputElement;
+    dueInput.setAttribute("type", "number"); dueInput.min = "1"; dueInput.max = "31";
+    dueInput.className = "ledgr-inline-input"; dueInput.setCssStyles({ width: "56px" });
+    dueInput.value = bill.dueDay ? String(bill.dueDay) : "1";
+
+    const ORDINALS = [["1st", 1], ["2nd", 2], ["3rd", 3], ["4th", 4], ["Last", -1]] as const;
+    const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const nthWrap = dueRow.createDiv(`ledgr-due-nth-wrap${!isNthWeekday ? " ledgr-hidden" : ""}`);
+    const ordSel = nthWrap.createEl("select", { cls: "ledgr-inline-input" });
+    ORDINALS.forEach(([label, val]) => {
+      const o = ordSel.createEl("option"); o.value = String(val); o.textContent = label;
+      if (val === (bill.dueWeekOrdinal ?? 1)) o.selected = true;
+    });
+    const wdSel = nthWrap.createEl("select", { cls: "ledgr-inline-input" });
+    WEEKDAYS.forEach((label, i) => { const o = wdSel.createEl("option"); o.value = String(i); o.textContent = label; if (i === (bill.dueWeekday ?? 1)) o.selected = true; });
+
+    let editDueDateType: "day_of_month" | "nth_weekday" = bill.dueDateType ?? "day_of_month";
+    dayBtn.onclick = () => { editDueDateType = "day_of_month"; dayBtn.addClass("active"); wdBtn.removeClass("active"); dayInputWrap.removeClass("ledgr-hidden"); nthWrap.addClass("ledgr-hidden"); };
+    wdBtn.onclick = () => { editDueDateType = "nth_weekday"; wdBtn.addClass("active"); dayBtn.removeClass("active"); nthWrap.removeClass("ledgr-hidden"); dayInputWrap.addClass("ledgr-hidden"); };
 
     // Buttons
     const btnRow = form.createDiv("ledgr-btn-row");
@@ -236,9 +288,20 @@ export class BillsModal extends Modal {
       } else {
         b.amountType = "fixed"; b.amount = parseFloat(amtInput.value) || b.amount;
       }
-      if (dueInput.value.trim()) {
-        const n = parseInt(dueInput.value.trim());
-        if (!isNaN(n) && n >= 1 && n <= 31) { b.dueDateType = "day_of_month"; b.dueDay = n; }
+      // Frequency
+      b.frequency = freqSelect.value as "monthly" | "annual" | "once";
+      if (b.frequency === "annual") b.dueMonth = Math.min(12, Math.max(1, parseInt(dueMonthInput.value) || 1));
+      // Category
+      const cat = BILL_CATEGORIES[parseInt(catSelect.value)] ?? BILL_CATEGORIES[BILL_CATEGORIES.length - 1];
+      b.category = cat.category; b.subcategory = cat.subcategory;
+      // Due date
+      b.dueDateType = editDueDateType;
+      if (editDueDateType === "day_of_month") {
+        b.dueDay = Math.min(31, Math.max(1, parseInt(dueInput.value) || 1));
+        b.dueWeekOrdinal = undefined; b.dueWeekday = undefined;
+      } else {
+        b.dueWeekOrdinal = parseInt(ordSel.value); b.dueWeekday = parseInt(wdSel.value);
+        b.dueDay = undefined;
       }
       await saveBills(this.app, this.plugin.settings, fresh);
       this.app.workspace.trigger("ledgr:networth-updated");
