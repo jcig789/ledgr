@@ -945,7 +945,10 @@ export class NetWorthView extends ItemView {
       for (const monthTxs of monthlyTxs) {
         if (monthTxs.length > 0) {
           const s = summarize(monthTxs, this.viewCurrency, this.plugin.settings.exchangeRates);
-          totalNet += s.net; count++;
+          // Use netOCF (operating cash flow) not s.net — ICF/FCF outflows are capital deployment,
+          // not consumption of savings capacity, and would distort the projection for users with
+          // large investment contributions or loan repayments
+          totalNet += s.netOCF; count++;
         }
       }
       if (count > 0) avgMonthlySavings = totalNet / count;

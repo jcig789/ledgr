@@ -106,8 +106,10 @@ export interface MonthlySummary {
   totalCapex: number;
   totalRemittances: number;
   savingsRate: number;
+  savingsRateIsOCFBasis: boolean;
   net: number;
   byCategory: Record<string, number>;
+  ocfByCategory: Record<string, number>;  // OCF expenses only — excludes debt service (FCF) and investments (ICF)
   byCategoryType: { opex: Record<string, number>; capex: Record<string, number> };
   transactions: Transaction[];
   // Cash flow stream totals
@@ -134,6 +136,7 @@ export function summarize(
   let netICF = 0;
   let netFinancingCF = 0;
   const byCategory: Record<string, number> = {};
+  const ocfByCategory: Record<string, number> = {};
   const opexByCategory: Record<string, number> = {};
   const capexByCategory: Record<string, number> = {};
 
@@ -144,7 +147,8 @@ export function summarize(
     if (tx.type === "income") {
       totalIncome += amt;
       if (stream === "ocf") ocfIncome += amt;
-      else if (stream === "icf") netICF += amt; // e.g. dividends
+      else if (stream === "icf") netICF += amt;       // e.g. dividends, asset sale proceeds
+      else if (stream === "fcf") netFinancingCF += amt; // e.g. loan disbursements
     } else if (tx.type === "expense") {
       totalExpenses += amt;
       byCategory[tx.category] = (byCategory[tx.category] ?? 0) + amt;
@@ -163,18 +167,25 @@ export function summarize(
       }
 
       // Stream totals
-      if (stream === "ocf") ocfExpenses += amt;
-      else if (stream === "icf") netICF -= amt;
-      else if (stream === "fcf") netFinancingCF -= amt;
+      if (stream === "ocf") {
+        ocfExpenses += amt;
+        ocfByCategory[tx.category] = (ocfByCategory[tx.category] ?? 0) + amt;
+      } else if (stream === "icf") {
+        netICF -= amt;
+      } else if (stream === "fcf") {
+        netFinancingCF -= amt;
+      }
     }
   }
 
   // CFP-standard OCF-basis savings rate: (ocfIncome - ocfExpenses) / ocfIncome
-  // Both numerator and denominator use OCF only — consistent and excludes investments/debt service.
-  // Falls back to totalIncome denominator when ocfIncome is zero (e.g. only dividends logged)
-  const savingsRateDenom = ocfIncome > 0 ? ocfIncome : totalIncome;
+  // Falls back to (totalIncome - totalExpenses) / totalIncome when ocfIncome is zero
+  // — numerator and denominator must use the same income base to stay coherent
+  const savingsRateIsOCFBasis = ocfIncome > 0;
+  const savingsRateDenom = savingsRateIsOCFBasis ? ocfIncome : totalIncome;
+  const savingsRateNum = savingsRateIsOCFBasis ? (ocfIncome - ocfExpenses) : (totalIncome - totalExpenses);
   const savingsRate = savingsRateDenom > 0
-    ? Math.round(((savingsRateDenom - ocfExpenses) / savingsRateDenom) * 100)
+    ? Math.max(0, Math.round((savingsRateNum / savingsRateDenom) * 100))
     : 0;
 
   const netOCF = ocfIncome - ocfExpenses;
@@ -187,8 +198,10 @@ export function summarize(
     totalCapex,
     totalRemittances,
     savingsRate,
+    savingsRateIsOCFBasis,
     net: totalIncome - totalExpenses,
     byCategory,
+    ocfByCategory,
     byCategoryType: { opex: opexByCategory, capex: capexByCategory },
     transactions,
     ocfIncome,

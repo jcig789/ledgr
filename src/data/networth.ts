@@ -37,7 +37,7 @@ export interface Account {
   type: AccountType;
   currency: string;
   balance: number;
-  country: "JP" | "PH" | "US" | "OTHER";
+  country: string;  // ISO 3166-1 alpha-2 or "OTHER" — widened from union to support all currencies
   isLiability: boolean;
   liabilityDetails?: LiabilityDetails;
   linkedAssetId?: string;      // liability → points to property asset account id
@@ -49,7 +49,7 @@ export interface Brokerage {
   name: string;
   currency: string;
   value: number;
-  country: "JP" | "PH" | "US" | "OTHER";
+  country: string;  // ISO 3166-1 alpha-2 or "OTHER"
 }
 
 export interface NetWorthData {

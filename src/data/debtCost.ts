@@ -49,13 +49,35 @@ export function calcAmortization(
     };
   }
 
-  // Standard annuity payoff formula
-  const months = monthlyRate > 0
-    ? Math.ceil(Math.log(monthlyPayment / (monthlyPayment - balance * monthlyRate)) / Math.log(1 + monthlyRate))
-    : Math.ceil(balance / monthlyPayment);
+  // Standard annuity payoff formula — compute exact months (float) to avoid ceiling rounding
+  const monthsFloat = monthlyRate > 0
+    ? Math.log(monthlyPayment / (monthlyPayment - balance * monthlyRate)) / Math.log(1 + monthlyRate)
+    : balance / monthlyPayment;
 
-  const totalCost = monthlyPayment * months;
-  const totalInterest = totalCost - balance;
+  const monthsFull = Math.floor(monthsFloat);
+  const months = monthsFloat > monthsFull ? monthsFull + 1 : monthsFull;
+
+  // Compute exact final payment — avoids overstating totalCost by up to one full payment
+  let totalCost: number;
+  if (monthlyRate > 0) {
+    if (monthsFull > 0) {
+      // Balance remaining after monthsFull full payments via standard amortization formula
+      const balanceAfterFull = balance * Math.pow(1 + monthlyRate, monthsFull)
+        - monthlyPayment * (Math.pow(1 + monthlyRate, monthsFull) - 1) / monthlyRate;
+      const lastPayment = Math.max(0, balanceAfterFull * (1 + monthlyRate));
+      totalCost = monthlyPayment * monthsFull + lastPayment;
+    } else {
+      // Paid off in a single payment — last payment includes one month's interest
+      const lastPayment = balance * (1 + monthlyRate);
+      totalCost = lastPayment;
+    }
+  } else {
+    // Zero APR: last payment is the exact remainder
+    const lastPayment = balance - monthlyPayment * monthsFull;
+    totalCost = monthlyPayment * monthsFull + Math.max(0, lastPayment);
+  }
+
+  const totalInterest = Math.max(0, totalCost - balance);
   const payoffDate = window.moment(fromMonth).add(months, "months").format("YYYY-MM");
 
   return {

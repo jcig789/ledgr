@@ -25,6 +25,7 @@ interface ObligationRow {
   liabType: string;     // key from LIABILITY_TYPES, used when type === "liability"
   categoryIdx: number;  // index into BILL_CATEGORIES
   frequency: "monthly" | "annual" | "once";
+  dueMonth: number;     // 1–12, used for annual bills
 }
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -72,7 +73,7 @@ export class BulkObligationsModal extends Modal {
   }
 
   blankRow(): ObligationRow {
-    return { name: "", amount: "", dueDay: "", type: "bill", liabType: "personal_loan", categoryIdx: 0, frequency: "monthly" };
+    return { name: "", amount: "", dueDay: "", type: "bill", liabType: "personal_loan", categoryIdx: 0, frequency: "monthly", dueMonth: new Date().getMonth() + 1 };
   }
 
   onOpen() { this.render(); }
@@ -191,14 +192,32 @@ export class BulkObligationsModal extends Modal {
     billBtn.onclick = () => { row.type = "bill"; this.render(); };
     liabBtn.onclick = () => { row.type = "liability"; this.render(); };
 
-    // Frequency select — bills only, compact
+    // Frequency select + due-month (annual only) — stacked inside one grid cell
     if (row.type === "bill") {
-      const freqSelect = rowEl.createEl("select", { cls: "ledgr-inline-input ledgr-bulk-freq" });
+      const freqCell = rowEl.createDiv("ledgr-bulk-freq-cell");
+      const freqSelect = freqCell.createEl("select", { cls: "ledgr-inline-input ledgr-bulk-freq" });
       [["Monthly", "monthly"], ["Annual", "annual"], ["Once", "once"]].forEach(([label, val]) => {
         const opt = freqSelect.createEl("option"); opt.value = val; opt.textContent = label;
         if (val === row.frequency) opt.selected = true;
       });
-      freqSelect.onchange = () => { row.frequency = freqSelect.value as "monthly" | "annual" | "once"; };
+
+      // Due month stacked below freq — only visible for annual
+      const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const dueMonthSelect = freqCell.createEl("select", {
+        cls: `ledgr-inline-input ledgr-bulk-due-month${row.frequency !== "annual" ? " ledgr-hidden" : ""}`,
+      });
+      dueMonthSelect.createEl("option", { value: "", text: "Due month…" }).disabled = true;
+      if (!row.dueMonth) dueMonthSelect.value = "";
+      MONTHS.forEach((m, i) => {
+        const opt = dueMonthSelect.createEl("option"); opt.value = String(i + 1); opt.textContent = m;
+        if ((i + 1) === row.dueMonth) opt.selected = true;
+      });
+      dueMonthSelect.onchange = () => { row.dueMonth = parseInt(dueMonthSelect.value); };
+
+      freqSelect.onchange = () => {
+        row.frequency = freqSelect.value as "monthly" | "annual" | "once";
+        dueMonthSelect.toggleClass("ledgr-hidden", row.frequency !== "annual");
+      };
     }
 
     // Remove row (col 6 — auto)
@@ -221,6 +240,13 @@ export class BulkObligationsModal extends Modal {
     const nwData = await loadNetWorth(this.app, this.plugin.settings);
     const billStore = await loadBills(this.app, this.plugin.settings);
     const currency = this.plugin.settings.baseCurrency;
+    // Derive country from base currency so non-Japan users get correct account grouping
+    const CURRENCY_COUNTRY: Record<string, string> = {
+      JPY: "JP", PHP: "PH", USD: "US", EUR: "EU", GBP: "GB",
+      AUD: "AU", CAD: "CA", SGD: "SG", HKD: "HK", KRW: "KR",
+      INR: "IN", MYR: "MY", THB: "TH", IDR: "ID", VND: "VN",
+    };
+    const defaultCountry = CURRENCY_COUNTRY[currency] ?? "JP";
     let added = 0;
 
     for (const row of validRows) {
@@ -231,6 +257,9 @@ export class BulkObligationsModal extends Modal {
 
       if (row.type === "bill") {
         const cat = BILL_CATEGORIES[row.categoryIdx] ?? BILL_CATEGORIES[BILL_CATEGORIES.length - 1];
+        // For annual bills: due day defaults to 1 if left blank, due month defaults to current month
+        const resolvedDueParsed = dueParsed ?? (row.frequency === "annual" ? { type: "day_of_month" as const, day: 1 } : null);
+        const resolvedDueMonth = row.frequency === "annual" ? (row.dueMonth || new Date().getMonth() + 1) : undefined;
         const bill: RecurringBill = {
           id: `bill_${Date.now()}_${added}`,
           name: row.name.trim(),
@@ -240,10 +269,11 @@ export class BulkObligationsModal extends Modal {
           category: cat.category,
           subcategory: cat.subcategory,
           frequency: row.frequency,
-          dueDateType: dueParsed?.type ?? "day_of_month",
-          dueDay: dueParsed?.type === "day_of_month" ? dueParsed.day : undefined,
-          dueWeekOrdinal: dueParsed?.type === "nth_weekday" ? dueParsed.nth : undefined,
-          dueWeekday: dueParsed?.type === "nth_weekday" ? dueParsed.weekday : undefined,
+          dueMonth: resolvedDueMonth,
+          dueDateType: resolvedDueParsed?.type ?? "day_of_month",
+          dueDay: resolvedDueParsed?.type === "day_of_month" ? resolvedDueParsed.day : undefined,
+          dueWeekOrdinal: resolvedDueParsed?.type === "nth_weekday" ? resolvedDueParsed.nth : undefined,
+          dueWeekday: resolvedDueParsed?.type === "nth_weekday" ? resolvedDueParsed.weekday : undefined,
           reminderEnabled: true,
           reminderDaysAhead: 3,
           payments: [],
@@ -257,7 +287,7 @@ export class BulkObligationsModal extends Modal {
           type: (row.liabType as AccountType) ?? "personal_loan",
           currency,
           balance: 0,
-          country: "JP",
+          country: defaultCountry,
           isLiability: true,
           liabilityDetails: {
             originalAmount: 0,

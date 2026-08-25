@@ -159,6 +159,14 @@ export class TemplatesModal extends Modal {
       await saveTemplates(this.app, this.plugin.settings, this.store);
       this.seededThisSession = false;
     }
+    // Stamp this month so the dashboard nudge doesn't re-appear
+    if (applied > 0) {
+      const applied_months: string[] = this.plugin.settings.templatesAppliedMonths ?? [];
+      if (!applied_months.includes(this.selectedMonth)) {
+        this.plugin.settings.templatesAppliedMonths = [...applied_months, this.selectedMonth];
+        await this.plugin.saveSettings();
+      }
+    }
     const msg = skipped > 0
       ? `${applied} applied, ${skipped} skipped (already logged this month).`
       : `${applied} template${applied !== 1 ? "s" : ""} applied to ${this.selectedMonth}.`;

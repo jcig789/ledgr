@@ -13,6 +13,7 @@ export class BillPaymentModal extends Modal {
   amount: number;
   note = "";
   onPaid: () => void;
+  private _confirmedDuplicateKey = "";
 
   constructor(app: App, plugin: LedgrPlugin, bill: RecurringBill, onPaid: () => void) {
     super(app);
@@ -51,7 +52,7 @@ export class BillPaymentModal extends Modal {
     });
 
     const dateSetting = new Setting(contentEl).setName("Date");
-    createDateInput(dateSetting.controlEl, this.date, (v) => (this.date = v));
+    createDateInput(dateSetting.controlEl, this.date, (v) => { this.date = v; this._confirmedDuplicateKey = ""; });
 
     new Setting(contentEl).setName("Note").addText((t) =>
       t.setPlaceholder("Optional").setValue(this.note).onChange((v) => (this.note = v))
@@ -74,6 +75,26 @@ export class BillPaymentModal extends Modal {
     const store = await loadBills(this.app, this.plugin.settings);
     const bill = store.bills.find((b) => b.id === this.bill.id);
     if (!bill) return;
+
+    // Dedup guard — warn if a payment was already logged this month for this bill
+    const month = this.date.slice(0, 7);
+    const dupeKey = `${this.bill.id}:${month}`;
+    const existingPayment = bill.payments.filter((p) => p.date.startsWith(month));
+    if (existingPayment.length > 0) {
+      if (this._confirmedDuplicateKey !== dupeKey) {
+        // First tap — show warning, require a second tap to confirm
+        this._confirmedDuplicateKey = dupeKey;
+        const paidAmt = existingPayment.reduce((s, p) => s + p.amount, 0);
+        if (errEl) {
+          errEl.textContent = `${formatCurrency(paidAmt, bill.currency)} already logged for ${window.moment(month).format("MMMM YYYY")}. Tap Record again to add a second payment.`;
+          errEl.removeClass("ledgr-hidden");
+        }
+        return;
+      }
+      // Second tap — proceed; clear error before saving
+      this._confirmedDuplicateKey = "";
+      if (errEl) errEl.addClass("ledgr-hidden");
+    }
 
     bill.payments.push({
       id: `bpay_${Date.now()}`,

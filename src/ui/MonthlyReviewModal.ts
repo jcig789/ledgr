@@ -119,7 +119,7 @@ export class MonthlyReviewModal extends Modal {
       `| **Income** | ${fmt(summary.totalIncome)} |`,
       `| **Expenses** | ${fmtParens(-summary.totalExpenses)} |`,
       `| **Net Savings** | **${fmt(summary.net)}** |`,
-      `| Savings Rate | **${summary.savingsRate}%** |`,
+      `| Savings Rate (${summary.savingsRateIsOCFBasis ? "operating income" : "all income"}) | **${summary.savingsRate}%** |`,
       ``,
       `---`,
       ``,
@@ -199,7 +199,7 @@ export class MonthlyReviewModal extends Modal {
       lines.push(`## vs. Last Month`, ``);
       if (incChange !== null) lines.push(`- Income: ${incChange >= 0 ? "+" : ""}${incChange}% vs ${window.moment(prevMonth).format("MMMM YYYY")}`);
       if (expChange !== null) lines.push(`- Expenses: ${expChange >= 0 ? "+" : ""}${expChange}% vs ${window.moment(prevMonth).format("MMMM YYYY")}`);
-      lines.push(`- Savings Rate: ${summary.savingsRate}% vs ${prevSummary.savingsRate}% last month`);
+      lines.push(`- Savings Rate: ${summary.savingsRate}% vs ${prevSummary.savingsRate}% last month (${summary.savingsRateIsOCFBasis ? "operating income basis" : "all income basis"})`);
       lines.push(``, `---`, ``);
     }
 

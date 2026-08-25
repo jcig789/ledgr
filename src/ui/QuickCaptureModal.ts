@@ -29,6 +29,7 @@ export class QuickCaptureModal extends Modal {
   catStore: CategoryStore = { expense: CATEGORIES, income: INCOME_CATEGORIES };
   private amtInput: HTMLInputElement | null = null;
   private saveBtn: HTMLButtonElement | null = null;
+  private _missingRateConfirmed = false;
 
   constructor(app: App, settings: LedgrSettings, contextMonth?: string, initial?: QuickCaptureInitialState) {
     super(app);
@@ -42,6 +43,7 @@ export class QuickCaptureModal extends Modal {
     if (initial) {
       if (initial.type) this.type = initial.type;
       if (initial.amount !== undefined) this.amount = String(initial.amount);
+      if (initial.currency) this._initialCurrency = initial.currency;
       if (initial.category) this.category = initial.category;
       if (initial.subcategory) this.subcategory = initial.subcategory;
       if (initial.note) this.note = initial.note;
@@ -49,8 +51,11 @@ export class QuickCaptureModal extends Modal {
     }
   }
 
+  // Stored so onOpen() can apply it after baseCurrency is set
+  private _initialCurrency?: string;
+
   async onOpen() {
-    this.currency = this.settings.baseCurrency;
+    this.currency = this._initialCurrency ?? this.settings.baseCurrency;
     this.catStore = await loadCategories(this.app, this.settings);
     const catMap = this.type === "income" ? this.catStore.income : this.catStore.expense;
     const firstCat = Object.keys(catMap)[0] ?? "Other";
@@ -102,10 +107,27 @@ export class QuickCaptureModal extends Modal {
       .addDropdown((d): void => {
         const currencies = [this.settings.baseCurrency, ...this.settings.secondaryCurrencies];
         currencies.forEach((c): void => { d.addOption(c, c); });
-        void d.setValue(this.currency).onChange((v) => (this.currency = v));
+        void d.setValue(this.currency).onChange((v) => { this.currency = v; this._missingRateConfirmed = false; });
       });
 
     contentEl.createEl("p", { cls: "ledgr-error ledgr-error-amount ledgr-hidden", text: "" });
+
+    // ── Type toggle: Expense | Income — always visible at top, not buried in chip row ──
+    const typeToggleRow = contentEl.createDiv("ledgr-qc-type-row");
+    typeToggleRow.createSpan({ text: "type", cls: "ledgr-chip-row-label" });
+    const typeToggleGroup = typeToggleRow.createDiv("ledgr-toggle-group");
+    typeToggleGroup.setAttribute("role", "group");
+    typeToggleGroup.setAttribute("aria-label", "Transaction type");
+    const expTypeBtn = typeToggleGroup.createEl("button", {
+      text: "Expense",
+      cls: `ledgr-budget-btn ledgr-toggle-btn${this.type === "expense" ? " active" : ""}`,
+    });
+    expTypeBtn.setAttribute("aria-pressed", this.type === "expense" ? "true" : "false");
+    const incTypeBtn = typeToggleGroup.createEl("button", {
+      text: "Income",
+      cls: `ledgr-budget-btn ledgr-toggle-btn${this.type === "income" ? " active" : ""}`,
+    });
+    incTypeBtn.setAttribute("aria-pressed", this.type === "income" ? "true" : "false");
 
     // ── Chip-based category selector ──
     const catSelector = contentEl.createDiv("ledgr-cat-selector");
@@ -231,21 +253,19 @@ export class QuickCaptureModal extends Modal {
       }
     };
 
-    // Expense categories
+    // Expense categories — shown regardless of type (Income selected hides chip rows via CSS)
     const expCats = Object.keys(this.catStore.expense);
     expCats.forEach((cat) => {
       const btn = catChipRow.createEl("button", {
         text: cat,
         cls: `ledgr-cat-chip${this.type === "expense" && this.category === cat ? " active" : ""}`,
       });
+      btn.dataset.cat = cat;
       btn.onclick = () => {
-        this.type = "expense";
+        if (this.type !== "expense") switchToExpense();
         this.category = cat;
         this.subcategory = this.catStore.expense[cat]?.[0] ?? "Other";
-        catChipRow.querySelectorAll(".ledgr-cat-chip").forEach((b) => {
-          b.removeClass("active");
-          b.removeClass("ledgr-cat-chip--income");
-        });
+        catChipRow.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
         btn.addClass("active");
         subLabel.textContent = `in: ${cat}`;
         renderSubChips(this.catStore.expense[cat] ?? ["Other"]);
@@ -293,21 +313,34 @@ export class QuickCaptureModal extends Modal {
       })(); });
     };
 
-    // Income chip — always at end
-    const incomeChip = catChipRow.createEl("button", {
-      text: "Income",
-      cls: `ledgr-cat-chip ledgr-cat-chip--income${this.type === "income" ? " active" : ""}`,
-    });
-    incomeChip.onclick = () => {
+    // Wire the type toggle buttons — update chip rows and state
+    const switchToExpense = () => {
+      this.type = "expense";
+      expTypeBtn.addClass("active"); incTypeBtn.removeClass("active");
+      expTypeBtn.setAttribute("aria-pressed", "true"); incTypeBtn.setAttribute("aria-pressed", "false");
+      const firstCat = Object.keys(this.catStore.expense)[0] ?? "Other";
+      if (!this.catStore.expense[this.category]) {
+        this.category = firstCat;
+        this.subcategory = this.catStore.expense[firstCat]?.[0] ?? "Other";
+      }
+      catChipRow.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
+      catChipRow.querySelector(`.ledgr-cat-chip[data-cat="${this.category}"]`)?.addClass("active");
+      subLabel.textContent = `in: ${this.category}`;
+      renderSubChips(this.catStore.expense[this.category] ?? ["Other"]);
+    };
+    const switchToIncome = () => {
       this.type = "income";
+      incTypeBtn.addClass("active"); expTypeBtn.removeClass("active");
+      incTypeBtn.setAttribute("aria-pressed", "true"); expTypeBtn.setAttribute("aria-pressed", "false");
       const firstIncomeCat = Object.keys(this.catStore.income)[0] ?? "Income";
       this.category = firstIncomeCat;
       this.subcategory = this.catStore.income[firstIncomeCat]?.[0] ?? "Other income";
       catChipRow.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
-      incomeChip.addClass("active");
       subLabel.textContent = "subcategory";
       renderSubChips(this.catStore.income[firstIncomeCat] ?? ["Other income"]);
     };
+    expTypeBtn.onclick = switchToExpense;
+    incTypeBtn.onclick = switchToIncome;
 
     // Render initial subcategory chips
     const currentSubs = this.type === "income"
@@ -353,6 +386,24 @@ export class QuickCaptureModal extends Modal {
       hasError = true;
     }
     if (hasError) return;
+
+    // Block save if currency has no exchange rate — require a second tap to confirm
+    const base = this.settings.baseCurrency;
+    if (this.currency !== base) {
+      const rates = this.settings.exchangeRates.rates;
+      const hasRate = rates[`${base}_${this.currency}`] || rates[`${this.currency}_${base}`];
+      if (!hasRate) {
+        if (!this._missingRateConfirmed) {
+          this._missingRateConfirmed = true;
+          if (amtErr) {
+            amtErr.textContent = `No exchange rate set for ${this.currency} → ${base}. Tap Record again to record anyway, or cancel and update rates in Settings → Exchange Rates.`;
+            amtErr.removeClass("ledgr-hidden");
+          }
+          return;
+        }
+        this._missingRateConfirmed = false;
+      }
+    }
 
     await saveTransaction(this.app, this.settings, {
       date: this.date,

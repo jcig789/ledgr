@@ -7,6 +7,7 @@ import { Transaction } from "../data/transactions";
 import { renderCompositionBar, buildNetWorthSegments } from "./charts";
 import { formatCurrency } from "../constants/currencies";
 import { buildProjection, ScenarioItem } from "../data/projection";
+import { calcAmortization } from "../data/debtCost";
 
 export const STATEMENTS_VIEW_TYPE = "ledgr-statements";
 
@@ -225,28 +226,55 @@ export class StatementsView extends ItemView {
       return;
     }
 
-    // REVENUE section
+    // REVENUE section — operating income only (OCF stream)
+    // Non-operating income (ICF dividends, FCF loan proceeds) shown separately below
     const incSection = parent.createDiv("ledgr-stmt-section");
     this.stmtSectionLabel(incSection, "Revenue");
-    const incomeBySubcat: Record<string, number> = {};
+    const ocfIncomeBySubcat: Record<string, number> = {};
+    const nonOpIncomeBySubcat: Record<string, number> = {};
     transactions.filter((t) => t.type === "income").forEach((t) => {
       const amt = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
-      incomeBySubcat[t.subcategory] = (incomeBySubcat[t.subcategory] ?? 0) + amt;
+      const stream = t.stream ?? "ocf";
+      if (stream === "ocf") {
+        ocfIncomeBySubcat[t.subcategory] = (ocfIncomeBySubcat[t.subcategory] ?? 0) + amt;
+      } else {
+        nonOpIncomeBySubcat[t.subcategory] = (nonOpIncomeBySubcat[t.subcategory] ?? 0) + amt;
+      }
     });
-    if (Object.keys(incomeBySubcat).length === 0) {
-      this.stmtLine(incSection, "No income recorded", "—");
+    if (Object.keys(ocfIncomeBySubcat).length === 0) {
+      this.stmtLine(incSection, "No operating income recorded", "—");
     } else {
-      Object.entries(incomeBySubcat).sort((a, b) => b[1] - a[1]).forEach(([label, amt]) => {
+      Object.entries(ocfIncomeBySubcat).sort((a, b) => b[1] - a[1]).forEach(([label, amt]) => {
         this.stmtLine(incSection, label, fmt(amt));
       });
     }
-    this.stmtSubtotal(incSection, "Total Revenue", fmt(summary.totalIncome));
+    this.stmtSubtotal(incSection, "Total Operating Revenue", fmt(summary.ocfIncome));
+
+    // Non-operating income (dividends, loan proceeds) — shown below operating revenue
+    const nonOpTotal = summary.totalIncome - summary.ocfIncome;
+    if (nonOpTotal > 0) {
+      parent.createDiv({ cls: "ledgr-stmt-spacer" });
+      const nonOpSection = parent.createDiv("ledgr-stmt-section");
+      this.stmtSectionLabel(nonOpSection, "Non-Operating Income");
+      Object.entries(nonOpIncomeBySubcat).sort((a, b) => b[1] - a[1]).forEach(([label, amt]) => {
+        this.stmtLine(nonOpSection, label, fmt(amt));
+      });
+      this.stmtSubtotal(nonOpSection, "Total Non-Operating Income", fmt(nonOpTotal));
+    }
 
     parent.createDiv({ cls: "ledgr-stmt-spacer" });
 
     // EXPENSES section — CPA style: each line shows actual, budget column, variance column
+    // Shows OCF expenses only (operating activities) — debt service and investments excluded
     const expSection = parent.createDiv("ledgr-stmt-section");
     this.stmtSectionLabel(expSection, "Expenses");
+    expSection.createEl("p", {
+      text: "Operating expenses only. Debt service (FCF) and investments (ICF) appear in the Cash Flow statement.",
+      cls: "ledgr-stmt-footnote",
+    });
+    // Use OCF-only category breakdown for the income statement — total row shows ocfExpenses
+    const activeExpenseByCategory = summary.ocfByCategory;
+    const activeExpensesTotal = summary.ocfExpenses;
     const hasBudgets = Object.keys(budgetConfig.limits).length > 0;
 
     if (hasBudgets) {
@@ -259,7 +287,7 @@ export class StatementsView extends ItemView {
       grid.createSpan({ text: "Budget (Annual)", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
       grid.createSpan({ text: "Variance", cls: "ledgr-stmt-budget-cell ledgr-stmt-col-hdr" });
 
-      Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
+      Object.entries(activeExpenseByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
         const budgetRaw = budgetConfig.limits[cat];
         // Annualize: monthly budget × months in selected year
         // For current year (partial), count months with data; for past years, use 12
@@ -287,27 +315,30 @@ export class StatementsView extends ItemView {
       });
 
       // Total row inside the same grid
-      grid.createSpan({ text: "Total Expenses", cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-total" });
-      grid.createSpan({ text: fmt(summary.totalExpenses), cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-stmt-budget-total" });
+      grid.createSpan({ text: "Total Operating Expenses", cls: "ledgr-stmt-budget-cell ledgr-stmt-budget-total" });
+      grid.createSpan({ text: fmt(activeExpensesTotal), cls: "ledgr-stmt-budget-cell ledgr-stmt-amt ledgr-stmt-budget-total" });
       grid.createSpan({ cls: "ledgr-stmt-budget-cell" });
       grid.createSpan({ cls: "ledgr-stmt-budget-cell" });
     } else {
-      Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
+      Object.entries(activeExpenseByCategory).sort((a, b) => b[1] - a[1]).forEach(([cat, amt]) => {
         this.stmtLine(expSection, cat, fmt(amt));
       });
+      this.stmtSubtotal(expSection, "Total Operating Expenses", fmt(activeExpensesTotal));
     }
 
 
-    // Bottom totals
+    // Bottom totals — Net Period Result uses netOCF to match the OCF-only expense section above
+    const netOCF = summary.netOCF;
     const totalEl = parent.createDiv("ledgr-stmt-total");
     totalEl.createSpan({ text: "Net Period Result" });
     totalEl.createSpan({
-      text: fmt(summary.net),
-      cls: `ledgr-stmt-amt ${summary.net >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
+      text: fmt(netOCF),
+      cls: `ledgr-stmt-amt ${netOCF >= 0 ? "ledgr-positive" : "ledgr-negative"}`,
     });
 
     const rateEl = parent.createDiv("ledgr-stmt-rate-row");
-    rateEl.createSpan({ text: "Savings Rate", cls: "ledgr-stmt-rate-label" });
+    const rateLabel = summary.savingsRateIsOCFBasis ? "Savings Rate (operating income)" : "Savings Rate (all income)";
+    rateEl.createSpan({ text: rateLabel, cls: "ledgr-stmt-rate-label" });
     rateEl.createSpan({
       text: `${summary.savingsRate}%`,
       cls: `ledgr-stmt-amt ${summary.savingsRate >= 20 ? "ledgr-positive" : "ledgr-neutral"}`,
@@ -358,8 +389,14 @@ export class StatementsView extends ItemView {
     // Collect OCF line items from transaction categories
     const ocfInItems = s.transactions.filter((t) => t.type === "income" && (t.stream ?? "ocf") === "ocf");
     const ocfOutItems = s.transactions.filter((t) => t.type === "expense" && (t.stream ?? "ocf") === "ocf");
-    const ocfInBySource = ocfInItems.reduce((acc, t) => { acc[t.subcategory] = (acc[t.subcategory] ?? 0) + t.amount; return acc; }, {} as Record<string, number>);
-    const ocfOutByCategory = ocfOutItems.reduce((acc, t) => { acc[t.category] = (acc[t.category] ?? 0) + t.amount; return acc; }, {} as Record<string, number>);
+    const ocfInBySource = ocfInItems.reduce((acc, t) => {
+      acc[t.subcategory] = (acc[t.subcategory] ?? 0) + convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return acc;
+    }, {} as Record<string, number>);
+    const ocfOutByCategory = ocfOutItems.reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] ?? 0) + convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return acc;
+    }, {} as Record<string, number>);
 
     const ocfLines = [
       ...Object.entries(ocfInBySource).map(([l, v]) => ({ label: l, value: v })),
@@ -371,7 +408,8 @@ export class StatementsView extends ItemView {
     const icfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "icf");
     const icfLines = icfTxs.reduce((acc, t) => {
       const key = t.subcategory;
-      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? t.amount : -t.amount);
+      const base = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? base : -base);
       return acc;
     }, {} as Record<string, number>);
     addSection("Investing Activities", Object.entries(icfLines).map(([l, v]) => ({ label: l, value: v })), s.netICF, "Net Investing Cash Flow");
@@ -380,7 +418,8 @@ export class StatementsView extends ItemView {
     const fcfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "fcf");
     const fcfLines = fcfTxs.reduce((acc, t) => {
       const key = t.subcategory;
-      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? t.amount : -t.amount);
+      const base = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? base : -base);
       return acc;
     }, {} as Record<string, number>);
     addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFinancingCF, "Net Financing Cash Flow");
@@ -453,12 +492,22 @@ export class StatementsView extends ItemView {
       fixedCommitments = activeLiabilities
         .reduce((s, a) => s + convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
 
-      // Compute payoff events for liabilities with known balance and monthly payment
+      // Compute payoff events using amortization when APR is set, linear otherwise
       activeLiabilities.forEach((a) => {
         const ld = a.liabilityDetails!;
         if (ld.monthlyPayment > 0 && a.balance > 0) {
-          const monthsToPayoff = Math.ceil(a.balance / ld.monthlyPayment);
-          if (monthsToPayoff <= this.forecastHorizon) {
+          const result = calcAmortization(a.balance, ld.apr ?? 0, ld.monthlyPayment, today);
+          if (!result.canAmortize) {
+            // Payment doesn't cover interest — surface as a warning event so the user sees it
+            liabilityPayoffEvents.push({
+              month: today.slice(0, 7),
+              label: `${a.name}: payment does not cover interest — balance is growing`,
+              freedCash: 0,
+            });
+            return;
+          }
+          const monthsToPayoff = result.monthsToPayoff;
+          if (monthsToPayoff > 0 && monthsToPayoff <= this.forecastHorizon) {
             const payoffMonth = window.moment(today).add(monthsToPayoff, "months").format("YYYY-MM");
             liabilityPayoffEvents.push({
               month: payoffMonth,
@@ -566,10 +615,18 @@ export class StatementsView extends ItemView {
       const payoffEl = parent.createDiv("ledgr-proj-runway");
       payoffEl.createSpan({ text: "Upcoming Payoffs", cls: "ledgr-bearing-guidance-pillar" });
       result.payoffEvents.forEach((evt) => {
-        payoffEl.createEl("p", {
-          text: `${evt.label} pays off in ${window.moment(evt.month).format("MMMM YYYY")} — releases ${fmt(evt.freedCash)}/month.`,
-          cls: "ledgr-bearing-guidance-text",
-        });
+        // freedCash === 0 signals a warning event (canAmortize:false), not a true payoff
+        if (evt.freedCash === 0) {
+          payoffEl.createEl("p", {
+            text: `⚠ ${evt.label}`,
+            cls: "ledgr-bearing-guidance-text ledgr-negative",
+          });
+        } else {
+          payoffEl.createEl("p", {
+            text: `${evt.label} pays off in ${window.moment(evt.month).format("MMMM YYYY")} — releases ${fmt(evt.freedCash)}/month.`,
+            cls: "ledgr-bearing-guidance-text",
+          });
+        }
       });
     }
 
@@ -630,7 +687,7 @@ export class StatementsView extends ItemView {
     }
 
     parent.createEl("p", {
-      text: "Projection uses trailing 3-month average. Low / High band widens by 8% per month from historical variance. 3M: high confidence · 6M: medium · 12M: directional.",
+      text: "Projection uses trailing 3-month average (high outlier excluded). Low / High band widens by 8% per month from historical variance. 3M: high confidence · 6M: medium · 12M: directional.",
       cls: "ledgr-stmt-footnote",
     });
   }

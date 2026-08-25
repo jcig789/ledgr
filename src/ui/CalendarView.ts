@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, Events, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf, Events, setIcon, Platform } from "obsidian";
 import LedgrPlugin from "../main";
 import { readMonthTransactions } from "../data/reader";
 import { loadNetWorth } from "../data/networth";
@@ -250,6 +250,12 @@ export class CalendarView extends ItemView {
         cell.addClass("ledgr-cal-cell--selected");
         this.selectedDay = d;
         this.renderDetailDay(detailEl, d, entry ?? null);
+        // Scroll detail panel into view on mobile only — on desktop it's already visible alongside the grid
+        if (Platform.isMobile) {
+          window.setTimeout(() => {
+            detailEl.closest(".ledgr-cal-detail")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 50);
+        }
       };
     }
 
@@ -347,6 +353,10 @@ export class CalendarView extends ItemView {
         row.createSpan({ text: bill.name, cls: "ledgr-cal-detail-bill-name" });
         const isPaid = isBillPaymentLogged(bill, month);
         if (isPaid) {
+          if (bill.amount > 0) {
+            const amtText = bill.amountMax ? `${formatCurrency(bill.amount, bill.currency)}–${formatCurrency(bill.amountMax, bill.currency)}` : formatCurrency(bill.amount, bill.currency);
+            row.createSpan({ text: amtText, cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
+          }
           row.createSpan({ text: "PAID", cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
         } else if (bill.amountType === "variable") {
           row.createSpan({ text: "Varies", cls: "ledgr-cal-detail-bill-amount ledgr-meta" });
@@ -421,10 +431,10 @@ export class CalendarView extends ItemView {
     if (income.length > 0 && expenses.length > 0) detailEl.createDiv("ledgr-bearing-rule-thin");
     renderTxGroup(income, "Income");
 
-    // Day total
-    detailEl.createDiv("ledgr-bearing-rule-thin");
-    const totalRow = detailEl.createDiv("ledgr-cal-detail-total");
+    // Day total — only render when there are expense transactions to sum
     if (entry.spend > 0) {
+      detailEl.createDiv("ledgr-bearing-rule-thin");
+      const totalRow = detailEl.createDiv("ledgr-cal-detail-total");
       totalRow.createSpan({ text: "Total spend", cls: "ledgr-meta" });
       totalRow.createSpan({
         text: formatCurrency(entry.spend, this.plugin.settings.baseCurrency),

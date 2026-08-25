@@ -150,8 +150,21 @@ export class ConfigModal extends Modal {
       );
   }
 
+  // Snapshot of category names before editing — taken once when the tab first loads, not on re-render
+  private originalCategoryNames: { expense: string[]; income: string[] } = { expense: [], income: [] };
+  private _categorySnapshotTaken = false;
+
   renderCategoriesTab(parent: HTMLElement) {
     if (!this.categories) return;
+
+    // Take snapshot only once — re-renders (e.g. from adding a subcategory) must not reset the baseline
+    if (!this._categorySnapshotTaken) {
+      this.originalCategoryNames = {
+        expense: Object.keys(this.categories.expense),
+        income: Object.keys(this.categories.income),
+      };
+      this._categorySnapshotTaken = true;
+    }
 
     parent.createEl("p", {
       text: "Add, rename, or remove expense categories and subcategories.",
@@ -175,11 +188,69 @@ export class ConfigModal extends Modal {
           void (async () => {
             await saveCategories(this.app, this.plugin.settings, this.categories!);
             this.app.workspace.trigger("ledgr:categories-updated");
+            // Migrate renamed categories in transaction files
+            await this.migrateRenamedCategories();
             new Notice("Categories saved");
             this.close();
           })();
         })
     );
+  }
+
+  async migrateRenamedCategories() {
+    if (!this.categories) return;
+    const newExpense = Object.keys(this.categories.expense);
+    const oldNames = this.originalCategoryNames.expense;
+
+    // Detect renames by set diff: names removed from old set paired with names added to new set.
+    // Only proceed when counts are equal (no additions or deletions) — position-based pairing is
+    // unreliable when the list length changed, and would silently corrupt historical data.
+    const removed = oldNames.filter((n) => !newExpense.includes(n));
+    const added = newExpense.filter((n) => !oldNames.includes(n));
+
+    if (removed.length === 0 || added.length === 0) return; // no renames detected
+    if (removed.length !== added.length) {
+      // Mixed add/rename session — skip migration to avoid incorrect pairing
+      new Notice(
+        `Categories saved. Rename migration skipped — please rename categories one at a time to update historical transactions.`,
+        6000
+      );
+      return;
+    }
+
+    // Build rename pairs: removed[i] → added[i] (order-stable within each diff)
+    const renames: { old: string; new: string }[] = removed.map((o, i) => ({ old: o, new: added[i] }));
+
+    // Show confirmation modal before touching any transaction files
+    const summary = renames.map((r) => `"${r.old}" → "${r.new}"`).join(", ");
+    const confirmed = await new Promise<boolean>((resolve) => {
+      const modal = new ConfirmRenameModal(this.app, summary, resolve);
+      modal.open();
+    });
+    if (!confirmed) {
+      new Notice("Rename migration cancelled — categories saved, transactions unchanged.");
+      return;
+    }
+
+    const folder = normalizePath(`${this.plugin.settings.financeFolder}/transactions`);
+    const txFiles = this.app.vault.getFiles().filter((f) => f.path.startsWith(folder) && f.extension === "md");
+
+    new Notice(`Updating ${txFiles.length} transaction file${txFiles.length !== 1 ? "s" : ""}…`);
+    let count = 0;
+    for (const file of txFiles) {
+      let content = await this.app.vault.read(file);
+      let changed = false;
+      for (const { old: oldCat, new: newCat } of renames) {
+        const escaped = oldCat.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        // Replace in pipe-delimited rows (category is col 5)
+        const rowRegex = new RegExp(`(\\| [^|]+ \\| [^|]+ \\| [^|]+ \\| [^|]+ \\| )${escaped}( \\|)`, "g");
+        const dvRegex = new RegExp(`\\[category:: ${escaped}\\]`, "g");
+        const newContent = content.replace(rowRegex, `$1${newCat}$2`).replace(dvRegex, `[category:: ${newCat}]`);
+        if (newContent !== content) { content = newContent; changed = true; count++; }
+      }
+      if (changed) await this.app.vault.modify(file, content);
+    }
+    if (count > 0) new Notice(`Renamed category in ${count} transaction${count !== 1 ? "s" : ""}.`);
   }
 
   renderCategoryGroup(parent: HTMLElement, type: "expense" | "income") {
@@ -248,6 +319,21 @@ export class ConfigModal extends Modal {
   }
 
   renderFeaturesTab(parent: HTMLElement) {
+    // Calendar week start
+    new Setting(parent)
+      .setName("Calendar week start")
+      .setDesc("Choose whether your calendar week begins on Monday (ISO) or Sunday.")
+      .addDropdown((d) => {
+        d.addOption("monday", "Monday");
+        d.addOption("sunday", "Sunday");
+        d.setValue(this.plugin.settings.calendarWeekStart ?? "monday");
+        d.onChange(async (v) => {
+          this.plugin.settings.calendarWeekStart = v as "monday" | "sunday";
+          await this.plugin.saveSettings();
+          this.app.workspace.trigger("ledgr:settings-changed");
+        });
+      });
+
     // Composure exclusions
     const excluded = new Set(this.plugin.settings.composureExcludedCategories ?? []);
     const allCats = this.categories ? Object.keys(this.categories.expense) : [];
@@ -390,6 +476,7 @@ export class ConfigModal extends Modal {
     this.plugin.settings.firstRun = true;
     // Clear session-specific settings that don't belong to the new ledger
     this.plugin.settings.ocfCommitments = {};
+    this.plugin.settings.templatesAppliedMonths = [];
     await this.plugin.saveSettings();
 
     new Notice("All Ledgr data deleted. Starting your new ledger.");
@@ -405,6 +492,42 @@ export class ConfigModal extends Modal {
           new Notice("Setup wizard failed to open. Click the wallet icon or restart Obsidian to begin.");
         });
     }, 500); // 500ms matches plugin startup delay — ensures ConfigModal fully closes first
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+class ConfirmRenameModal extends Modal {
+  private summary: string;
+  private resolve: (confirmed: boolean) => void;
+
+  constructor(app: App, summary: string, resolve: (confirmed: boolean) => void) {
+    super(app);
+    this.summary = summary;
+    this.resolve = resolve;
+  }
+
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.createEl("h2", { text: "Update historical transactions?" });
+    contentEl.createEl("p", {
+      text: "The following category renames will be applied to all your transaction files:",
+      cls: "setting-item-description",
+    });
+    contentEl.createEl("p", { text: this.summary, cls: "ledgr-meta" });
+    contentEl.createEl("p", {
+      text: "This rewrites your transaction markdown files. It cannot be undone from within Ledgr (use git or your vault backup to revert).",
+      cls: "setting-item-description",
+    });
+
+    const btnRow = contentEl.createDiv("ledgr-btn-row");
+    const applyBtn = btnRow.createEl("button", { text: "Apply rename", cls: "ledgr-log-btn mod-cta" });
+    const cancelBtn = btnRow.createEl("button", { text: "Skip", cls: "ledgr-log-btn" });
+
+    applyBtn.onclick = () => { this.resolve(true); this.close(); };
+    cancelBtn.onclick = () => { this.resolve(false); this.close(); };
   }
 
   onClose() {

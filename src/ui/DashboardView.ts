@@ -18,6 +18,7 @@ import { loadNetWorth } from "../data/networth";
 import { getUpcomingPayments, getDaysUntilDue } from "../data/liabilities";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 import { TemplatesModal } from "./TemplatesModal";
+import { loadTemplates } from "../data/templates";
 import { BillsModal } from "./BillsModal";
 import { loadBills, RecurringBill, resolveBillDueDay, isBillPaymentLogged, getDaysUntilBillDue, isBillActiveThisMonth } from "../data/bills";
 import { resolveLiabilityDueDay, formatDueLabel } from "../data/liabilities";
@@ -33,6 +34,7 @@ export class DashboardView extends ItemView {
   private isLiveMonth = true;
   private isRendering = false;
   private showAllTransactions = false;
+  private _spendingOCFOnly = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -217,6 +219,27 @@ export class DashboardView extends ItemView {
       return;
     }
 
+    // Templates month-start nudge — show on days 1–3 when templates exist and not yet applied this month
+    if (this.isLiveMonth) {
+      const dayOfMonth = window.moment().date();
+      if (dayOfMonth <= 3) {
+        try {
+          const templateStore = await loadTemplates(this.app, this.plugin.settings);
+          const monthStr = this.currentMonth;
+          const appliedMonths: string[] = this.plugin.settings.templatesAppliedMonths ?? [];
+          if (templateStore.templates.length > 0 && !appliedMonths.includes(monthStr)) {
+            const nudge = contentEl.createDiv("ledgr-rate-banner ledgr-nudge-banner");
+            const count = templateStore.templates.length;
+            nudge.createSpan({ text: `You have ${count} recurring template${count !== 1 ? "s" : ""} — apply them for ${window.moment(monthStr).format("MMMM")}?` });
+            const applyLink = nudge.createEl("a", { text: " Apply now →", cls: "ledgr-rate-banner-link" });
+            applyLink.onclick = () => { nudge.remove(); new TemplatesModal(this.app, this.plugin).open(); };
+            const dismissLink = nudge.createEl("a", { text: " Dismiss", cls: "ledgr-rate-banner-link" });
+            dismissLink.onclick = () => nudge.remove();
+          }
+        } catch { /* templates not configured */ }
+      }
+    }
+
     // Summary row: cards + gauge side by side
     const hasRemittances = summary.totalRemittances > 0 && this.plugin.settings.enableTransferTracker;
     const summaryRow = contentEl.createDiv("ledgr-summary-row");
@@ -228,7 +251,7 @@ export class DashboardView extends ItemView {
       prevSummary.totalIncome > 0 ? this.trend(summary.totalIncome, prevSummary.totalIncome) : null);
     this.createCard(cards, "Expenses", fmt(summary.totalExpenses), "ledgr-expense",
       prevSummary.totalExpenses > 0 ? this.trend(summary.totalExpenses, prevSummary.totalExpenses, true) : null,
-      hasRemittances ? `incl. ${fmt(summary.totalRemittances)} transferred` : undefined);
+      hasRemittances ? `incl. ${fmt(summary.totalRemittances)} sent home` : undefined);
 
     // Net Cash Flow — neutral colour when income not yet logged (incomplete data, not overspend)
     const netCls = summary.totalIncome === 0 && summary.totalExpenses > 0
@@ -246,7 +269,8 @@ export class DashboardView extends ItemView {
     // Gauge: only when both income AND expenses are present (prevents false 100% on salary day)
     if (summary.totalIncome > 0 && summary.totalExpenses > 0) {
       const gaugeWrap = summaryRow.createDiv("ledgr-gauge-aside");
-      renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10, subtitle: "OCF basis" });
+      const gaugeSubtitle = summary.savingsRateIsOCFBasis ? "of operating income" : "of all income";
+      renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10, subtitle: gaugeSubtitle });
     } else if (summary.totalIncome === 0 && summary.totalExpenses > 0) {
       // Subtle nudge to log income
       const gaugeWrap = summaryRow.createDiv("ledgr-gauge-aside");
@@ -414,7 +438,10 @@ export class DashboardView extends ItemView {
     const hrow = thead.createEl("tr");
     // Category/Subcategory merged into one column. Type removed (redundant with amount colour).
     ["Date", "Category", "Note", "Amount", ""].forEach((h) =>
-      hrow.createEl("th", { text: h, cls: h === "" ? "ledgr-th-actions" : "" })
+      hrow.createEl("th", {
+        text: h,
+        cls: h === "" ? "ledgr-th-actions" : h === "Note" ? "ledgr-th-note" : "",
+      })
     );
     const tbody = table.createEl("tbody");
 
@@ -758,7 +785,7 @@ export class DashboardView extends ItemView {
     const remainingTotal = Math.max(0, scheduledTotal - paidTotal);
 
     const section = parent.createDiv("ledgr-section ledgr-scheduled-section");
-    const hdr = section.createDiv("ledgr-section-header");
+    const hdr = section.createDiv("ledgr-section-header ledgr-scheduled-header");
     hdr.createEl("h3", { text: "Scheduled This Month" });
 
     // Collapsed by default on mobile, expanded on desktop
@@ -770,10 +797,17 @@ export class DashboardView extends ItemView {
     });
     const listEl = section.createDiv(`ledgr-scheduled-list${expanded ? "" : " ledgr-hidden"}`);
 
-    toggleBtn.onclick = () => {
+    const doToggle = () => {
       expanded = !expanded;
       listEl.toggleClass("ledgr-hidden", !expanded);
       toggleBtn.textContent = expanded ? `${items.length} items` : `${unpaidCount} unpaid ↓`;
+    };
+    toggleBtn.onclick = doToggle;
+    // Make entire header row tappable on mobile — not just the small link text
+    hdr.setCssStyles({ cursor: "pointer" });
+    hdr.onclick = (e) => {
+      if ((e.target as HTMLElement).closest(".ledgr-scheduled-toggle")) return; // avoid double-fire
+      doToggle();
     };
 
     // Separate unpaid (week-grouped) from paid (flat block at bottom)
@@ -975,7 +1009,8 @@ export class DashboardView extends ItemView {
     }, 0);
     if (totalBudget === 0) return;
 
-    const remaining = totalBudget - summary.totalExpenses;
+    // Use OCF expenses only — debt service (FCF) and investments (ICF) are not budget items
+    const remaining = totalBudget - summary.ocfExpenses;
     const daysLeft = Math.max(0, window.moment().endOf("month").diff(window.moment(), "days") + 1);
     const dailyAllowance = daysLeft > 0 ? remaining / daysLeft : 0;
     const pctLeft = remaining / totalBudget;
@@ -1006,6 +1041,8 @@ export class DashboardView extends ItemView {
         banner.createSpan({ text: `${fmt(dailyAllowance)} / day`, cls: "ledgr-countdown-budget" });
       }
     }
+    // Disclosure: countdown covers operating spend only
+    banner.createSpan({ text: " · daily spending only", cls: "ledgr-countdown-suffix ledgr-meta" });
   }
 
   createRemitStat(parent: HTMLElement, label: string, jpy: string, php: string, highlight = false) {
@@ -1019,9 +1056,27 @@ export class DashboardView extends ItemView {
     const section = parent.createDiv("ledgr-section");
     const spendHdr = section.createDiv("ledgr-section-header");
     spendHdr.createEl("h3", { text: "Spending by Category" });
-    spendHdr.createSpan({ text: "all outflows incl. debt service", cls: "ledgr-meta" });
 
-    const sorted = Object.entries(summary.byCategory).sort((a, b) => b[1] - a[1]);
+    // OCF-only toggle — persisted in session state on the view instance
+    const hasNonOCF = summary.totalExpenses > summary.ocfExpenses;
+    let ocfOnly = this._spendingOCFOnly ?? false;
+
+    const subtitle = spendHdr.createSpan({
+      text: ocfOnly ? "operating expenses only" : "all outflows incl. debt service",
+      cls: "ledgr-meta",
+    });
+    if (hasNonOCF) {
+      subtitle.setCssStyles({ cursor: "pointer", textDecoration: "underline dotted" });
+      subtitle.setAttribute("title", ocfOnly ? "Click to show all outflows" : "Click to show operating expenses only");
+      subtitle.onclick = () => {
+        this._spendingOCFOnly = !this._spendingOCFOnly;
+        void this.render();
+      };
+    }
+
+    const activeByCategory = ocfOnly ? summary.ocfByCategory : summary.byCategory;
+    const activeTotalExpenses = ocfOnly ? summary.ocfExpenses : summary.totalExpenses;
+    const sorted = Object.entries(activeByCategory).sort((a, b) => b[1] - a[1]);
     const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
 
     if (sorted.length === 0) {
@@ -1031,8 +1086,8 @@ export class DashboardView extends ItemView {
 
     // Donut chart
     const chartWrap = section.createDiv("ledgr-chart-wrap");
-    const segments = buildSpendingSegments(summary.byCategory, fmt);
-    renderDonutChart(chartWrap, segments, "expenses", fmt(summary.totalExpenses));
+    const segments = buildSpendingSegments(activeByCategory, fmt);
+    renderDonutChart(chartWrap, segments, "expenses", fmt(activeTotalExpenses));
 
     const breakdown = section.createDiv("ledgr-breakdown");
     sorted.forEach(([cat, amt], idx) => {
@@ -1042,6 +1097,7 @@ export class DashboardView extends ItemView {
         : undefined;
       const overBudget = budget !== undefined && amt > budget;
       const pct = budget ? Math.min((amt / budget) * 100, 100) : (amt / (sorted[0][1] || 1)) * 100;
+      void activeTotalExpenses; // suppress unused warning — used in donut above
       const catType = getCategoryType(cat);
       const catColor = categoryColor(cat, idx);
 
@@ -1086,7 +1142,17 @@ export class DashboardView extends ItemView {
     const incomeValues = summaries.map((s) => Math.round(s.totalIncome));
     const hasData = summaries.some((s) => s.totalExpenses > 0 || s.totalIncome > 0);
 
-    if (!hasData) return;
+    if (!hasData) {
+      // Show placeholder so new users know the section exists
+      const section = parent.createDiv("ledgr-section");
+      const hdr = section.createDiv("ledgr-section-header");
+      hdr.createEl("h3", { text: "6-Month Trend" });
+      section.createEl("p", {
+        text: "Your trend builds here — come back at month-end to see how you did.",
+        cls: "ledgr-empty-state",
+      });
+      return;
+    }
 
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "6-Month Trend" });

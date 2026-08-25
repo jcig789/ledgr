@@ -207,11 +207,13 @@ function calcBallast(
 }
 
 function calcProvision(
-  goals: { targetAmount: number; linkedAccountId?: string; deadline?: string }[],
+  goals: { targetAmount: number; currency: string; linkedAccountId?: string; deadline?: string }[],
   accountBalances: Record<string, number>,
   firstTxDate: string | null,
   today: string,
-  pillarMax: number
+  pillarMax: number,
+  base: string,
+  rates: import("../settings").ExchangeRates
 ): PillarResult {
   const name = "Provision";
   if (goals.length === 0) {
@@ -221,7 +223,9 @@ function calcProvision(
 
   const goalScores = goals.map((g) => {
     const balance = g.linkedAccountId ? (accountBalances[g.linkedAccountId] ?? 0) : 0;
-    const rawProgress = g.targetAmount > 0 ? clamp(balance / g.targetAmount, 0, 1) : 0;
+    // accountBalances are in base currency; convert targetAmount to base for a valid ratio
+    const targetInBase = convertToBase(g.targetAmount, g.currency, base, rates);
+    const rawProgress = targetInBase > 0 ? clamp(balance / targetInBase, 0, 1) : 0;
 
     let urgencyWeight = 1.0;
     if (g.deadline && firstTxDate) {
@@ -417,7 +421,7 @@ export async function calculateBearing(
   const rawPillars: PillarResult[] = [
     calcDiscipline(expenseByCategory, budgetConfig.limits, budgetConfig.currency, base, rates, PILLAR_BASE_MAX),
     calcBallast(totalLiabilities, totalAssets, PILLAR_BASE_MAX),
-    calcProvision(goalsStore.goals, accountBalances, firstTxDate, today, PILLAR_BASE_MAX),
+    calcProvision(goalsStore.goals, accountBalances, firstTxDate, today, PILLAR_BASE_MAX, base, rates),
     (() => {
       const result = calcComposure(monthlyExpenses.filter((e, i) => (allMonthTxs[i]?.length ?? 0) > 0), PILLAR_BASE_MAX);
       if (composureExcluded.size > 0) {

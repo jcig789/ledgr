@@ -7,15 +7,15 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 ## Features
 
 ### Core
-- **Quick transaction capture** — chip-based category selector; log expenses and income in seconds; Enter saves from the amount field on desktop
-- **Dashboard** — Income | Expenses | Net Position cards; savings rate gauge (OCF basis); Cash Flow Health panel (OCF/ICF/FCF); urgency banner for overdue payments
+- **Quick transaction capture** — Expense/Income toggle at top; chip-based category selector; log expenses and income in seconds; Enter saves from the amount field on desktop
+- **Dashboard** — Income | Expenses | Net Position cards; savings rate gauge ("of operating income"); Spending by Category with OCF-only toggle; Cash Flow Health panel (OCF/ICF/FCF); urgency banner for overdue payments
 - **Scheduled This Month** — unified view of all bills and liability payments due this month with week grouping, urgency sorting, and a Scheduled · Paid · Remaining footer
 - **Budgets** — per-category monthly limits with over-budget indicators and fixed/variable classification
 - **Net worth tracker** — bank accounts, investment accounts, and liabilities across multiple currencies with allocation chart and history chart
 - **Liability tracker** — track loans, mortgages, credit cards; log payments with live balance preview; closure prompt when paid off
 - **Debt cost analysis** — enter APR to see monthly interest cost, months to payoff, total interest, extra payment what-if, avalanche vs snowball priority order
 - **Property equity** — link a mortgage to a property asset to track equity %, LTV ratio, and principal paid
-- **Financial statements** — CPA-style Income Statement, three-section Cash Flow (Operating/Investing/Financing), Balance Sheet; K/M/B formatting; correct sign on negative Net Worth
+- **Financial statements** — CPA-style Income Statement (operating expenses only; non-operating income shown separately), three-section Cash Flow (Operating/Investing/Financing), Balance Sheet; K/M/B formatting; correct sign on negative Net Worth
 - **Cash Flow Forecast** — 3/6/12M projection, what-if simulator (up to 4 scenarios), Runway to Commit timing
 - **Savings goals** — set a target amount, deadline, and linked account; see projected completion date and progress bar
 - **Daily countdown** — budget remaining and daily allowance for the rest of the month
@@ -25,7 +25,7 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 
 ### Recurring Bills
 - **Bills system** — track subscriptions, utilities, and any recurring payment that has no running balance (Netflix, electricity, mobile plan)
-- **Monthly, annual, or one-time** — annual bills appear only in their due month; one-time bills auto-hide after first payment
+- **Monthly, annual, or one-time** — annual bills require a due month (Jan–Dec selector); one-time bills auto-hide after first payment
 - **Nth-weekday support** — schedule bills on "2nd Wednesday" or any ordinal weekday
 - **Calendar ○ markers** — bills show as ○ on the calendar; ★ for debt payments — visually distinct
 - **Bill management** — add via Obligations button on Dashboard; edit amount, category, frequency, and due date inline
@@ -53,7 +53,8 @@ Multi-currency personal finance tracker that lives entirely inside your Obsidian
 - Forward navigation up to 3 months for planning upcoming obligations
 - Mobile: stacked layout with detail panel below the grid
 
-### Settings — Advanced & New Ledger
+### Settings — Features, Advanced & New Ledger
+- **Calendar week start** — choose Monday (ISO) or Sunday under Settings → Features
 - **Fix Legacy Transactions** — one-time migration tool to correct loan/mortgage payments that were mis-classified as Operating cash flow before v0.3.3
 - **New Ledger** — wipe all financial data and start fresh; preserves settings (currency, folder, exchange rates); requires typing "NEW LEDGER" to confirm
 

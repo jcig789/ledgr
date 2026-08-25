@@ -26,6 +26,7 @@ export interface LedgrSettings {
   composureExcludedCategories: string[];   // categories excluded from Composure volatility
   calendarWeekStart: "monday" | "sunday";
   dataVersion: number;  // tracks migrations; 0 = pre-v0.3.3
+  templatesAppliedMonths: string[];  // "YYYY-MM" entries — months where templates were applied
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -57,4 +58,5 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   composureExcludedCategories: [],
   calendarWeekStart: "monday",
   dataVersion: 0,
+  templatesAppliedMonths: [],
 };
