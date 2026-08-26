@@ -25,7 +25,7 @@ export class BillsModal extends Modal {
     contentEl.empty();
     contentEl.addClass("ledgr-config-modal");
 
-    contentEl.createEl("h2", { text: "Monthly Obligations" });
+    contentEl.createEl("h2", { text: "Bills" });
     contentEl.createEl("p", {
       text: "Bills and recurring payments you track each month. Liabilities (loans, credit cards) are managed in Net Worth.",
       cls: "setting-item-description",
@@ -103,7 +103,7 @@ export class BillsModal extends Modal {
             this.open();
           })
           .catch(() => {
-            new Notice("Failed to reload bills. Please reopen Monthly Obligations.");
+            new Notice("Failed to reload bills. Please reopen Bills.");
           });
       }).open();
     };

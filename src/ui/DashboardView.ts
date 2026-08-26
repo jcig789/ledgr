@@ -34,7 +34,7 @@ export class DashboardView extends ItemView {
   private isLiveMonth = true;
   private isRendering = false;
   private showAllTransactions = false;
-  private _spendingOCFOnly = false;
+  // spendingOCFOnly is now backed by plugin.settings.spendingOCFOnly
 
   constructor(leaf: WorkspaceLeaf, plugin: LedgrPlugin) {
     super(leaf);
@@ -146,7 +146,7 @@ export class DashboardView extends ItemView {
     }
     const budgetBtn = btnRow.createEl("button", { text: "Budgets", cls: "ledgr-budget-btn" });
     budgetBtn.onclick = () => new BudgetModal(this.app, this.plugin).open();
-    const billsBtn = btnRow.createEl("button", { text: "Obligations", cls: "ledgr-budget-btn" });
+    const billsBtn = btnRow.createEl("button", { text: "Bills", cls: "ledgr-budget-btn" });
     billsBtn.onclick = () => new BillsModal(this.app, this.plugin).open();
     const templatesBtn = btnRow.createEl("button", { text: "Templates", cls: "ledgr-budget-btn" });
     templatesBtn.onclick = () => new TemplatesModal(this.app, this.plugin).open();
@@ -196,6 +196,14 @@ export class DashboardView extends ItemView {
       banner.createSpan({ text: msg });
       const updateLink = banner.createEl("a", { text: " Update now →", cls: "ledgr-rate-banner-link" });
       updateLink.onclick = () => new ConfigModal(this.app, this.plugin).open();
+    }
+
+    // Missing exchange rate warning — currencies excluded from totals
+    if (summary.missingCurrencies.length > 0) {
+      const missingBanner = header.createDiv("ledgr-rate-banner");
+      missingBanner.createSpan({ text: `No exchange rate for: ${summary.missingCurrencies.join(", ")} — affected transactions excluded from totals.` });
+      const fixLink = missingBanner.createEl("a", { text: " Update rates →", cls: "ledgr-rate-banner-link" });
+      fixLink.onclick = () => new ConfigModal(this.app, this.plugin).open();
     }
 
     // First-run / empty state — also remove rate banner if no data yet
@@ -269,8 +277,14 @@ export class DashboardView extends ItemView {
     // Gauge: only when both income AND expenses are present (prevents false 100% on salary day)
     if (summary.totalIncome > 0 && summary.totalExpenses > 0) {
       const gaugeWrap = summaryRow.createDiv("ledgr-gauge-aside");
-      const gaugeSubtitle = summary.savingsRateIsOCFBasis ? "of operating income" : "of all income";
-      renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10, subtitle: gaugeSubtitle });
+      if (summary.savingsRateBasis === "na") {
+        // FCF-only income (loan disbursement) — savings rate is meaningless, show N/A
+        gaugeWrap.createDiv({ text: "N/A", cls: "ledgr-gauge-na-label" });
+        gaugeWrap.createDiv({ text: "no operating income", cls: "ledgr-meta" });
+      } else {
+        const gaugeSubtitle = summary.savingsRateIsOCFBasis ? "of operating income" : "of all income";
+        renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10, subtitle: gaugeSubtitle });
+      }
     } else if (summary.totalIncome === 0 && summary.totalExpenses > 0) {
       // Subtle nudge to log income
       const gaugeWrap = summaryRow.createDiv("ledgr-gauge-aside");
@@ -321,7 +335,7 @@ export class DashboardView extends ItemView {
           ? `Due This Month +${variableCount} variable`
           : "Due This Month";
         this.createCard(cards, cardLabel, fmt(totalMonthly), "ledgr-expense",
-          null, "Remaining unpaid obligations");
+          null, "Remaining unpaid bills");
       }
     } catch { /* no networth data */ }
 
@@ -356,8 +370,16 @@ export class DashboardView extends ItemView {
     // Opex / Capex breakdown
     this.renderOpexCapex(contentEl, summary, budgetConfig);
 
+    // Subscriptions summary card — read from bills, filter Subscriptions category
+    await this.renderSubscriptionsCard(contentEl);
+
     // Monthly trend — last 6 months
     await this.renderTrendSection(contentEl);
+
+    // Standing tab discovery nudge — show once after first closed month with data
+    if (!this.plugin.settings.standingNudgeDismissed && summary.totalIncome > 0 && summary.totalExpenses > 0 && !this.isLiveMonth) {
+      this.renderStandingNudge(contentEl);
+    }
 
     // Transfer widget — at bottom
     if (this.plugin.settings.enableTransferTracker && remittanceStore.remittances.length > 0) {
@@ -1045,6 +1067,50 @@ export class DashboardView extends ItemView {
     banner.createSpan({ text: " · daily spending only", cls: "ledgr-countdown-suffix ledgr-meta" });
   }
 
+  async renderSubscriptionsCard(parent: HTMLElement) {
+    try {
+      const { loadBills } = await import("../data/bills");
+      const store = await loadBills(this.app, this.plugin.settings);
+      const activeSubs = store.bills.filter((b) =>
+        !b.closedAt && (b.frequency ?? "monthly") === "monthly" && b.category === "Subscriptions"
+      );
+      if (activeSubs.length === 0) return;
+      const total = activeSubs.reduce((s, b) => s + (b.amount || 0), 0);
+      const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
+
+      const section = parent.createDiv("ledgr-section");
+      const hdr = section.createDiv("ledgr-section-header");
+      hdr.createEl("h3", { text: "Subscriptions" });
+      hdr.createSpan({ text: `${activeSubs.length} active · ${fmt(total)}/mo`, cls: "ledgr-meta" });
+
+      const list = section.createDiv("ledgr-subs-list");
+      activeSubs.forEach((b) => {
+        const row = list.createDiv("ledgr-subs-row");
+        row.createSpan({ text: b.name, cls: "ledgr-subs-name" });
+        row.createSpan({ text: b.amount > 0 ? fmt(b.amount) : "Varies", cls: "ledgr-subs-amount ledgr-meta" });
+      });
+    } catch { /* bills not configured */ }
+  }
+
+  renderStandingNudge(parent: HTMLElement) {
+    const nudge = parent.createDiv("ledgr-rate-banner ledgr-nudge-banner");
+    nudge.createSpan({ text: "See how your finances score across 6 behavioral pillars." });
+    const link = nudge.createEl("a", { text: " See your Standing →", cls: "ledgr-rate-banner-link" });
+    link.onclick = async () => {
+      this.plugin.settings.standingNudgeDismissed = true;
+      await this.plugin.saveSettings();
+      nudge.remove();
+      const { STANDING_VIEW_TYPE } = await import("./StandingView");
+      void this.plugin.openView(STANDING_VIEW_TYPE);
+    };
+    const dismiss = nudge.createEl("a", { text: " Dismiss", cls: "ledgr-rate-banner-link" });
+    dismiss.onclick = async () => {
+      this.plugin.settings.standingNudgeDismissed = true;
+      await this.plugin.saveSettings();
+      nudge.remove();
+    };
+  }
+
   createRemitStat(parent: HTMLElement, label: string, jpy: string, php: string, highlight = false) {
     const stat = parent.createDiv(`ledgr-remit-stat${highlight ? " ledgr-remit-lifetime" : ""}`);
     stat.createDiv({ text: label, cls: "ledgr-remit-stat-label" });
@@ -1059,7 +1125,7 @@ export class DashboardView extends ItemView {
 
     // OCF-only toggle — persisted in session state on the view instance
     const hasNonOCF = summary.totalExpenses > summary.ocfExpenses;
-    let ocfOnly = this._spendingOCFOnly ?? false;
+    let ocfOnly = this.plugin.settings.spendingOCFOnly ?? false;
 
     const subtitle = spendHdr.createSpan({
       text: ocfOnly ? "operating expenses only" : "all outflows incl. debt service",
@@ -1069,8 +1135,8 @@ export class DashboardView extends ItemView {
       subtitle.setCssStyles({ cursor: "pointer", textDecoration: "underline dotted" });
       subtitle.setAttribute("title", ocfOnly ? "Click to show all outflows" : "Click to show operating expenses only");
       subtitle.onclick = () => {
-        this._spendingOCFOnly = !this._spendingOCFOnly;
-        void this.render();
+        this.plugin.settings.spendingOCFOnly = !this.plugin.settings.spendingOCFOnly;
+        void this.plugin.saveSettings().then(() => this.render());
       };
     }
 
@@ -1138,12 +1204,11 @@ export class DashboardView extends ItemView {
     );
     const summaries = allTxs.map((txs) => summarize(txs, this.viewCurrency, this.plugin.settings.exchangeRates));
 
-    const expenseValues = summaries.map((s) => Math.round(s.totalExpenses));
-    const incomeValues = summaries.map((s) => Math.round(s.totalIncome));
+    const allExpenses = summaries.map((s) => Math.round(s.totalExpenses));
+    const allIncome = summaries.map((s) => Math.round(s.totalIncome));
     const hasData = summaries.some((s) => s.totalExpenses > 0 || s.totalIncome > 0);
 
     if (!hasData) {
-      // Show placeholder so new users know the section exists
       const section = parent.createDiv("ledgr-section");
       const hdr = section.createDiv("ledgr-section-header");
       hdr.createEl("h3", { text: "6-Month Trend" });
@@ -1154,6 +1219,12 @@ export class DashboardView extends ItemView {
       return;
     }
 
+    // Trim empty months from the left so the chart starts at the first month with data
+    const firstDataIdx = summaries.findIndex((s) => s.totalExpenses > 0 || s.totalIncome > 0);
+    const expenseValues = allExpenses.slice(firstDataIdx);
+    const incomeValues = allIncome.slice(firstDataIdx);
+    const trimmedLabels = labels.slice(firstDataIdx);
+
     const section = parent.createDiv("ledgr-section");
     section.createDiv("ledgr-section-header").createEl("h3", { text: "6-Month Trend" });
 
@@ -1161,7 +1232,7 @@ export class DashboardView extends ItemView {
     renderTrendLine(trendWrap, [
       { label: "Expenses", values: expenseValues, color: "var(--ledgr-red)" },
       { label: "Income", values: incomeValues, color: "var(--ledgr-green)", dashed: true },
-    ], labels);
+    ], trimmedLabels);
   }
 
   handleDelete(btn: HTMLButtonElement, row: HTMLElement, month: string, lineIndex: number) {
@@ -1217,12 +1288,12 @@ export class DashboardView extends ItemView {
   renderObligationsFirstRun(parent: HTMLElement) {
     const state = parent.createDiv("ledgr-first-run");
     state.createDiv({ cls: "ledgr-first-run-rule" });
-    state.createEl("h3", { text: "Obligations set up" });
+    state.createEl("h3", { text: "Bills set up" });
     state.createEl("p", { text: "Your bills and liabilities are ready. Log your first payment when one comes due." });
 
     const steps = state.createDiv("ledgr-first-run-steps");
     [
-      { n: "1", label: "See obligations in Scheduled This Month below" },
+      { n: "1", label: "See bills in Scheduled This Month below" },
       { n: "2", label: "Tap Pay → or Log → when a bill is due" },
       { n: "3", label: "Log your income to track savings rate" },
     ].forEach(({ n, label }) => {

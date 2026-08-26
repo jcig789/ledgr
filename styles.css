@@ -4357,3 +4357,26 @@ tr.pending-delete {
   gap: var(--ledgr-spacing-xs);
   align-items: center;
 }
+
+/* ─── Savings rate N/A state ─────────────────────────────────────────────── */
+.ledgr-gauge-na-label {
+  font-size: 1.4em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ledgr-text-secondary);
+  text-align: center;
+  padding: 12px 0 4px;
+}
+
+/* ─── Subscriptions summary card ─────────────────────────────────────────── */
+.ledgr-subs-list { margin-top: var(--ledgr-spacing-sm); }
+.ledgr-subs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--ledgr-rule);
+  font-size: var(--ledgr-font-body);
+}
+.ledgr-subs-name { flex: 1; }
+.ledgr-subs-amount { flex-shrink: 0; }

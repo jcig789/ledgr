@@ -149,7 +149,7 @@ export class OnboardingModal extends Modal {
     };
 
     makePathCard("spending", "Track my spending", "Log daily expenses and income, set budgets, watch your savings rate.");
-    makePathCard("obligations", "Manage monthly obligations", "Enter your bills, loans, and recurring payments. See what's due each week.");
+    makePathCard("obligations", "Set up bills & liabilities", "Enter your recurring bills, loans, and payments. See what's due each week.");
 
     this.addBackBtn();
 
@@ -165,7 +165,7 @@ export class OnboardingModal extends Modal {
       };
     } else {
       const doneBtn = contentEl.createEl("button", {
-        text: "Set up my obligations →",
+        text: "Set up bills →",
         cls: "ledgr-log-btn mod-cta ledgr-onboarding-cta",
       });
       doneBtn.onclick = async () => {

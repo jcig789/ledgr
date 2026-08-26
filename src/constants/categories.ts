@@ -44,6 +44,8 @@ export const FIXED_SUBCATEGORIES = new Set([
   "Streaming", "Software", "Other subscription",
   // Family — remittance is a recurring fixed obligation
   "Remittance",
+  // Debt service — loan and mortgage payments are fixed monthly commitments
+  "Loan payment", "Mortgage payment",
 ]);
 
 export function getCategoryType(category: string): "fixed" | "variable" {

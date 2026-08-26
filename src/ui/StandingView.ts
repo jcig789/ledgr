@@ -28,6 +28,9 @@ export class StandingView extends ItemView {
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:networth-updated", async () => { await this.render(); })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:settings-changed", async () => { await this.render(); })
+    );
   }
 
   async render() {

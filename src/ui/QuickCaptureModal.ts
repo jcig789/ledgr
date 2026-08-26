@@ -134,7 +134,8 @@ export class QuickCaptureModal extends Modal {
 
     const catChipWrap = catSelector.createDiv("ledgr-cat-chip-row-wrap");
     catChipWrap.createSpan({ text: "category", cls: "ledgr-chip-row-label" });
-    const catChipRow = catChipWrap.createDiv("ledgr-cat-chip-row");
+    // Expense chip row — hidden when in income mode
+    const catChipRow = catChipWrap.createDiv(`ledgr-cat-chip-row${this.type === "income" ? " ledgr-hidden" : ""}`);
 
     const subChipWrap = catSelector.createDiv("ledgr-sub-chip-row-wrap");
     const subLabel = subChipWrap.createSpan({
@@ -313,11 +314,30 @@ export class QuickCaptureModal extends Modal {
       })(); });
     };
 
+    // Income category chips — separate row, shown only in income mode
+    const incCatChipWrap = catChipWrap.createDiv(`ledgr-cat-chip-row${this.type === "income" ? "" : " ledgr-hidden"}`);
+    Object.keys(this.catStore.income).forEach((cat) => {
+      const btn = incCatChipWrap.createEl("button", {
+        text: cat,
+        cls: `ledgr-cat-chip${this.type === "income" && this.category === cat ? " active" : ""}`,
+      });
+      btn.dataset.cat = cat;
+      btn.onclick = () => {
+        this.category = cat;
+        this.subcategory = this.catStore.income[cat]?.[0] ?? "Other income";
+        incCatChipWrap.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
+        btn.addClass("active");
+        subLabel.textContent = `in: ${cat}`;
+        renderSubChips(this.catStore.income[cat] ?? ["Other income"]);
+      };
+    });
+
     // Wire the type toggle buttons — update chip rows and state
     const switchToExpense = () => {
       this.type = "expense";
       expTypeBtn.addClass("active"); incTypeBtn.removeClass("active");
       expTypeBtn.setAttribute("aria-pressed", "true"); incTypeBtn.setAttribute("aria-pressed", "false");
+      catChipRow.removeClass("ledgr-hidden"); incCatChipWrap.addClass("ledgr-hidden");
       const firstCat = Object.keys(this.catStore.expense)[0] ?? "Other";
       if (!this.catStore.expense[this.category]) {
         this.category = firstCat;
@@ -332,11 +352,13 @@ export class QuickCaptureModal extends Modal {
       this.type = "income";
       incTypeBtn.addClass("active"); expTypeBtn.removeClass("active");
       incTypeBtn.setAttribute("aria-pressed", "true"); expTypeBtn.setAttribute("aria-pressed", "false");
+      catChipRow.addClass("ledgr-hidden"); incCatChipWrap.removeClass("ledgr-hidden");
       const firstIncomeCat = Object.keys(this.catStore.income)[0] ?? "Income";
       this.category = firstIncomeCat;
       this.subcategory = this.catStore.income[firstIncomeCat]?.[0] ?? "Other income";
-      catChipRow.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
-      subLabel.textContent = "subcategory";
+      incCatChipWrap.querySelectorAll(".ledgr-cat-chip").forEach((b) => b.removeClass("active"));
+      incCatChipWrap.querySelector(`.ledgr-cat-chip[data-cat="${firstIncomeCat}"]`)?.addClass("active");
+      subLabel.textContent = `in: ${firstIncomeCat}`;
       renderSubChips(this.catStore.income[firstIncomeCat] ?? ["Other income"]);
     };
     expTypeBtn.onclick = switchToExpense;

@@ -477,10 +477,24 @@ export class ConfigModal extends Modal {
     // Clear session-specific settings that don't belong to the new ledger
     this.plugin.settings.ocfCommitments = {};
     this.plugin.settings.templatesAppliedMonths = [];
+    this.plugin.settings.standingNudgeDismissed = false;
+    this.plugin.settings.spendingOCFOnly = false;
     await this.plugin.saveSettings();
 
     new Notice("All Ledgr data deleted. Starting your new ledger.");
     this.close();
+
+    // Close all open Ledgr view tabs so no stale data is visible after reset
+    const ledgrViewTypes = [
+      "ledgr-dashboard",
+      "ledgr-networth",
+      "ledgr-statements",
+      "ledgr-standing",
+      "ledgr-calendar",
+    ];
+    for (const viewType of ledgrViewTypes) {
+      this.app.workspace.getLeavesOfType(viewType).forEach((leaf) => leaf.detach());
+    }
 
     // Open onboarding via dynamic import (avoids circular dependency and require())
     window.setTimeout(() => {

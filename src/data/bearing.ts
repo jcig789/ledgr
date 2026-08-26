@@ -171,6 +171,7 @@ function calcDiscipline(
   let totalOverspend = 0;
   for (const [cat, budgetRaw] of Object.entries(budgetLimits)) {
     const budget = convertToBase(budgetRaw, budgetCurrency, base, rates);
+    if (isNaN(budget)) continue; // skip if budget currency has no exchange rate configured
     const actual = monthExpenses[cat] ?? 0;
     totalBudgeted += budget;
     totalOverspend += Math.max(0, actual - budget);
@@ -338,13 +339,18 @@ export async function calculateBearing(
   // Also exclude user-defined business categories.
   const composureExcluded = new Set(settings.composureExcludedCategories ?? []);
   const { getDefaultStream } = await import("../constants/categories");
+  const safeConvert = (amount: number, currency: string) => {
+    const v = convertToBase(amount, currency, base, rates);
+    return isNaN(v) ? 0 : v; // exclude unconfigured currencies — conservative (treats as 0)
+  };
+
   const monthlyExpenses = allMonthTxs.map((txs) =>
     txs.filter((t) => {
       if (t.type !== "expense") return false;
       if (composureExcluded.has(t.category)) return false;
       const stream = t.stream ?? getDefaultStream(t.subcategory);
       return stream === "ocf"; // only operating expenses affect volatility
-    }).reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0)
+    }).reduce((s, t) => s + safeConvert(t.amount, t.currency), 0)
   );
 
   // Current month expenses by category
@@ -352,7 +358,7 @@ export async function calculateBearing(
   const expenseByCategory: Record<string, number> = {};
   for (const tx of currentMonthTxs) {
     if (tx.type !== "expense") continue;
-    const amt = convertToBase(tx.amount, tx.currency, base, rates);
+    const amt = safeConvert(tx.amount, tx.currency);
     expenseByCategory[tx.category] = (expenseByCategory[tx.category] ?? 0) + amt;
   }
 
@@ -360,23 +366,23 @@ export async function calculateBearing(
   const accounts = nwData.accounts ?? [];
   const brokerages = nwData.brokerages ?? [];
   const totalAssets = [
-    ...accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
-    ...brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
+    ...accounts.filter((a) => !a.isLiability).map((a) => safeConvert(a.balance, a.currency)),
+    ...brokerages.map((b) => safeConvert(b.value, b.currency)),
   ].reduce((s, v) => s + v, 0);
   const totalLiabilities = accounts
     .filter((a) => a.isLiability && !a.liabilityDetails?.closedAt)
-    .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+    .reduce((s, a) => s + safeConvert(a.balance, a.currency), 0);
 
   // Liquid assets (bank, ewallet, cash only)
   const liquidTypes = new Set(["bank", "ewallet", "cash"]);
   const liquidAssets = accounts
     .filter((a) => !a.isLiability && liquidTypes.has(a.type))
-    .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+    .reduce((s, a) => s + safeConvert(a.balance, a.currency), 0);
 
   // Account balances map (for goal linking)
   const accountBalances: Record<string, number> = {};
   for (const acc of accounts) {
-    accountBalances[acc.id] = convertToBase(acc.balance, acc.currency, base, rates);
+    accountBalances[acc.id] = safeConvert(acc.balance, acc.currency);
   }
 
   // First transaction date (for goal urgency)
@@ -402,11 +408,14 @@ export async function calculateBearing(
     }
     nonZeroNwSeries = snapshotValues;
   } else {
-    // Fall back to delta approximation for users with no snapshot history yet
+    // Fall back to delta approximation using OCF only — ICF/FCF distort inferred NW trend
+    const { getDefaultStream } = await import("../constants/categories");
     const monthlyNetSavings = allMonthTxs.map((txs) => {
-      const inc = txs.filter((t) => t.type === "income").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
-      const exp = txs.filter((t) => t.type === "expense").reduce((s, t) => s + convertToBase(t.amount, t.currency, base, rates), 0);
-      return inc - exp;
+      const ocfInc = txs.filter((t) => t.type === "income" && (t.stream ?? getDefaultStream(t.subcategory)) === "ocf")
+        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return isNaN(a) ? s : s + a; }, 0);
+      const ocfExp = txs.filter((t) => t.type === "expense" && (t.stream ?? getDefaultStream(t.subcategory)) === "ocf")
+        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return isNaN(a) ? s : s + a; }, 0);
+      return ocfInc - ocfExp;
     });
     const nwSeries: number[] = [nwNow];
     for (let i = monthlyNetSavings.length - 1; i >= 0; i--) {

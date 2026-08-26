@@ -95,7 +95,7 @@ export function convertToBase(
     if (r && r > 0) return amount * r;
   }
 
-  return amount; // fallback: no conversion
+  return NaN; // no conversion path found — callers must guard with isNaN()
 }
 
 export interface MonthlySummary {
@@ -106,7 +106,8 @@ export interface MonthlySummary {
   totalCapex: number;
   totalRemittances: number;
   savingsRate: number;
-  savingsRateIsOCFBasis: boolean;
+  savingsRateBasis: "ocf" | "total" | "na";
+  savingsRateIsOCFBasis: boolean;  // derived: savingsRateBasis === "ocf"
   net: number;
   byCategory: Record<string, number>;
   ocfByCategory: Record<string, number>;  // OCF expenses only — excludes debt service (FCF) and investments (ICF)
@@ -119,6 +120,7 @@ export interface MonthlySummary {
   netICF: number;
   netFinancingCF: number;  // Net Financing Cash Flow (renamed from netFinancingCF to avoid FCF ambiguity)
   freeCashFlow: number;    // = netOCF + netICF + netFinancingCF = Net Change in Cash
+  missingCurrencies: string[];  // currencies with no exchange rate — transactions excluded from totals
 }
 
 export function summarize(
@@ -139,9 +141,15 @@ export function summarize(
   const ocfByCategory: Record<string, number> = {};
   const opexByCategory: Record<string, number> = {};
   const capexByCategory: Record<string, number> = {};
+  const missingCurrencySet = new Set<string>();
 
   for (const tx of transactions) {
     const amt = convertToBase(tx.amount, tx.currency, baseCurrency, rates);
+    if (isNaN(amt)) {
+      // No conversion path — exclude from all aggregates rather than silently distort totals
+      missingCurrencySet.add(tx.currency);
+      continue;
+    }
     const stream = tx.stream ?? getDefaultStream(tx.subcategory);
 
     if (tx.type === "income") {
@@ -178,15 +186,24 @@ export function summarize(
     }
   }
 
-  // CFP-standard OCF-basis savings rate: (ocfIncome - ocfExpenses) / ocfIncome
-  // Falls back to (totalIncome - totalExpenses) / totalIncome when ocfIncome is zero
-  // — numerator and denominator must use the same income base to stay coherent
-  const savingsRateIsOCFBasis = ocfIncome > 0;
-  const savingsRateDenom = savingsRateIsOCFBasis ? ocfIncome : totalIncome;
-  const savingsRateNum = savingsRateIsOCFBasis ? (ocfIncome - ocfExpenses) : (totalIncome - totalExpenses);
-  const savingsRate = savingsRateDenom > 0
-    ? Math.max(0, Math.round((savingsRateNum / savingsRateDenom) * 100))
-    : 0;
+  // Three-state savings rate basis:
+  // "ocf"   — OCF income present: (ocfIncome - ocfExpenses) / ocfIncome
+  // "total" — Only ICF income (dividends, passive): (totalIncome - totalExpenses) / totalIncome
+  // "na"    — Only FCF income (loan disbursement) or no income: do not show a %
+  const hasFCFIncome = netFinancingCF > 0; // netFinancingCF is positive when FCF income > FCF expense
+  const savingsRateBasis: "ocf" | "total" | "na" =
+    ocfIncome > 0 ? "ocf"
+    : hasFCFIncome ? "na"          // loan proceeds — not earned income, never use as denominator
+    : totalIncome > 0 ? "total"    // passive/dividend income — defensible fallback
+    : "na";                        // no income at all
+
+  const savingsRateIsOCFBasis = savingsRateBasis === "ocf"; // backward-compat
+  let savingsRate = 0;
+  if (savingsRateBasis === "ocf") {
+    savingsRate = Math.max(0, Math.round(((ocfIncome - ocfExpenses) / ocfIncome) * 100));
+  } else if (savingsRateBasis === "total" && totalIncome > 0) {
+    savingsRate = Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100));
+  }
 
   const netOCF = ocfIncome - ocfExpenses;
   const freeCashFlow = netOCF + netICF + netFinancingCF;
@@ -198,10 +215,12 @@ export function summarize(
     totalCapex,
     totalRemittances,
     savingsRate,
+    savingsRateBasis,
     savingsRateIsOCFBasis,
     net: totalIncome - totalExpenses,
     byCategory,
     ocfByCategory,
+    missingCurrencies: Array.from(missingCurrencySet),
     byCategoryType: { opex: opexByCategory, capex: capexByCategory },
     transactions,
     ocfIncome,

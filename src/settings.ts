@@ -27,6 +27,8 @@ export interface LedgrSettings {
   calendarWeekStart: "monday" | "sunday";
   dataVersion: number;  // tracks migrations; 0 = pre-v0.3.3
   templatesAppliedMonths: string[];  // "YYYY-MM" entries — months where templates were applied
+  spendingOCFOnly: boolean;          // dashboard spending breakdown shows OCF-only when true
+  standingNudgeDismissed: boolean;   // permanent dismiss flag for Standing tab discovery banner
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -59,4 +61,6 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   calendarWeekStart: "monday",
   dataVersion: 0,
   templatesAppliedMonths: [],
+  spendingOCFOnly: false,
+  standingNudgeDismissed: false,
 };

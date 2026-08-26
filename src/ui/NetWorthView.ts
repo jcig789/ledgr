@@ -10,6 +10,13 @@ import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
 import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
 import { LIABILITY_TYPES, resolveLiabilityDueDay, formatDueLabel } from "../data/liabilities";
+
+const CURRENCY_COUNTRY: Record<string, string> = {
+  JPY: "JP", PHP: "PH", USD: "US", EUR: "EU", GBP: "GB",
+  AUD: "AU", CAD: "CA", SGD: "SG", HKD: "HK", KRW: "KR",
+  INR: "IN", MYR: "MY", THB: "TH", IDR: "ID", VND: "VN",
+};
+const currencyToCountry = (cur: string): string => CURRENCY_COUNTRY[cur] ?? "OTHER";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
 import { DebtCostModal } from "./DebtCostModal";
 import { recordNwSnapshot } from "../data/nwHistory";
@@ -66,27 +73,58 @@ export class NetWorthView extends ItemView {
     );
   }
 
-  async autoSnapshot() {
+  async autoSnapshot(force = false) {
     try {
       const history = await loadNwHistory(this.app, this.plugin.settings);
       const currentMonth = window.moment().format("YYYY-MM");
-      // Skip if already recorded this month
-      if (history.snapshots[currentMonth] !== undefined) return;
+      // Skip if already recorded this month — unless force=true (explicit Save overwrites stale snapshot)
+      if (!force && history.snapshots[currentMonth] !== undefined) return;
       const base = this.plugin.settings.baseCurrency;
       const rates = this.plugin.settings.exchangeRates;
       const snapAssets = [
         ...this.data.accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
         ...this.data.brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
-      ].reduce((s, v) => s + v, 0);
+      ].reduce((s, v) => isNaN(v) ? s : s + v, 0);
       const snapLiabilities = this.data.accounts
         .filter((a) => a.isLiability)
-        .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
-      await recordNwSnapshot(this.app, this.plugin.settings, snapAssets - snapLiabilities);
+        .reduce((s, a) => { const v = convertToBase(a.balance, a.currency, base, rates); return isNaN(v) ? s : s + v; }, 0);
+      const snapNetWorth = snapAssets - snapLiabilities;
+      // Only record if result is a valid number — NaN would corrupt history with null in JSON
+      if (!isNaN(snapNetWorth)) {
+        await recordNwSnapshot(this.app, this.plugin.settings, snapNetWorth);
+      }
     } catch { /* silent — snapshot is best-effort */ }
   }
 
+  renderNetWorthFirstRun(parent: HTMLElement) {
+    const state = parent.createDiv("ledgr-first-run");
+    state.createDiv({ cls: "ledgr-first-run-rule" });
+    state.createEl("h3", { text: "Net Worth" });
+    state.createEl("p", { text: "Your financial baseline starts here. Track what you own and what you owe — the chart builds automatically each time you save." });
+    const steps = state.createDiv("ledgr-first-run-steps");
+    [
+      { n: "1", label: "Add your bank accounts and cash" },
+      { n: "2", label: "Add liabilities — loans and credit cards" },
+      { n: "3", label: "Set a savings goal with a deadline" },
+    ].forEach(({ n, label }) => {
+      const step = steps.createDiv("ledgr-step");
+      step.createSpan({ text: n, cls: "ledgr-step-num" });
+      step.createSpan({ text: label });
+    });
+    const ctas = state.createDiv("ledgr-first-run-cta");
+    const editBtn = ctas.createEl("button", { text: "Edit Net Worth", cls: "ledgr-log-btn mod-cta" });
+    editBtn.onclick = () => { this.editMode = true; void this.render(); };
+    const goalBtn = ctas.createEl("button", { text: "Set a Goal", cls: "ledgr-budget-btn" });
+    goalBtn.onclick = () => new GoalModal(this.app, this.plugin, this.goalsStore, this.data, () => {
+      void import("../data/goals").then(({ loadGoals }) =>
+        loadGoals(this.app, this.plugin.settings).then((gs) => { this.goalsStore = gs; void this.render(); })
+      );
+    }).open();
+  }
+
   toBase(amount: number, currency: string) {
-    return convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+    const v = convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+    return isNaN(v) ? 0 : v; // display 0 for unconfigured currencies — never show "¥NaN"
   }
 
   // Helper: create input with type set at creation time (Obsidian checker compliance)
@@ -160,17 +198,8 @@ export class NetWorthView extends ItemView {
         await saveNetWorth(this.app, this.plugin.settings, this.data);
         this.isDirty = false;
         new Notice("Net worth saved");
-        // Snapshot net worth in BASE currency (not viewCurrency) for Momentum pillar accuracy
-        const base = this.plugin.settings.baseCurrency;
-        const rates = this.plugin.settings.exchangeRates;
-        const snapAssets = [
-          ...this.data.accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
-          ...this.data.brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
-        ].reduce((s, v) => s + v, 0);
-        const snapLiabilities = this.data.accounts
-          .filter((a) => a.isLiability)
-          .reduce((s, a) => s + convertToBase(a.balance, a.currency, base, rates), 0);
-        void recordNwSnapshot(this.app, this.plugin.settings, snapAssets - snapLiabilities);
+        // Force-update snapshot so Momentum pillar uses post-edit balances, not the stale onOpen() snapshot
+        await this.autoSnapshot(true);
       }
       this.editMode = !this.editMode;
       void this.render();
@@ -223,13 +252,35 @@ export class NetWorthView extends ItemView {
     this.createCard(cards, "Liabilities", this.fmt(liabilities), "ledgr-expense");
     this.createCard(cards, "Net Worth", this.fmt(netWorth), netWorth >= 0 ? "ledgr-positive" : "ledgr-negative");
 
+    // Empty state — no accounts set up yet
+    if (totalAssets === 0 && liabilities === 0 && !this.editMode) {
+      this.renderNetWorthFirstRun(contentEl);
+      return;
+    }
+
     // Visuals — only when there's data
     if (totalAssets > 0 || liabilities > 0) {
       this.renderNetWorthVisuals(contentEl, bankAssets, investAssets, liabilities, totalAssets);
     }
 
-    this.renderAccountGroup(contentEl, "Primary Accounts", "JP");
-    this.renderAccountGroup(contentEl, "Secondary Accounts", "PH");
+    // Group non-liability accounts by currency — base currency first, then alphabetically
+    const baseCur = this.plugin.settings.baseCurrency;
+    const nonLiabAccounts = this.data.accounts.filter((a) => !a.isLiability);
+    const currencies = Array.from(new Set(nonLiabAccounts.map((a) => a.currency)))
+      .sort((a, b) => {
+        if (a === baseCur) return -1;
+        if (b === baseCur) return 1;
+        return a.localeCompare(b);
+      });
+    if (currencies.length === 0) {
+      // No accounts yet — still render one empty group so edit mode shows the add button
+      this.renderAccountGroup(contentEl, `${baseCur} Accounts`, baseCur);
+    } else {
+      currencies.forEach((cur) => {
+        const label = cur === baseCur ? `${cur} Accounts` : `${cur} Accounts`;
+        this.renderAccountGroup(contentEl, label, cur);
+      });
+    }
     this.renderBrokerages(contentEl);
     this.renderPropertyEquity(contentEl);
     this.renderLiabilities(contentEl);
@@ -312,8 +363,8 @@ export class NetWorthView extends ItemView {
     });
   }
 
-  renderAccountGroup(parent: HTMLElement, title: string, country: "JP" | "PH") {
-    const accounts = this.data.accounts.filter((a) => a.country === country && !a.isLiability);
+  renderAccountGroup(parent: HTMLElement, title: string, currency: string) {
+    const accounts = this.data.accounts.filter((a) => a.currency === currency && !a.isLiability);
     if (accounts.length === 0 && !this.editMode) return;
 
     const section = parent.createDiv("ledgr-section");
@@ -720,7 +771,7 @@ export class NetWorthView extends ItemView {
         name: "New Investment Account",
         currency: allCurrencies[0],
         value: 0,
-        country: "JP",
+        country: currencyToCountry(allCurrencies[0]),
       });
       void this.render();
     };
@@ -768,7 +819,7 @@ export class NetWorthView extends ItemView {
           type: typeSelect.value as AccountType,
           currency: currSelect.value,
           balance: 0,
-          country: "JP",
+          country: currencyToCountry(currSelect.value),
           isLiability: false,
         });
         this.isDirty = true;
@@ -865,7 +916,7 @@ export class NetWorthView extends ItemView {
           type: liabTypeSelect.value as AccountType,
           currency: currSelect.value,
           balance: originalAmount,
-          country: currSelect.value === "JPY" ? "JP" : currSelect.value === "PHP" ? "PH" : "JP",
+          country: currencyToCountry(currSelect.value),
           isLiability: true,
           liabilityDetails: {
             originalAmount,
@@ -954,23 +1005,27 @@ export class NetWorthView extends ItemView {
       if (count > 0) avgMonthlySavings = totalNet / count;
     } catch { /* no data */ }
 
-    // Current total balance (bank + investments)
+    // Current total balance (bank + investments) — NaN-guarded so unknown currencies show as 0
+    const safeCvt = (amount: number, currency: string) => {
+      const v = cvt(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return isNaN(v) ? 0 : v;
+    };
     const totalBalance = [
       ...this.data.accounts.filter((a) => !a.isLiability),
-    ].reduce((s, a) => s + cvt(a.balance, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0)
-      + this.data.brokerages.reduce((s, b) => s + cvt(b.value, b.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+    ].reduce((s, a) => s + safeCvt(a.balance, a.currency), 0)
+      + this.data.brokerages.reduce((s, b) => s + safeCvt(b.value, b.currency), 0);
 
     for (const goal of this.goalsStore.goals) {
-      const targetInView = cvt(goal.targetAmount, goal.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      const targetInView = safeCvt(goal.targetAmount, goal.currency);
 
       // Use linked account balance if specified, otherwise total net worth
       let current = totalBalance;
       if (goal.linkedAccountId) {
         const linked = this.data.accounts.find((a) => a.id === goal.linkedAccountId && !a.isLiability);
-        if (linked) current = cvt(linked.balance, linked.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        if (linked) current = safeCvt(linked.balance, linked.currency);
       }
 
-      const pct = Math.min(100, Math.round((current / targetInView) * 100));
+      const pct = targetInView > 0 ? Math.min(100, Math.round((current / targetInView) * 100)) : 0;
       const remaining = targetInView - current;
       const reached = current >= targetInView;
 

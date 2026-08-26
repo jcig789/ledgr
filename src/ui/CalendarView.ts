@@ -47,6 +47,9 @@ export class CalendarView extends ItemView {
     this.registerEvent(
       (this.app.workspace as Events).on("ledgr:networth-updated", async () => { await this.render(); })
     );
+    this.registerEvent(
+      (this.app.workspace as Events).on("ledgr:settings-changed", async () => { await this.render(); })
+    );
   }
 
   async render() {
@@ -287,7 +290,7 @@ export class CalendarView extends ItemView {
     if (totalIncome > 0) addSummaryRow("Income", `+${fmt(totalIncome)}`, "ledgr-positive");
     if (totalSpend > 0) addSummaryRow("Spend", fmt(totalSpend), "ledgr-expense");
     const totalDue = this.liabilityAccounts.length + this.recurringBills.length;
-    if (totalDue > 0) addSummaryRow("Obligations due", String(totalDue));
+    if (totalDue > 0) addSummaryRow("Bills due", String(totalDue));
 
     detailEl.createDiv("ledgr-bearing-rule-thin");
     detailEl.createEl("p", { text: "Select a day to see transactions.", cls: "ledgr-cal-detail-empty" });

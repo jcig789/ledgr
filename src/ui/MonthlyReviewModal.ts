@@ -118,8 +118,11 @@ export class MonthlyReviewModal extends Modal {
       `|---|---:|`,
       `| **Income** | ${fmt(summary.totalIncome)} |`,
       `| **Expenses** | ${fmtParens(-summary.totalExpenses)} |`,
-      `| **Net Savings** | **${fmt(summary.net)}** |`,
-      `| Savings Rate (${summary.savingsRateIsOCFBasis ? "operating income" : "all income"}) | **${summary.savingsRate}%** |`,
+      `| **Net Operating Result** | **${fmt(summary.netOCF)}** |`,
+      `| Cash Flow (net change) | ${fmt(summary.freeCashFlow)} |`,
+      summary.savingsRateBasis !== "na"
+        ? `| Savings Rate (${summary.savingsRateIsOCFBasis ? "operating income" : "all income"}) | **${summary.savingsRate}%** |`
+        : `| Savings Rate | N/A — no operating income |`,
       ``,
       `---`,
       ``,
@@ -186,7 +189,11 @@ export class MonthlyReviewModal extends Modal {
         } else {
           current = totalNonLiability;
         }
-        const pct = Math.min(100, Math.round((current / g.targetAmount) * 100));
+        // Convert goal target to base currency — avoids cross-currency ratio errors
+        const targetInBase = convertToBase(g.targetAmount, g.currency, base, rates);
+        const pct = targetInBase > 0 && !isNaN(targetInBase)
+          ? Math.min(100, Math.round((current / targetInBase) * 100))
+          : 0;
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);
       });
       lines.push(``, `---`, ``);

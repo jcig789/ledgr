@@ -83,7 +83,7 @@ export class BulkObligationsModal extends Modal {
     contentEl.empty();
     contentEl.addClass("ledgr-bulk-obligations");
 
-    contentEl.createEl("h2", { text: "Set Up Monthly Obligations" });
+    contentEl.createEl("h2", { text: "Set Up Bills & Liabilities" });
     contentEl.createEl("p", {
       text: "Enter your bills, loans, and recurring payments. Use \"Varies\" for credit cards. For weekday schedules, type e.g. \"2nd Wednesday\".",
       cls: "ledgr-onboarding-sub",
