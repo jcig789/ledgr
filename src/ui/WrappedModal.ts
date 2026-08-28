@@ -1,6 +1,6 @@
 import { App, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import LedgrPlugin from "../main";
-import { readAllTransactions, summarize, convertToBase } from "../data/reader";
+import { readAllTransactions, summarize, toBaseOrZero } from "../data/reader";
 import { loadRemittances } from "../data/remittances";
 import { loadNetWorth, Account } from "../data/networth";
 import { loadGoals } from "../data/goals";
@@ -200,13 +200,13 @@ export class WrappedModal extends Modal {
       lines.push(`## Savings Goals`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
       const accountMap = new Map((netWorthData.accounts ?? []).map((a: Account) => [a.id, a]));
       const totalNonLiability = (netWorthData.accounts ?? []).filter((a: Account) => !a.isLiability)
-        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+        .reduce((s: number, a: Account) => s + toBaseOrZero(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
         // Use linked account if set and exists; fall back to total net worth if deleted or unset
         let current = 0;
         if (g.linkedAccountId) {
           const linked = accountMap.get(g.linkedAccountId);
-          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : totalNonLiability;
+          current = linked ? toBaseOrZero(linked.balance, linked.currency, base, rates) : totalNonLiability;
         } else {
           current = totalNonLiability;
         }

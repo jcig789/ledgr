@@ -1,14 +1,14 @@
 import { ItemView, WorkspaceLeaf, Notice, Events, setIcon } from "obsidian";
 import LedgrPlugin from "../main";
 import { loadNetWorth, saveNetWorth, NetWorthData, AccountType } from "../data/networth";
-import { convertToBase } from "../data/reader";
+import { convertToBase, toBaseOrZero } from "../data/reader";
 import { Currency } from "../settings";
 import { renderDonutChart, categoryColor, renderNwHistoryChart } from "./charts";
 import { loadNwHistory } from "../data/nwHistory";
 import { formatCurrency } from "../constants/currencies";
 import { loadGoals, saveGoals, GoalStore } from "../data/goals";
 import { GoalModal } from "./GoalModal";
-import { readMonthTransactions, summarize, convertToBase as cvt } from "../data/reader";
+import { readMonthTransactions, summarize, toBaseOrZero as cvt } from "../data/reader";
 import { LIABILITY_TYPES, resolveLiabilityDueDay, formatDueLabel } from "../data/liabilities";
 
 const CURRENCY_COUNTRY: Record<string, string> = {
@@ -81,18 +81,16 @@ export class NetWorthView extends ItemView {
       if (!force && history.snapshots[currentMonth] !== undefined) return;
       const base = this.plugin.settings.baseCurrency;
       const rates = this.plugin.settings.exchangeRates;
-      const snapAssets = [
+      const snapConversions = [
         ...this.data.accounts.filter((a) => !a.isLiability).map((a) => convertToBase(a.balance, a.currency, base, rates)),
         ...this.data.brokerages.map((b) => convertToBase(b.value, b.currency, base, rates)),
-      ].reduce((s, v) => isNaN(v) ? s : s + v, 0);
+      ];
+      const snapAssets = snapConversions.reduce<number>((s, v) => v === null ? s : s + v, 0);
       const snapLiabilities = this.data.accounts
         .filter((a) => a.isLiability)
-        .reduce((s, a) => { const v = convertToBase(a.balance, a.currency, base, rates); return isNaN(v) ? s : s + v; }, 0);
-      const snapNetWorth = snapAssets - snapLiabilities;
-      // Only record if result is a valid number — NaN would corrupt history with null in JSON
-      if (!isNaN(snapNetWorth)) {
-        await recordNwSnapshot(this.app, this.plugin.settings, snapNetWorth);
-      }
+        .reduce<number>((s, a) => { const v = convertToBase(a.balance, a.currency, base, rates); return v === null ? s : s + v; }, 0);
+      const snapNetWorth: number = snapAssets - snapLiabilities;
+      await recordNwSnapshot(this.app, this.plugin.settings, snapNetWorth);
     } catch { /* silent — snapshot is best-effort */ }
   }
 
@@ -122,9 +120,8 @@ export class NetWorthView extends ItemView {
     }).open();
   }
 
-  toBase(amount: number, currency: string) {
-    const v = convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
-    return isNaN(v) ? 0 : v; // display 0 for unconfigured currencies — never show "¥NaN"
+  toBase(amount: number, currency: string): number {
+    return convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0;
   }
 
   // Helper: create input with type set at creation time (Obsidian checker compliance)

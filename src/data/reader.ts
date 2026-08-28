@@ -62,7 +62,7 @@ export function convertToBase(
   fromCurrency: string,
   baseCurrency: string,
   rates: LedgrSettings["exchangeRates"]
-): number {
+): number | null {
   if (fromCurrency === baseCurrency) return amount;
 
   // Try direct rate: base_from
@@ -95,7 +95,19 @@ export function convertToBase(
     if (r && r > 0) return amount * r;
   }
 
-  return NaN; // no conversion path found — callers must guard with isNaN()
+  return null; // no conversion path found — callers must handle null explicitly
+}
+
+// Convenience wrapper — returns 0 for unknown currencies (display/scoring use)
+// Use convertToBase() directly when null needs to propagate (e.g. summarize, history writes)
+export function toBaseOrZero(
+  amount: number,
+  fromCurrency: string,
+  baseCurrency: string,
+  rates: LedgrSettings["exchangeRates"]
+): number {
+  const v = convertToBase(amount, fromCurrency, baseCurrency, rates);
+  return v ?? 0;
 }
 
 export interface MonthlySummary {
@@ -107,7 +119,8 @@ export interface MonthlySummary {
   totalRemittances: number;
   savingsRate: number;
   savingsRateBasis: "ocf" | "total" | "na";
-  savingsRateIsOCFBasis: boolean;  // derived: savingsRateBasis === "ocf"
+  savingsRateIsOCFBasis: boolean;   // derived: savingsRateBasis === "ocf"
+  savingsRateIsDeficit: boolean;    // true when expenses exceed income (rate clamped to 0)
   net: number;
   byCategory: Record<string, number>;
   ocfByCategory: Record<string, number>;  // OCF expenses only — excludes debt service (FCF) and investments (ICF)
@@ -145,7 +158,7 @@ export function summarize(
 
   for (const tx of transactions) {
     const amt = convertToBase(tx.amount, tx.currency, baseCurrency, rates);
-    if (isNaN(amt)) {
+    if (amt === null) {
       // No conversion path — exclude from all aggregates rather than silently distort totals
       missingCurrencySet.add(tx.currency);
       continue;
@@ -199,10 +212,15 @@ export function summarize(
 
   const savingsRateIsOCFBasis = savingsRateBasis === "ocf"; // backward-compat
   let savingsRate = 0;
+  let savingsRateIsDeficit = false; // true when raw rate is negative (clamped to 0 for display)
   if (savingsRateBasis === "ocf") {
-    savingsRate = Math.max(0, Math.round(((ocfIncome - ocfExpenses) / ocfIncome) * 100));
+    const raw = Math.round(((ocfIncome - ocfExpenses) / ocfIncome) * 100);
+    savingsRateIsDeficit = raw < 0;
+    savingsRate = Math.max(0, raw);
   } else if (savingsRateBasis === "total" && totalIncome > 0) {
-    savingsRate = Math.max(0, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100));
+    const raw = Math.round(((totalIncome - totalExpenses) / totalIncome) * 100);
+    savingsRateIsDeficit = raw < 0;
+    savingsRate = Math.max(0, raw);
   }
 
   const netOCF = ocfIncome - ocfExpenses;
@@ -217,6 +235,7 @@ export function summarize(
     savingsRate,
     savingsRateBasis,
     savingsRateIsOCFBasis,
+    savingsRateIsDeficit,
     net: totalIncome - totalExpenses,
     byCategory,
     ocfByCategory,

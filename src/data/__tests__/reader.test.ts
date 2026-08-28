@@ -169,3 +169,54 @@ describe("summarize — income statement identity (regression guard)", () => {
     expect(s.ocfByCategory["Food & Drink"]).toBe(15000);
   });
 });
+
+describe("summarize — savingsRateIsDeficit flag", () => {
+  it("isDeficit is false when savings rate is positive", () => {
+    const txs: Transaction[] = [
+      tx({ type: "income", amount: 300000, currency: "JPY", subcategory: "Salary", category: "Income", stream: "ocf" }),
+      tx({ amount: 100000, currency: "JPY", stream: "ocf" }),
+    ];
+    const s = summarize(txs, BASE, RATES);
+    expect(s.savingsRateIsDeficit).toBe(false);
+    expect(s.savingsRate).toBe(67);
+  });
+
+  it("isDeficit is true when OCF expenses exceed OCF income (deficit month)", () => {
+    const txs: Transaction[] = [
+      tx({ type: "income", amount: 100000, currency: "JPY", subcategory: "Salary", category: "Income", stream: "ocf" }),
+      tx({ amount: 200000, currency: "JPY", stream: "ocf" }), // spends more than earns
+    ];
+    const s = summarize(txs, BASE, RATES);
+    expect(s.savingsRateIsDeficit).toBe(true);
+    expect(s.savingsRate).toBe(0); // clamped but deficit is signaled
+  });
+
+  it("isDeficit is false when savingsRateBasis is na", () => {
+    const txs: Transaction[] = [
+      tx({ type: "income", amount: 500000, currency: "JPY", subcategory: "Loan", category: "Income", stream: "fcf" }),
+    ];
+    const s = summarize(txs, BASE, RATES);
+    expect(s.savingsRateBasis).toBe("na");
+    expect(s.savingsRateIsDeficit).toBe(false); // na path — no computation, no deficit signal
+  });
+});
+
+describe("summarize — calcComposure stream isolation regression guard", () => {
+  it("ocfByCategory excludes ICF and FCF expenses — investments and loan payments do not distort spending", () => {
+    const txs: Transaction[] = [
+      tx({ amount: 50000, category: "Food & Drink", stream: "ocf" }),
+      tx({ amount: 100000, category: "Investing", stream: "icf" }),  // ICF — must NOT be in ocfByCategory
+      tx({ amount: 90000, category: "Other", stream: "fcf" }),        // FCF — must NOT be in ocfByCategory
+    ];
+    const s = summarize(txs, BASE, RATES);
+    // ocfByCategory must only contain Food & Drink
+    expect(Object.keys(s.ocfByCategory)).toEqual(["Food & Drink"]);
+    expect(s.ocfByCategory["Food & Drink"]).toBe(50000);
+    expect(s.ocfByCategory["Investing"]).toBeUndefined();
+    expect(s.ocfByCategory["Other"]).toBeUndefined();
+    // ocfExpenses must only sum OCF
+    expect(s.ocfExpenses).toBe(50000);
+    // totalExpenses includes all streams
+    expect(s.totalExpenses).toBe(240000);
+  });
+});

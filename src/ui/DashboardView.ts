@@ -7,7 +7,7 @@ import { BudgetModal } from "./BudgetModal";
 import { ConfigModal } from "./ConfigModal";
 import { RemittanceModal } from "./RemittanceModal";
 import { loadBudgets } from "../data/budgets";
-import { convertToBase } from "../data/reader";
+import { convertToBase, toBaseOrZero } from "../data/reader";
 import { loadRemittances, getRemittanceSummary, RemittanceStore, Remittance } from "../data/remittances";
 import { BudgetConfig } from "../data/budgets";
 import { getCategoryType } from "../constants/categories";
@@ -277,13 +277,38 @@ export class DashboardView extends ItemView {
     // Gauge: only when both income AND expenses are present (prevents false 100% on salary day)
     if (summary.totalIncome > 0 && summary.totalExpenses > 0) {
       const gaugeWrap = summaryRow.createDiv("ledgr-gauge-aside");
+      const target = this.plugin.settings.targetMonthlyIncome;
+
       if (summary.savingsRateBasis === "na") {
         // FCF-only income (loan disbursement) — savings rate is meaningless, show N/A
         gaugeWrap.createDiv({ text: "N/A", cls: "ledgr-gauge-na-label" });
         gaugeWrap.createDiv({ text: "no operating income", cls: "ledgr-meta" });
+      } else if (target !== null && target > 0 && summary.ocfIncome > 0) {
+        // Target income mode — stable denominator for irregular earners
+        const rawRate = Math.round(((summary.ocfIncome - summary.ocfExpenses) / target) * 100);
+        const displayRate = Math.min(999, Math.max(0, rawRate));
+        const beatTarget = summary.ocfIncome >= target;
+        const subtitle = beatTarget
+          ? `vs ${formatCurrency(target, this.viewCurrency)} target — exceeded!`
+          : `vs ${formatCurrency(target, this.viewCurrency)} target`;
+        renderGauge(gaugeWrap, displayRate, "savings rate", { good: 20, warn: 10, subtitle });
+        const clearLink = gaugeWrap.createEl("a", { text: "× clear target", cls: "ledgr-meta ledgr-gauge-target-clear" });
+        clearLink.onclick = async () => {
+          this.plugin.settings.targetMonthlyIncome = null;
+          await this.plugin.saveSettings();
+          void this.render();
+        };
+      } else if (summary.savingsRateIsDeficit) {
+        // Expenses exceeded income — 0% would look like breakeven, so surface the deficit
+        renderGauge(gaugeWrap, 0, "savings rate", { good: 20, warn: 10, subtitle: "deficit month" });
       } else {
         const gaugeSubtitle = summary.savingsRateIsOCFBasis ? "of operating income" : "of all income";
         renderGauge(gaugeWrap, summary.savingsRate, "savings rate", { good: 20, warn: 10, subtitle: gaugeSubtitle });
+      }
+
+      // Inline "set target income" prompt — shown when no target is set
+      if ((target === null || target === 0) && summary.savingsRateBasis !== "na") {
+        this.renderTargetIncomePrompt(gaugeWrap);
       }
     } else if (summary.totalIncome === 0 && summary.totalExpenses > 0) {
       // Subtle nudge to log income
@@ -317,7 +342,7 @@ export class DashboardView extends ItemView {
           .reduce((s, p) => s + p.amount, 0);
         const remaining = Math.max(0, ld.monthlyPayment - paidThisMonth);
         if (remaining === 0) return sum;
-        return sum + convertToBase(remaining, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        return sum + (convertToBase(remaining, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
       }, 0);
       const billTotal = activeBills.reduce((sum, b) => {
         if (b.amountType === "variable") return sum;
@@ -326,7 +351,7 @@ export class DashboardView extends ItemView {
           .reduce((s, p) => s + p.amount, 0);
         const remaining = Math.max(0, b.amount - paidThisMonth);
         if (remaining === 0) return sum;
-        return sum + convertToBase(remaining, b.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        return sum + (convertToBase(remaining, b.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
       }, 0);
       const totalMonthly = liabilityTotal + billTotal;
 
@@ -798,12 +823,12 @@ export class DashboardView extends ItemView {
     // so variable items contribute real paid values, not 0
     const scheduledTotal = items.reduce((s, i) => {
       const base = i.amountType !== "variable"
-        ? convertToBase(i.amount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
-        : convertToBase(i.paidAmount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+        ? (convertToBase(i.amount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0)
+        : (convertToBase(i.paidAmount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
       return s + base;
     }, 0);
     const paidTotal = items.filter((i) => i.isPaid).reduce((s, i) =>
-      s + convertToBase(i.paidAmount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+      s + (convertToBase(i.paidAmount, i.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0), 0);
     const remainingTotal = Math.max(0, scheduledTotal - paidTotal);
 
     const section = parent.createDiv("ledgr-section ledgr-scheduled-section");
@@ -1027,13 +1052,35 @@ export class DashboardView extends ItemView {
     if (Object.keys(budgetConfig.limits).length === 0) return;
 
     const totalBudget = Object.entries(budgetConfig.limits).reduce((sum, [, val]) => {
-      return sum + convertToBase(val, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      return sum + (convertToBase(val, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
     }, 0);
     if (totalBudget === 0) return;
 
     // Use OCF expenses only — debt service (FCF) and investments (ICF) are not budget items
     const remaining = totalBudget - summary.ocfExpenses;
-    const daysLeft = Math.max(0, window.moment().endOf("month").diff(window.moment(), "days") + 1);
+
+    // Payday-aligned period: when payDay > 1, period runs from payDay to (next payDay - 1)
+    const payDay = this.plugin.settings.payDay ?? 1;
+    const now = window.moment();
+    let periodEnd: moment.Moment;
+    let periodLabel: string;
+    if (payDay > 1) {
+      // Period end = one day before next payDay occurrence
+      const thisMonthPayday = window.moment().date(Math.min(payDay, now.daysInMonth()));
+      const nextPayday = now.isBefore(thisMonthPayday, "day")
+        ? thisMonthPayday
+        : thisMonthPayday.clone().add(1, "month").date(Math.min(payDay, thisMonthPayday.clone().add(1, "month").daysInMonth()));
+      periodEnd = nextPayday.clone().subtract(1, "day").endOf("day");
+      const daysUntilPayday = nextPayday.diff(now, "days");
+      periodLabel = daysUntilPayday <= 3
+        ? `days left in cycle — pay day ${nextPayday.format("MMM D")}`
+        : "days left in cycle";
+    } else {
+      periodEnd = window.moment().endOf("month");
+      periodLabel = "days left in " + window.moment(this.currentMonth).format("MMMM");
+    }
+
+    const daysLeft = Math.max(0, periodEnd.diff(now, "days") + 1);
     const dailyAllowance = daysLeft > 0 ? remaining / daysLeft : 0;
     const pctLeft = remaining / totalBudget;
     const fmt = (n: number) => formatCurrency(Math.abs(n), this.viewCurrency);
@@ -1048,7 +1095,7 @@ export class DashboardView extends ItemView {
       cls: `ledgr-countdown-days ${daysClass}`,
     });
     banner.createSpan({
-      text: daysLeft === 1 ? " of the month" : " days left in " + window.moment(this.currentMonth).format("MMMM"),
+      text: daysLeft === 1 ? " of the period" : ` ${periodLabel}`,
       cls: "ledgr-countdown-label",
     });
     banner.createSpan({ text: "·", cls: "ledgr-countdown-sep" });
@@ -1075,13 +1122,19 @@ export class DashboardView extends ItemView {
         !b.closedAt && (b.frequency ?? "monthly") === "monthly" && b.category === "Subscriptions"
       );
       if (activeSubs.length === 0) return;
-      const total = activeSubs.reduce((s, b) => s + (b.amount || 0), 0);
+      // Fixed/estimated subs contribute to the monthly total; variable ones are listed but not summed
+      const fixedSubs = activeSubs.filter((b) => b.amountType !== "variable" && b.amount > 0);
+      const variableSubs = activeSubs.filter((b) => b.amountType === "variable" || b.amount === 0);
+      const total = fixedSubs.reduce((s, b) => s + b.amount, 0);
       const fmt = (n: number) => formatCurrency(n, this.viewCurrency);
 
       const section = parent.createDiv("ledgr-section");
       const hdr = section.createDiv("ledgr-section-header");
       hdr.createEl("h3", { text: "Subscriptions" });
-      hdr.createSpan({ text: `${activeSubs.length} active · ${fmt(total)}/mo`, cls: "ledgr-meta" });
+      const totalLabel = variableSubs.length > 0
+        ? `${activeSubs.length} active · ${fmt(total)}/mo + ${variableSubs.length} variable`
+        : `${activeSubs.length} active · ${fmt(total)}/mo`;
+      hdr.createSpan({ text: totalLabel, cls: "ledgr-meta" });
 
       const list = section.createDiv("ledgr-subs-list");
       activeSubs.forEach((b) => {
@@ -1090,6 +1143,35 @@ export class DashboardView extends ItemView {
         row.createSpan({ text: b.amount > 0 ? fmt(b.amount) : "Varies", cls: "ledgr-subs-amount ledgr-meta" });
       });
     } catch { /* bills not configured */ }
+  }
+
+  renderTargetIncomePrompt(parent: HTMLElement) {
+    // Inline set target income — no modal, matches OCF commitment pattern
+    const prompt = parent.createDiv("ledgr-gauge-target-prompt");
+    const link = prompt.createEl("a", { text: "Set income target", cls: "ledgr-meta ledgr-gauge-target-link" });
+    const form = prompt.createDiv("ledgr-gauge-target-form ledgr-hidden");
+
+    link.onclick = () => {
+      link.addClass("ledgr-hidden");
+      form.removeClass("ledgr-hidden");
+      inp.focus();
+    };
+
+    const inp = form.createEl("input", { attr: { type: "number", placeholder: "Monthly income", class: "ledgr-inline-input ledgr-gauge-target-input", inputmode: "decimal" } }) as HTMLInputElement;
+    const setBtn = form.createEl("button", { text: "Set", cls: "ledgr-budget-btn" });
+    const cancelLink = form.createEl("a", { text: " Cancel", cls: "ledgr-meta ledgr-gauge-target-cancel" });
+
+    const doSet = async () => {
+      const val = parseFloat(inp.value);
+      if (val > 0) {
+        this.plugin.settings.targetMonthlyIncome = val;
+        await this.plugin.saveSettings();
+        void this.render();
+      }
+    };
+    setBtn.onclick = () => void doSet();
+    inp.onkeydown = (e) => { if (e.key === "Enter") void doSet(); };
+    cancelLink.onclick = () => { form.addClass("ledgr-hidden"); link.removeClass("ledgr-hidden"); };
   }
 
   renderStandingNudge(parent: HTMLElement) {
@@ -1156,10 +1238,13 @@ export class DashboardView extends ItemView {
     renderDonutChart(chartWrap, segments, "expenses", fmt(activeTotalExpenses));
 
     const breakdown = section.createDiv("ledgr-breakdown");
+    let openDrillPanel: HTMLElement | null = null;
+    let openDrillCat: string | null = null;
+
     sorted.forEach(([cat, amt], idx) => {
       const rawBudget = budgetConfig.limits[cat];
       const budget = rawBudget
-        ? convertToBase(rawBudget, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates)
+        ? (convertToBase(rawBudget, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0)
         : undefined;
       const overBudget = budget !== undefined && amt > budget;
       const pct = budget ? Math.min((amt / budget) * 100, 100) : (amt / (sorted[0][1] || 1)) * 100;
@@ -1167,7 +1252,8 @@ export class DashboardView extends ItemView {
       const catType = getCategoryType(cat);
       const catColor = categoryColor(cat, idx);
 
-      const row = breakdown.createDiv("ledgr-breakdown-row");
+      const row = breakdown.createDiv("ledgr-breakdown-row ledgr-breakdown-row--tappable");
+      row.setCssStyles({ cursor: "pointer" });
       const nameWrap = row.createDiv("ledgr-cat-name-wrap");
       // Color dot matching donut
       const dot = nameWrap.createSpan({ cls: "ledgr-cat-dot" });
@@ -1185,6 +1271,52 @@ export class DashboardView extends ItemView {
       window.requestAnimationFrame(() => { bar.setCssStyles({ width: `${Math.round(pct)}%` }); });
       const amtText = budget ? `${fmt(amt)} / ${fmt(budget)}` : fmt(amt);
       row.createSpan({ text: amtText, cls: `ledgr-cat-amt${overBudget ? " ledgr-negative" : ""}` });
+
+      // Drill-down panel — inline, inserted after the row on tap
+      row.onclick = () => {
+        // Collapse if already open
+        if (openDrillCat === cat) {
+          openDrillPanel?.remove();
+          openDrillPanel = null;
+          openDrillCat = null;
+          row.removeClass("ledgr-breakdown-row--open");
+          return;
+        }
+        // Close previous
+        openDrillPanel?.remove();
+        breakdown.querySelectorAll(".ledgr-breakdown-row--open").forEach((r) => r.removeClass("ledgr-breakdown-row--open"));
+
+        // Build panel
+        const panel = breakdown.createDiv("ledgr-drill-panel");
+        row.addClass("ledgr-breakdown-row--open");
+        row.after(panel);
+        openDrillPanel = panel;
+        openDrillCat = cat;
+
+        const catTxs = (ocfOnly ? summary.ocfByCategory : summary.byCategory)
+          ? (summary.transactions as import("../data/transactions").Transaction[])
+              .filter((t) => t.type === "expense" && t.category === cat &&
+                (!ocfOnly || (t.stream ?? "ocf") === "ocf"))
+              .sort((a, b) => b.date.localeCompare(a.date))
+          : [];
+
+        if (catTxs.length === 0) {
+          panel.createEl("p", { text: "No transactions this month.", cls: "ledgr-empty-state" });
+        } else {
+          const table = panel.createEl("table", { cls: "ledgr-drill-table" });
+          const tbody = table.createEl("tbody");
+          catTxs.forEach((t) => {
+            const tr = tbody.createEl("tr");
+            tr.createEl("td", { text: t.date.slice(5), cls: "ledgr-drill-date ledgr-meta" });
+            tr.createEl("td", { text: t.subcategory, cls: "ledgr-drill-sub" });
+            tr.createEl("td", { text: t.note || "—", cls: "ledgr-drill-note ledgr-meta" });
+            tr.createEl("td", { text: formatCurrency(t.amount, t.currency), cls: "ledgr-drill-amt ledgr-expense" });
+          });
+          const totalAmt = catTxs.reduce((s, t) => s + (convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0), 0);
+          const footer = panel.createDiv("ledgr-drill-footer");
+          footer.createSpan({ text: `${catTxs.length} transaction${catTxs.length !== 1 ? "s" : ""} · ${fmt(totalAmt)}`, cls: "ledgr-meta" });
+        }
+      };
     });
   }
 
@@ -1204,9 +1336,11 @@ export class DashboardView extends ItemView {
     );
     const summaries = allTxs.map((txs) => summarize(txs, this.viewCurrency, this.plugin.settings.exchangeRates));
 
-    const allExpenses = summaries.map((s) => Math.round(s.totalExpenses));
-    const allIncome = summaries.map((s) => Math.round(s.totalIncome));
-    const hasData = summaries.some((s) => s.totalExpenses > 0 || s.totalIncome > 0);
+    // Use OCF streams — FCF loan disbursements inflate totalIncome in bonus/loan months,
+    // making the trend line inconsistent with the savings rate gauge which excludes FCF
+    const allExpenses = summaries.map((s) => Math.round(s.ocfExpenses));
+    const allIncome = summaries.map((s) => Math.round(s.ocfIncome));
+    const hasData = summaries.some((s) => s.ocfExpenses > 0 || s.ocfIncome > 0);
 
     if (!hasData) {
       const section = parent.createDiv("ledgr-section");
@@ -1220,7 +1354,8 @@ export class DashboardView extends ItemView {
     }
 
     // Trim empty months from the left so the chart starts at the first month with data
-    const firstDataIdx = summaries.findIndex((s) => s.totalExpenses > 0 || s.totalIncome > 0);
+    // Use OCF to match hasData check — consistent with trend series values
+    const firstDataIdx = summaries.findIndex((s) => s.ocfExpenses > 0 || s.ocfIncome > 0);
     const expenseValues = allExpenses.slice(firstDataIdx);
     const incomeValues = allIncome.slice(firstDataIdx);
     const trimmedLabels = labels.slice(firstDataIdx);

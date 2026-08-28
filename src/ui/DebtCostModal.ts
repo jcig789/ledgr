@@ -3,7 +3,7 @@ import LedgrPlugin from "../main";
 import { Account, saveNetWorth, loadNetWorth } from "../data/networth";
 import { calcAmortization, calcExtraPayment, rankDebts } from "../data/debtCost";
 import { formatCurrency } from "../constants/currencies";
-import { convertToBase } from "../data/reader";
+import { convertToBase, toBaseOrZero } from "../data/reader";
 
 export class DebtCostModal extends Modal {
   plugin: LedgrPlugin;
@@ -126,7 +126,7 @@ export class DebtCostModal extends Modal {
         .map((a) => ({
           id: a.id,
           name: a.name,
-          balance: convertToBase(a.balance, a.currency, this.plugin.settings.baseCurrency, this.plugin.settings.exchangeRates),
+          balance: convertToBase(a.balance, a.currency, this.plugin.settings.baseCurrency, this.plugin.settings.exchangeRates) ?? 0,
           apr: a.liabilityDetails!.apr!,
         }));
 

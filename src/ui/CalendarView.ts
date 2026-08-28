@@ -3,7 +3,7 @@ import LedgrPlugin from "../main";
 import { readMonthTransactions } from "../data/reader";
 import { loadNetWorth } from "../data/networth";
 import { resolveLiabilityDueDay } from "../data/liabilities";
-import { convertToBase } from "../data/reader";
+import { convertToBase, toBaseOrZero } from "../data/reader";
 import { formatCurrency } from "../constants/currencies";
 import { EditTransactionModal } from "./EditTransactionModal";
 import { LiabilityPaymentModal } from "./LiabilityPaymentModal";
@@ -154,7 +154,7 @@ export class CalendarView extends ItemView {
       const day = parseInt(tx.date.slice(8, 10));
       if (!map.has(day)) map.set(day, { spend: 0, income: 0, txs: [] });
       const entry = map.get(day)!;
-      const amt = convertToBase(tx.amount, tx.currency, base, rates);
+      const amt = convertToBase(tx.amount, tx.currency, base, rates) ?? 0;
       if (tx.type === "expense") entry.spend += amt;
       else entry.income += amt;
       entry.txs.push(tx);

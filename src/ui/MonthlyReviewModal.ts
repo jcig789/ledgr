@@ -1,6 +1,6 @@
 import { App, Modal, Setting, Notice, TFile, normalizePath } from "obsidian";
 import LedgrPlugin from "../main";
-import { readMonthTransactions, summarize, convertToBase } from "../data/reader";
+import { readMonthTransactions, summarize, convertToBase, toBaseOrZero } from "../data/reader";
 import { loadBudgets } from "../data/budgets";
 import { loadRemittances } from "../data/remittances";
 import { loadGoals } from "../data/goals";
@@ -180,18 +180,18 @@ export class MonthlyReviewModal extends Modal {
       lines.push(`## Goals Progress`, ``, `| Goal | Target | % |`, `|---|---:|---|`);
       const accountMap = new Map((netWorth.accounts ?? []).map((a: Account) => [a.id, a]));
       const totalNonLiability = (netWorth.accounts ?? []).filter((a: Account) => !a.isLiability)
-        .reduce((s: number, a: Account) => s + convertToBase(a.balance, a.currency, base, rates), 0);
+        .reduce((s: number, a: Account) => s + toBaseOrZero(a.balance, a.currency, base, rates), 0);
       goalsStore.goals.forEach((g) => {
         let current = 0;
         if (g.linkedAccountId) {
           const linked = accountMap.get(g.linkedAccountId);
-          current = linked ? convertToBase(linked.balance, linked.currency, base, rates) : totalNonLiability;
+          current = linked ? toBaseOrZero(linked.balance, linked.currency, base, rates) : totalNonLiability;
         } else {
           current = totalNonLiability;
         }
         // Convert goal target to base currency — avoids cross-currency ratio errors
-        const targetInBase = convertToBase(g.targetAmount, g.currency, base, rates);
-        const pct = targetInBase > 0 && !isNaN(targetInBase)
+        const targetInBase = toBaseOrZero(g.targetAmount, g.currency, base, rates);
+        const pct = targetInBase > 0
           ? Math.min(100, Math.round((current / targetInBase) * 100))
           : 0;
         lines.push(`| ${g.name} | ${g.currency} ${g.targetAmount.toLocaleString()} | ${pct}% |`);

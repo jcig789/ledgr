@@ -1828,6 +1828,8 @@ button.ledgr-del-confirm,
 }
 
 .ledgr-top-tabs::-webkit-scrollbar { display: none; }
+/* Right-edge fade signals that more tabs exist off-screen */
+.ledgr-top-tabs { -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%); mask-image: linear-gradient(to right, black 85%, transparent 100%); }
 
 .ledgr-top-tab {
   background: transparent;
@@ -3991,6 +3993,9 @@ tr.pending-delete {
 }
 .ledgr-cat-chip-row::-webkit-scrollbar,
 .ledgr-sub-chip-row::-webkit-scrollbar { display: none; }
+/* Right-edge fade signals scrollable chip rows on mobile */
+.ledgr-cat-chip-row,
+.ledgr-sub-chip-row { -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%); mask-image: linear-gradient(to right, black 85%, transparent 100%); }
 
 /* On desktop (modal >= 560px) wrap chips to show all without scrolling */
 @media (min-width: 560px) {
@@ -4380,3 +4385,35 @@ tr.pending-delete {
 }
 .ledgr-subs-name { flex: 1; }
 .ledgr-subs-amount { flex-shrink: 0; }
+
+/* ─── Target income mode (P-2) ───────────────────────────────────────────── */
+.ledgr-gauge-target-prompt { margin-top: 4px; text-align: center; }
+.ledgr-gauge-target-link { font-size: var(--ledgr-font-sm); cursor: pointer; text-decoration: underline dotted; }
+.ledgr-gauge-target-form { display: flex; align-items: center; gap: 4px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
+.ledgr-gauge-target-input { width: 120px; }
+.ledgr-gauge-target-cancel { font-size: var(--ledgr-font-sm); cursor: pointer; }
+.ledgr-gauge-target-clear { display: block; text-align: center; margin-top: 2px; font-size: var(--ledgr-font-sm); cursor: pointer; }
+
+/* ─── Category drill-down panel (U-3) ────────────────────────────────────── */
+.ledgr-breakdown-row--open { background: var(--color-base-15); border-radius: 4px 4px 0 0; }
+.ledgr-drill-panel {
+  background: var(--color-base-15);
+  border-radius: 0 0 4px 4px;
+  padding: var(--ledgr-spacing-sm) var(--ledgr-spacing-md);
+  margin-bottom: var(--ledgr-spacing-xs);
+}
+.ledgr-drill-table { width: 100%; border-collapse: collapse; font-size: var(--ledgr-font-sm); }
+.ledgr-drill-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--color-base-20); }
+.ledgr-drill-table tr:last-child td { border-bottom: none; }
+.ledgr-drill-date { white-space: nowrap; width: 40px; }
+.ledgr-drill-sub { width: 30%; }
+.ledgr-drill-note { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+.ledgr-drill-amt { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.ledgr-drill-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--ledgr-spacing-xs);
+  margin-top: var(--ledgr-spacing-xs);
+  border-top: 1px solid var(--ledgr-rule);
+}

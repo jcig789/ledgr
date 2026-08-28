@@ -4,7 +4,7 @@
  * CFA/CPA required: any failure here means we are silently showing wrong numbers.
  */
 import { describe, it, expect } from "vitest";
-import { summarize, convertToBase } from "../reader";
+import { summarize, convertToBase, toBaseOrZero } from "../reader";
 import type { Transaction } from "../transactions";
 
 const RATES_JPY = { rates: { JPY_PHP: 0.38, JPY_USD: 0.0065 }, updatedAt: "2026-08-01" };
@@ -27,30 +27,38 @@ function tx(overrides: Partial<Transaction>): Transaction {
 
 // ─── convertToBase sentinel behavior ──────────────────────────────────────────
 
-describe("convertToBase — NaN sentinel", () => {
+describe("convertToBase — null sentinel (TypeScript null-migration)", () => {
   it("returns the amount unchanged when fromCurrency === baseCurrency", () => {
     const result = convertToBase(5000, "JPY", "JPY", RATES_JPY);
     expect(result).toBe(5000);
-    expect(isNaN(result)).toBe(false);
+    expect(result).not.toBeNull();
   });
 
   it("converts correctly via direct rate", () => {
     // 1000 PHP at JPY_PHP=0.38 → 1000/0.38 ≈ 2631 JPY
     const result = convertToBase(1000, "PHP", "JPY", RATES_JPY);
-    expect(isNaN(result)).toBe(false);
-    expect(result).toBeGreaterThan(2000);
+    expect(result).not.toBeNull();
+    expect(result!).toBeGreaterThan(2000);
   });
 
-  it("returns NaN (not the raw amount) when no rate path exists", () => {
+  it("returns null (not the raw amount) when no rate path exists", () => {
     const result = convertToBase(1000, "EUR", "JPY", RATES_JPY); // no EUR rate
-    expect(isNaN(result)).toBe(true);
+    expect(result).toBeNull();
     // Critical: must NOT equal 1000 (the old silent fallback)
     expect(result).not.toBe(1000);
   });
 
-  it("returns NaN for completely empty rates", () => {
+  it("returns null for completely empty rates", () => {
     const result = convertToBase(5000, "USD", "JPY", RATES_EMPTY);
-    expect(isNaN(result)).toBe(true);
+    expect(result).toBeNull();
+  });
+
+  it("toBaseOrZero returns 0 for null (unknown currency)", () => {
+    expect(toBaseOrZero(1000, "EUR", "JPY", RATES_JPY)).toBe(0);
+  });
+
+  it("toBaseOrZero returns correct value for known currency", () => {
+    expect(toBaseOrZero(5000, "JPY", "JPY", RATES_JPY)).toBe(5000);
   });
 });
 
@@ -179,72 +187,84 @@ describe("summarize — three-state savings rate basis", () => {
   });
 });
 
-// ─── NaN guard helpers — safeConvert pattern ─────────────────────────────────
+// ─── null guard helpers — toBaseOrZero and null-aware reduce ─────────────────
 
-describe("NaN guard — safeConvert pattern used in bearing.ts", () => {
-  const safeConvert = (amount: number, currency: string, base: string, rates: typeof RATES_JPY) => {
-    const v = convertToBase(amount, currency, base, rates);
-    return isNaN(v) ? 0 : v;
-  };
-
-  it("returns 0 (not NaN) for unknown currency — conservative exclusion", () => {
-    expect(safeConvert(100000, "EUR", "JPY", RATES_JPY)).toBe(0);
+describe("null guard — toBaseOrZero and null-aware reduce (v0.3.9 null migration)", () => {
+  it("null-aware reduce skips null values, produces valid total", () => {
+    const convertResults: (number | null)[] = [100000, null, 50000]; // one account has no rate
+    const total = convertResults.reduce<number>((s, v) => v === null ? s : s + v, 0);
+    expect(total).toBe(150000);
+    expect(typeof total).toBe("number");
   });
 
-  it("returns correct value for known currency", () => {
-    expect(safeConvert(10000, "JPY", "JPY", RATES_JPY)).toBe(10000);
+  it("null-aware reduce with all nulls returns 0", () => {
+    const convertResults: (number | null)[] = [null, null, null];
+    const total = convertResults.reduce<number>((s, v) => v === null ? s : s + v, 0);
+    expect(total).toBe(0);
   });
 
-  it("reduce with safeConvert never produces NaN even with mixed currencies", () => {
+  it("null ?? 0 pattern (toBaseOrZero) gives 0 for unknown currencies", () => {
+    const result = convertToBase(1000, "EUR", "JPY", RATES_JPY) ?? 0;
+    expect(result).toBe(0);
+  });
+
+  it("null ?? 0 gives correct value for known currencies", () => {
+    const result = convertToBase(5000, "JPY", "JPY", RATES_JPY) ?? 0;
+    expect(result).toBe(5000);
+  });
+
+  it("mixed-currency reduce with null-guard never produces NaN or null", () => {
     const accounts = [
       { balance: 100000, currency: "JPY" },
-      { balance: 50000, currency: "EUR" }, // unknown rate
-      { balance: 1000, currency: "PHP" },  // known rate
+      { balance: 50000, currency: "EUR" }, // unknown rate → null
+      { balance: 1000, currency: "PHP" },  // known rate → converted
     ];
-    const total = accounts.reduce((s, a) => s + safeConvert(a.balance, a.currency, "JPY", RATES_JPY), 0);
-    expect(isNaN(total)).toBe(false);
-    // EUR excluded (0), PHP converted, JPY as-is
-    expect(total).toBeGreaterThan(100000);
+    const total = accounts.reduce<number>((s, a) => {
+      const v = convertToBase(a.balance, a.currency, "JPY", RATES_JPY);
+      return v === null ? s : s + v;
+    }, 0);
+    expect(total).not.toBeNull();
+    expect(typeof total).toBe("number");
+    expect(total).toBeGreaterThan(100000); // JPY + PHP, EUR excluded
   });
 });
 
-// ─── autoSnapshot NaN safety (logic only — no Obsidian API) ──────────────────
+// ─── autoSnapshot null safety (logic only — no Obsidian API) ─────────────────
 
-describe("autoSnapshot NaN safety — reduce logic", () => {
-  it("NaN-guarded reduce does not corrupt total when one account has unknown currency", () => {
-    const convertResults = [100000, NaN, 50000]; // one account has no rate
-    const total = convertResults.reduce((s, v) => isNaN(v) ? s : s + v, 0);
+describe("autoSnapshot null safety — reduce logic", () => {
+  it("null-guarded reduce does not corrupt total when one account has unknown currency", () => {
+    const convertResults: (number | null)[] = [100000, null, 50000];
+    const total = convertResults.reduce<number>((s, v) => v === null ? s : s + v, 0);
     expect(total).toBe(150000);
-    expect(isNaN(total)).toBe(false);
+    expect(total).not.toBeNull();
   });
 
   it("unguarded reduce produces NaN — demonstrating why the guard is necessary", () => {
-    const convertResults = [100000, NaN, 50000];
+    // This test demonstrates why the old NaN fallback was dangerous
+    const convertResults = [100000, NaN, 50000]; // legacy NaN-style
     const totalUnguarded = convertResults.reduce((s, v) => s + v, 0);
-    expect(isNaN(totalUnguarded)).toBe(true); // this was the bug
+    expect(isNaN(totalUnguarded)).toBe(true); // proof: NaN propagates
   });
 
-  it("NaN netWorth would write null to JSON — demonstrates why !isNaN check before recordNwSnapshot is critical", () => {
-    const snapNaN = NaN;
-    const jsonVal = JSON.parse(JSON.stringify({ val: snapNaN }));
-    expect(jsonVal.val).toBeNull(); // JSON.stringify(NaN) → null — data destruction
-    expect(!isNaN(snapNaN)).toBe(false); // guard correctly blocks this
+  it("null netWorth would write null to JSON — demonstrates why guard before recordNwSnapshot is critical", () => {
+    const snapNull = null;
+    const jsonVal = JSON.parse(JSON.stringify({ val: snapNull }));
+    expect(jsonVal.val).toBeNull(); // null survives JSON round-trip
   });
 });
 
-// ─── Display-layer NaN guard (toBase / safeCvt pattern) ───────────────────────
+// ─── Display-layer null guard (toBase / ?? 0 pattern) ────────────────────────
 
-describe("display-layer NaN guard — toBase() and safeCvt pattern", () => {
-  // Simulates the toBase() method on NetWorthView: convertToBase result → 0 if NaN
-  const toBase = (amount: number, currency: string, base: string, rates: typeof RATES_JPY) => {
-    const v = convertToBase(amount, currency, base, rates);
-    return isNaN(v) ? 0 : v;
+describe("display-layer null guard — toBase() and ?? 0 pattern", () => {
+  // Simulates the toBase() method on NetWorthView: convertToBase result ?? 0
+  const toBase = (amount: number, currency: string, base: string, rates: typeof RATES_JPY): number => {
+    return convertToBase(amount, currency, base, rates) ?? 0;
   };
 
-  it("toBase returns 0 (not NaN) for unknown currency — no ¥NaN in display", () => {
+  it("toBase returns 0 for unknown currency — no ¥NaN or ¥null in display", () => {
     const result = toBase(100000, "EUR", "JPY", RATES_JPY);
     expect(result).toBe(0);
-    expect(isNaN(result)).toBe(false);
+    expect(typeof result).toBe("number");
   });
 
   it("toBase returns correct value for known currency", () => {
@@ -252,35 +272,31 @@ describe("display-layer NaN guard — toBase() and safeCvt pattern", () => {
     expect(result).toBe(10000);
   });
 
-  it("account balance display with unknown currency shows 0, not NaN", () => {
-    // Simulates bankAssets reduce in renderGoals / render totals
+  it("account balance display with unknown currency shows 0, not null", () => {
     const accounts = [
       { balance: 100000, currency: "JPY" },
       { balance: 50000, currency: "EUR" }, // unknown — must show 0
     ];
     const total = accounts.reduce((s, a) => s + toBase(a.balance, a.currency, "JPY", RATES_JPY), 0);
-    expect(isNaN(total)).toBe(false);
     expect(total).toBe(100000); // EUR excluded as 0
+    expect(typeof total).toBe("number");
   });
 
-  it("goal target with unknown currency: pct is 0 not NaN", () => {
-    // Simulates targetInView = safeCvt(goal.targetAmount, goal.currency)
+  it("goal target with unknown currency: pct is 0 not null", () => {
     const targetInView = toBase(500000, "EUR", "JPY", RATES_JPY); // no EUR rate
     const current = 100000;
-    // pct = targetInView > 0 ? ... : 0 — guard in renderGoals
     const pct = targetInView > 0 ? Math.min(100, Math.round((current / targetInView) * 100)) : 0;
     expect(isNaN(pct)).toBe(false);
     expect(pct).toBe(0); // shows 0% rather than NaN%
   });
 
-  it("property equity with unknown currency: equity and LTV show 0 not NaN", () => {
-    // Simulates propertyValue = toBase(asset.balance, asset.currency)
-    const propertyValue = toBase(50000000, "EUR", "JPY", RATES_JPY); // unknown
+  it("property equity with unknown currency: equity and LTV show 0 not null", () => {
+    const propertyValue = toBase(50000000, "EUR", "JPY", RATES_JPY); // unknown → 0
     const mortgageBalance = toBase(30000000, "JPY", "JPY", RATES_JPY); // known
     const equity = propertyValue - mortgageBalance;
     const equityPct = propertyValue > 0 ? (equity / propertyValue) * 100 : 0;
-    expect(isNaN(equity)).toBe(false);
-    expect(isNaN(equityPct)).toBe(false);
+    expect(typeof equity).toBe("number");
+    expect(typeof equityPct).toBe("number");
     // propertyValue=0, mortgageBalance=30M → equity=-30M, equityPct=0 (guard fires)
     expect(equityPct).toBe(0);
   });

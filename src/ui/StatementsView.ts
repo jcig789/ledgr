@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf, Events } from "obsidian";
 import LedgrPlugin from "../main";
-import { readMonthTransactions, summarize, convertToBase } from "../data/reader";
+import { readMonthTransactions, summarize, convertToBase, toBaseOrZero } from "../data/reader";
 import { loadNetWorth, NetWorthData, Account, Brokerage } from "../data/networth";
 import { loadBudgets, BudgetConfig } from "../data/budgets";
 import { Transaction } from "../data/transactions";
@@ -233,7 +233,7 @@ export class StatementsView extends ItemView {
     const ocfIncomeBySubcat: Record<string, number> = {};
     const nonOpIncomeBySubcat: Record<string, number> = {};
     transactions.filter((t) => t.type === "income").forEach((t) => {
-      const amt = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      const amt = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0;
       const stream = t.stream ?? "ocf";
       if (stream === "ocf") {
         ocfIncomeBySubcat[t.subcategory] = (ocfIncomeBySubcat[t.subcategory] ?? 0) + amt;
@@ -294,7 +294,7 @@ export class StatementsView extends ItemView {
         const monthsInYear = parseInt(this.selectedYear) < parseInt(window.moment().format("YYYY")) ? 12
           : window.moment().month() + 1; // months elapsed in current year
         const budget = budgetRaw
-          ? convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates) * monthsInYear
+          ? (convertToBase(budgetRaw, budgetConfig.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0) * monthsInYear
           : undefined;
         const actual = amt;
 
@@ -390,11 +390,11 @@ export class StatementsView extends ItemView {
     const ocfInItems = s.transactions.filter((t) => t.type === "income" && (t.stream ?? "ocf") === "ocf");
     const ocfOutItems = s.transactions.filter((t) => t.type === "expense" && (t.stream ?? "ocf") === "ocf");
     const ocfInBySource = ocfInItems.reduce((acc, t) => {
-      acc[t.subcategory] = (acc[t.subcategory] ?? 0) + convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      acc[t.subcategory] = (acc[t.subcategory] ?? 0) + (convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
       return acc;
     }, {} as Record<string, number>);
     const ocfOutByCategory = ocfOutItems.reduce((acc, t) => {
-      acc[t.category] = (acc[t.category] ?? 0) + convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      acc[t.category] = (acc[t.category] ?? 0) + (convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0);
       return acc;
     }, {} as Record<string, number>);
 
@@ -408,8 +408,8 @@ export class StatementsView extends ItemView {
     const icfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "icf");
     const icfLines = icfTxs.reduce((acc, t) => {
       const key = t.subcategory;
-      const base = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
-      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? base : -base);
+      const amt = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0;
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? amt : -amt);
       return acc;
     }, {} as Record<string, number>);
     addSection("Investing Activities", Object.entries(icfLines).map(([l, v]) => ({ label: l, value: v })), s.netICF, "Net Investing Cash Flow");
@@ -418,8 +418,8 @@ export class StatementsView extends ItemView {
     const fcfTxs = s.transactions.filter((t) => (t.stream ?? "ocf") === "fcf");
     const fcfLines = fcfTxs.reduce((acc, t) => {
       const key = t.subcategory;
-      const base = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates);
-      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? base : -base);
+      const amt = convertToBase(t.amount, t.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0;
+      acc[key] = (acc[key] ?? 0) + (t.type === "income" ? amt : -amt);
       return acc;
     }, {} as Record<string, number>);
     addSection("Financing Activities", Object.entries(fcfLines).map(([l, v]) => ({ label: l, value: v })), s.netFinancingCF, "Net Financing Cash Flow");
@@ -490,7 +490,7 @@ export class StatementsView extends ItemView {
       const nwData = await loadNetWorth(this.app, this.plugin.settings);
       const activeLiabilities = nwData.accounts.filter((a) => a.isLiability && a.liabilityDetails && !a.liabilityDetails.closedAt);
       fixedCommitments = activeLiabilities
-        .reduce((s, a) => s + convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+        .reduce((s, a) => s + (convertToBase(a.liabilityDetails!.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0), 0);
 
       // Compute payoff events using amortization when APR is set, linear otherwise
       activeLiabilities.forEach((a) => {
@@ -512,7 +512,7 @@ export class StatementsView extends ItemView {
             liabilityPayoffEvents.push({
               month: payoffMonth,
               label: a.name,
-              freedCash: convertToBase(ld.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates),
+              freedCash: convertToBase(ld.monthlyPayment, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0,
             });
           }
         }
@@ -522,7 +522,7 @@ export class StatementsView extends ItemView {
       const liquidTypes = new Set(["bank", "ewallet", "cash"]);
       currentLiquidBalance = nwData.accounts
         .filter((a) => !a.isLiability && liquidTypes.has(a.type))
-        .reduce((s, a) => s + convertToBase(a.balance, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates), 0);
+        .reduce((s, a) => s + (convertToBase(a.balance, a.currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0), 0);
     } catch { /* no networth */ }
 
     const result = buildProjection({
@@ -778,7 +778,7 @@ export class StatementsView extends ItemView {
     footRow.createEl("td", { text: fmtSigned(net), cls: `ledgr-text-right ${net >= 0 ? "ledgr-positive" : "ledgr-negative"}` });
 
     parent.createEl("p", {
-      text: `Cash basis. All amounts in ${this.viewCurrency}. Future months shown for reference.`,
+      text: `Cash basis. All amounts in ${this.viewCurrency}. Future months shown for reference. Outflows include all streams (OCF + ICF + FCF) — see Cash Flow Summary for the stream breakdown.`,
       cls: "ledgr-stmt-footnote",
     });
   }
@@ -791,7 +791,7 @@ export class StatementsView extends ItemView {
     this.stmtDocHeader(parent, "Balance Sheet", asOf);
 
     const toBase = (amount: number, currency: string) =>
-      convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates);
+      convertToBase(amount, currency, this.viewCurrency, this.plugin.settings.exchangeRates) ?? 0;
 
     // ASSETS
     const assetsSection = parent.createDiv("ledgr-stmt-section");

@@ -29,6 +29,8 @@ export interface LedgrSettings {
   templatesAppliedMonths: string[];  // "YYYY-MM" entries — months where templates were applied
   spendingOCFOnly: boolean;          // dashboard spending breakdown shows OCF-only when true
   standingNudgeDismissed: boolean;   // permanent dismiss flag for Standing tab discovery banner
+  targetMonthlyIncome: number | null; // optional stable denominator for savings rate (irregular income)
+  payDay: number;                    // day of month pay cycle starts (1 = calendar month, default)
 }
 
 export const DEFAULT_SETTINGS: LedgrSettings = {
@@ -63,4 +65,6 @@ export const DEFAULT_SETTINGS: LedgrSettings = {
   templatesAppliedMonths: [],
   spendingOCFOnly: false,
   standingNudgeDismissed: false,
+  targetMonthlyIncome: null,
+  payDay: 1,
 };

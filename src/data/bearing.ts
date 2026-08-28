@@ -4,7 +4,7 @@ import { readMonthTransactions } from "./reader";
 import { loadNetWorth } from "./networth";
 import { loadBudgets } from "./budgets";
 import { loadGoals } from "./goals";
-import { convertToBase } from "./reader";
+import { convertToBase, toBaseOrZero } from "./reader";
 import { loadNwHistory } from "./nwHistory";
 
 export interface PillarResult {
@@ -171,14 +171,19 @@ function calcDiscipline(
   let totalOverspend = 0;
   for (const [cat, budgetRaw] of Object.entries(budgetLimits)) {
     const budget = convertToBase(budgetRaw, budgetCurrency, base, rates);
-    if (isNaN(budget)) continue; // skip if budget currency has no exchange rate configured
+    if (budget === null) continue; // skip if budget currency has no exchange rate configured
     const actual = monthExpenses[cat] ?? 0;
     totalBudgeted += budget;
     totalOverspend += Math.max(0, actual - budget);
   }
 
   if (totalBudgeted === 0) {
-    return { name, score: 0, max: pillarMax, label: "Insufficient", hasData: false, note: "Set budgets to measure discipline." };
+    // All budget categories had unconfigured currencies — surface a clear warning
+    const skippedCount = Object.keys(budgetLimits).length;
+    return {
+      name, score: 0, max: pillarMax, label: "Insufficient", hasData: false,
+      note: `Budget currency has no exchange rate configured — ${skippedCount} categor${skippedCount !== 1 ? "ies" : "y"} excluded. Update rates in Settings → Exchange Rates.`,
+    };
   }
 
   const ratio = totalOverspend / totalBudgeted;
@@ -225,7 +230,7 @@ function calcProvision(
   const goalScores = goals.map((g) => {
     const balance = g.linkedAccountId ? (accountBalances[g.linkedAccountId] ?? 0) : 0;
     // accountBalances are in base currency; convert targetAmount to base for a valid ratio
-    const targetInBase = convertToBase(g.targetAmount, g.currency, base, rates);
+    const targetInBase = convertToBase(g.targetAmount, g.currency, base, rates) ?? 0;
     const rawProgress = targetInBase > 0 ? clamp(balance / targetInBase, 0, 1) : 0;
 
     let urgencyWeight = 1.0;
@@ -340,8 +345,7 @@ export async function calculateBearing(
   const composureExcluded = new Set(settings.composureExcludedCategories ?? []);
   const { getDefaultStream } = await import("../constants/categories");
   const safeConvert = (amount: number, currency: string) => {
-    const v = convertToBase(amount, currency, base, rates);
-    return isNaN(v) ? 0 : v; // exclude unconfigured currencies — conservative (treats as 0)
+    return toBaseOrZero(amount, currency, base, rates);
   };
 
   const monthlyExpenses = allMonthTxs.map((txs) =>
@@ -412,9 +416,9 @@ export async function calculateBearing(
     const { getDefaultStream } = await import("../constants/categories");
     const monthlyNetSavings = allMonthTxs.map((txs) => {
       const ocfInc = txs.filter((t) => t.type === "income" && (t.stream ?? getDefaultStream(t.subcategory)) === "ocf")
-        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return isNaN(a) ? s : s + a; }, 0);
+        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return a === null ? s : s + a; }, 0);
       const ocfExp = txs.filter((t) => t.type === "expense" && (t.stream ?? getDefaultStream(t.subcategory)) === "ocf")
-        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return isNaN(a) ? s : s + a; }, 0);
+        .reduce((s, t) => { const a = convertToBase(t.amount, t.currency, base, rates); return a === null ? s : s + a; }, 0);
       return ocfInc - ocfExp;
     });
     const nwSeries: number[] = [nwNow];

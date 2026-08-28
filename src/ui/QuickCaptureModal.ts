@@ -36,7 +36,7 @@ export class QuickCaptureModal extends Modal {
     this.settings = settings;
     const today = window.moment().format("YYYY-MM");
     if (contextMonth && contextMonth < today) {
-      this.date = window.moment(contextMonth).endOf("month").format("YYYY-MM-DD");
+      this.date = window.moment(contextMonth).startOf("month").format("YYYY-MM-DD");
     } else {
       this.date = window.moment().format("YYYY-MM-DD");
     }

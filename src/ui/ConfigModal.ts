@@ -319,6 +319,21 @@ export class ConfigModal extends Modal {
   }
 
   renderFeaturesTab(parent: HTMLElement) {
+    // Pay cycle start day
+    new Setting(parent)
+      .setName("Pay cycle start day")
+      .setDesc("Day of the month your pay period begins (1 = calendar month, the default). Set to 25 if you're paid on the 25th — the daily countdown will reflect your actual cycle.")
+      .addDropdown((d) => {
+        d.addOption("1", "1st (calendar month)");
+        for (let i = 2; i <= 28; i++) d.addOption(String(i), `${i}th`);
+        d.setValue(String(this.plugin.settings.payDay ?? 1));
+        d.onChange(async (v) => {
+          this.plugin.settings.payDay = parseInt(v);
+          await this.plugin.saveSettings();
+          this.app.workspace.trigger("ledgr:settings-changed");
+        });
+      });
+
     // Calendar week start
     new Setting(parent)
       .setName("Calendar week start")
@@ -479,6 +494,8 @@ export class ConfigModal extends Modal {
     this.plugin.settings.templatesAppliedMonths = [];
     this.plugin.settings.standingNudgeDismissed = false;
     this.plugin.settings.spendingOCFOnly = false;
+    this.plugin.settings.targetMonthlyIncome = null;
+    this.plugin.settings.payDay = 1;
     await this.plugin.saveSettings();
 
     new Notice("All Ledgr data deleted. Starting your new ledger.");
